@@ -9,6 +9,8 @@ import { webSession } from './security'
 
 let blocker: ElectronBlocker | null = null
 let enabled = true
+/** Whether blocking is currently wired into the session (disable throws if not). */
+let active = false
 let allowRules: string[] = []
 let blockedCount = 0
 
@@ -67,8 +69,14 @@ function applyAllowlist(hosts: string[]): void {
 function applyState(): void {
   if (!blocker) return
   const sess = webSession()
-  blocker.disableBlockingInSession(sess)
-  if (enabled) blocker.enableBlockingInSession(sess)
+  if (active) {
+    blocker.disableBlockingInSession(sess)
+    active = false
+  }
+  if (enabled) {
+    blocker.enableBlockingInSession(sess)
+    active = true
+  }
 }
 
 /** React to a settings change (toggle or allowlist edit) without a restart. */
