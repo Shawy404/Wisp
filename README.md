@@ -2,137 +2,137 @@
 
 # Wisp
 
-> Gezinmek dağılmak değil, haritalamak olsun.
+Wisp is a desktop browser built around one idea: research shouldn't be
+scattered across fifty tabs, a notes app, and a citation manager that never
+sync with each other. In Wisp, each topic gets its own **room** — the tabs,
+notes, sources, and concept map for that topic all live together, and switch
+in and out as you move between rooms. Everything is stored locally on disk.
 
-Wisp, araştırma için doğmuş bir masaüstü tarayıcıdır. Her araştırma konusu kendi
-**odasında** yaşar: o odada gezdiğin sekmeler, aldığın notlar, topladığın
-kaynaklar ve oluşan kavram haritası hep bir arada — ve hepsi senin diskinde.
+The name comes from *will-o'-the-wisp*, the ghost light said to lead
+travelers through marshland — the Japanese folklore equivalent is
+*kitsunebi* (狐火), "fox fire."
 
-İsmin kökeni: *will-o'-the-wisp* — bataklıkta yolcuları yönlendiren hayalet ışık.
-Japon folklorundaki karşılığı *kitsunebi* (狐火), "tilki ateşi".
+Built by Shawy404. © Shawy404, all rights reserved.
 
-**Yaratıcı:** Shawy404 · © Shawy404, tüm hakları saklıdır.
+## What it does
 
-## Özellikler
+**Rooms.** Each research topic is a room with its own tabs, notes, sources,
+and map. Switch rooms and your tabs swap out; close and reopen a room and
+everything comes back where you left it. Rooms live in their own folder on
+disk.
 
-- **Odalar** — oda başına sekmeler, notlar, kaynaklar, harita. Oda değiştir →
-  sekmeler takas olur; kapat-aç → geri gelir. Diskte oda başına klasör.
-- **Temiz arama şeridi** — Semantic Scholar + Crossref + arXiv + Wikipedia
-  (tr/en) + Openverse + DuckDuckGo paralel aranır; sorgu otomatik sınıflanır
-  (akademik/genel). **Arama yakalama:** akademik + wiki + görsel sonuçlar
-  otomatik olarak odanın kaynaklarına kaydedilir — elle atıf yazmazsın.
-- **Adblocker** — EasyList + EasyPrivacy; ayarlardan toggle + site istisnası.
-- **Reader modu** — Readability ile temiz okuma; tek tıkla odaya kaydet.
-- **Klip** — sağ tık: tüm sayfa / seçili metin / görsel → `clips/` + kaynaklar.
-- **Notlar** — CodeMirror 6 markdown, `notes/*.md` (Obsidian uyumlu),
-  `[[wikilink]]` (Ctrl+tıkla aç/oluştur), `![[src-id]]` kaynak gömme.
-- **Kavram haritası** — tek graph, üç görünüm. Bağlar: wikilink (yeşil ok),
-  etiket-bazlı önerilen (kesikli, bedava, deterministik), manuel
-  (Shift+tıkla iki düğüm), AI önerisi ("Bağlantıları bul" — istek üzerine tek
-  Claude çağrısı, API anahtarı ayarlardan).
-- **Araştırma araçları** — kaynak kartından BibTeX/APA/MLA kopyala; split view
-  (kaynak|not); Ctrl+K komut paleti (`?sorgu` ile hızlı arama).
-- **Cila** — koyu/açık tema + özel hex vurgu rengi; web dev modu (DevTools +
-  arama JSON görüntüleyici); odak sayacı (pomodoro); profil etiketi.
+**Search.** One search bar queries Semantic Scholar, Crossref, arXiv,
+Wikipedia (Turkish and English), Openverse, and DuckDuckGo in parallel, and
+sorts the query as academic or general automatically. Academic, wiki, and
+image results get saved to the room's sources on their own — no manual
+citation entry.
 
-## Kısayollar
+**Adblock.** EasyList and EasyPrivacy, with a settings toggle and per-site
+exceptions.
 
-| Kısayol | İşlev |
+**Reader mode.** Readability-based clean reading view, one click to save
+into the room.
+
+**Clipping.** Right-click to save a full page, selected text, or an image
+into `clips/`, tied back into sources.
+
+**Notes.** CodeMirror 6 markdown editor writing to `notes/*.md`
+(Obsidian-compatible), with `[[wikilink]]` navigation (ctrl-click to open or
+create) and `![[src-id]]` embeds for pulling a source straight into a note.
+
+**Concept map.** One graph, three views. Edges come from wikilinks (shown as
+a green arrow), tag-based suggestions (dashed, free, deterministic), manual
+links (shift-click two nodes), or an AI suggestion pass ("find connections"
+— a single on-demand Claude call, API key set in settings).
+
+**Research tools.** Copy BibTeX/APA/MLA straight from a source card, split
+view for reading a source next to your notes, and a command palette
+(ctrl-K, `?query` for a quick search).
+
+**The rest.** Dark/light theme with a custom accent color, a web-dev mode
+(DevTools plus a JSON viewer for search responses), a focus timer, and
+profile labels.
+
+## Shortcuts
+
+| Shortcut | Action |
 | --- | --- |
-| Ctrl+T | Yeni sekme |
-| Ctrl+W | Sekmeyi kapat |
-| Ctrl+L | Adres çubuğu |
-| Ctrl+K | Komut paleti |
-| Shift+tıkla (haritada 2 düğüm) | Manuel bağ |
-| Alt+tıkla (haritada bağ) | Manuel/AI bağı sil |
-| Ctrl+tıkla (notta wikilink) | Hedef notu aç/oluştur |
+| Ctrl+T | New tab |
+| Ctrl+W | Close tab |
+| Ctrl+L | Address bar |
+| Ctrl+K | Command palette |
+| Shift-click (two nodes on the map) | Manual link |
+| Alt-click (a link on the map) | Delete manual/AI link |
+| Ctrl-click (a wikilink in a note) | Open or create the target note |
 
-## Kurulum ve çalıştırma
+## Running it
 
 ```bash
 cd wisp
-npm install          # bağımlılıklar + Electron ikili dosyası
-npm run dev          # geliştirme modu (hot reload)
-npm run build        # üretim paketi (out/)
-npm run typecheck    # TS tip kontrolü
-npm run build:linux  # AppImage üret (dist/)
+npm install          # dependencies + Electron binary
+npm run dev           # dev mode with hot reload
+npm run build         # production bundle (out/)
+npm run typecheck     # TS type checking
+npm run build:linux   # produce an AppImage (dist/)
 ```
 
-> Electron ikili dosyası GitHub releases'ten indirilir. Kısıtlı ağlarda
-> `ELECTRON_MIRROR` ortam değişkeniyle bir ayna tanımlayabilirsin.
+> The Electron binary is pulled from GitHub releases during install. On a
+> restricted network, point `ELECTRON_MIRROR` at a mirror.
 
-## Mimari
+## Architecture
 
-- **Yığın:** Electron + React + TypeScript + Tailwind v4 (electron-vite),
-  Cytoscape.js (harita), CodeMirror 6 (notlar), @mozilla/readability (reader),
-  @ghostery/adblocker-electron (adblock), @anthropic-ai/sdk (AI önerileri).
-- **Süreç ayrımı:** Main process pencere/sekmeler (WebContentsView), adblocker,
-  arama toplama (net.fetch), dosya sistemi ve IPC'yi yönetir. Renderer yalnızca
-  UI kabuğudur (`contextIsolation: true`, `nodeIntegration: false`, preload köprüsü).
-- **Wayland/Hyprland:** frameless pencere + uygulama içi pencere kontrolleri,
-  `ozone-platform-hint=auto`.
-- **Local-first:** Hiçbir veri buluta gitmez (AI önerileri hariç — o da yalnızca
-  istek üzerine, yalnızca düğüm başlıkları/etiketleri gider). Her şey `~/Wisp/`
-  altındadır (`WISP_HOME` ile taşınabilir):
+Electron + React + TypeScript + Tailwind v4, wired up with electron-vite.
+Cytoscape.js drives the concept map, CodeMirror 6 the notes, and
+`@mozilla/readability` the reader mode; `@ghostery/adblocker-electron`
+handles blocking and `@anthropic-ai/sdk` powers the optional AI link
+suggestions.
+
+The main process owns windows and tabs (via `WebContentsView`), the
+adblocker, search aggregation (`net.fetch`), the filesystem, and IPC. The
+renderer is UI only — `contextIsolation: true`, `nodeIntegration: false`,
+everything crosses through a preload bridge.
+
+On Wayland/Hyprland, Wisp runs frameless with its own in-app window
+controls (`ozone-platform-hint=auto`).
+
+Everything is local-first: nothing goes to the cloud except the optional AI
+link suggestions, and even those only send node titles/tags, only when you
+ask for them. All data lives under `~/Wisp/` (override with `WISP_HOME` to
+relocate it):
 
 ```
 ~/Wisp/
-  config.json                 # global ayarlar (tema, adblock, API anahtarı, profil)
+  config.json                 # global settings (theme, adblock, API key, profile)
   rooms/
-    <oda>/
-      room.json               # oda meta + açık sekmeler + aktif sekme
-      notes/*.md              # notlar (Obsidian uyumlu markdown)
-      sources.json            # toplanan kaynaklar + metadata
-      map.json                # kavram düğümleri + kalıcı bağlar
-      clips/                  # klipslenen görseller / temizlenmiş sayfalar (.md)
+    <room>/
+      room.json               # room metadata + open tabs + active tab
+      notes/*.md               # notes (Obsidian-compatible markdown)
+      sources.json             # collected sources + metadata
+      map.json                 # concept nodes + persisted links
+      clips/                   # clipped images / cleaned pages (.md)
 ```
 
-- **Tek graph, üç görünüm:** Kenar çubuğundaki kaynak kartı, nottaki
-  `[[wikilink]]` / `![[src-id]]` ve haritadaki düğüm aynı nesnedir.
-  `shared/graph.ts` her oda verisinden grafiği türetir; birini düzenle →
-  hepsi güncellenir.
+One graph feeds three surfaces: the source card in the sidebar, a
+`[[wikilink]]`/`![[src-id]]` in a note, and a node on the map are the same
+underlying object. `shared/graph.ts` derives the graph from each room's
+data, so editing one view updates the others.
 
-## Fazlar
+## Known limitations
 
-| Faz | Kapsam | Durum |
-| --- | --- | --- |
-| 0 | İskele + kimlik | ✅ |
-| 1 | Tarayıcı çekirdeği + oda sistemi | ✅ |
-| 2 | Temiz arama şeridi | ✅ |
-| 3 | Adblocker + reader + klip | ✅ |
-| 4 | Notlar | ✅ |
-| 5 | Kavram haritası | ✅ |
-| 6 | Araştırma araçları | ✅ |
-| 7 | Cila + paketleme | ✅ (AppImage yapılandırması hazır — aşağıya bak) |
+- No real Chrome extension API.
+- Not aiming for full multi-process sandbox security — relies on Electron's
+  defaults plus contextIsolation; tab content is sandboxed.
+- No cloud sync, no mobile.
+- Web-dev mode is a global toggle for now (a per-room setting is reserved in
+  `room.json` but unused).
+- Multiple profiles are just a label right now; use separate `WISP_HOME`
+  paths if you need actually separate data directories.
+- The DuckDuckGo "Web" results are scraped HTML — if DDG changes their
+  markup, that tab can come back empty (other sources aren't affected).
 
-## Doğrulama notu (geliştirme oturumu)
+## Up next
 
-Bu depo, dış ağı kısıtlı bir ortamda geliştirildi. Orada **doğrulanabilenler**:
-TS tip kontrolü ve üretim build'i her fazda temiz; depolama katmanı, arama
-parser'ları (sahte API yanıtlarıyla), wikilink/graph/atıf mantığı birim
-testlerle; UI panelleri (arama, kaynaklar, notlar+CodeMirror, harita+Cytoscape,
-palet, ayarlar/tema) gerçek Chromium'da sahte IPC köprüsüyle smoke testlerle.
-**Doğrulanamayanlar** (Electron ikilisi ve canlı API'ler o ortamda inemedi):
-pencere/sekme davranışının canlı hali, canlı arama uçları, EasyList indirme ve
-AppImage üretimi — bunlar normal bir makinede `npm install && npm run dev` /
-`npm run build:linux` ile çalışması beklenen, standart yollardır. İlk canlı
-çalıştırmada bir pürüz çıkarsa muhtemel yer WebContentsView bounds/odak
-davranışıdır.
-
-## Bilinen sınırlamalar
-
-- Gerçek Chrome extension API'si yok.
-- Tam multi-process sandbox güvenliği hedeflenmedi (Electron varsayılanları +
-  contextIsolation; sekme içerikleri sandboxed).
-- Bulut senkronizasyonu ve mobil kapsam dışı.
-- Web dev modu global bir toggle'dır (oda-bazlı ayar `room.json`'da rezerve).
-- Çoklu profil şimdilik bir etiket; ayrı veri dizinleri için `WISP_HOME` kullan.
-- DuckDuckGo web sonuçları HTML kazımadır; DDG işaretlemeyi değiştirirse
-  "Web" sekmesi boş kalabilir (diğer kaynaklar etkilenmez).
-
-## Sonraki adımlar
-
-- Harita düğümüne çift tıkla → ilgili not/kaynağı aç (navigasyon köprüsü).
-- Not önizleme (marked hazır, salt-okunur render).
-- Oda-bazlı dev modu ve oda başına odak istatistikleri.
-- `search:last` sonuçlarının diske yazılması (oturumlar arası arama geçmişi).
+- Double-click a map node to jump to the linked note/source.
+- Note preview (marked is already wired in, just needs a read-only render).
+- Per-room dev mode and per-room focus stats.
+- Persist `search:last` results to disk for cross-session search history.
