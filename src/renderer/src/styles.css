@@ -3,6 +3,8 @@
 
 @theme {
   --color-accent: var(--wisp-accent, #7dd3a8);
+  --color-neutral-850: #1f1f23;
+  --color-neutral-925: #131316;
 }
 
 :root {
