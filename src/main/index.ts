@@ -7,6 +7,7 @@ import { registerCoreIpc, type WispContext } from './ipc'
 import { registerSearchIpc } from './search-ipc'
 import { registerReaderIpc } from './reader'
 import { registerClip } from './clip'
+import { registerNotesIpc } from './notes-ipc'
 import { initAdblock } from './adblock'
 
 // Wayland/Hyprland friendliness: let Chromium pick the native platform.
@@ -46,6 +47,7 @@ function createWindow(): void {
   registerSearchIpc(ctx)
   registerReaderIpc(ctx)
   registerClip(ctx)
+  registerNotesIpc(ctx)
   void initAdblock(ctx.config)
 
   if (process.env.ELECTRON_RENDERER_URL) {
