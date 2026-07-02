@@ -58,6 +58,28 @@ export function registerMapIpc(ctx: WispContext): void {
     return map
   })
 
+  // Place a source on the map (drag from the library panel / its ＋ button).
+  ipcMain.handle('map:includeNode', (_e, roomId: string, sourceId: string) => {
+    const map = store.loadMap(roomId)
+    const included = new Set(map.included ?? [])
+    included.add(sourceId)
+    map.included = [...included]
+    store.saveMap(roomId, map)
+    notify(roomId)
+    return map
+  })
+
+  // Take a source off the map. Its persisted edges stay in map.json — they
+  // simply don't render while an endpoint is off the canvas, and come back
+  // if the source is placed again.
+  ipcMain.handle('map:excludeNode', (_e, roomId: string, sourceId: string) => {
+    const map = store.loadMap(roomId)
+    map.included = (map.included ?? []).filter((id) => id !== sourceId)
+    store.saveMap(roomId, map)
+    notify(roomId)
+    return map
+  })
+
   ipcMain.handle('map:clearHidden', (_e, roomId: string) => {
     const map = store.loadMap(roomId)
     map.hidden = []

@@ -38,8 +38,9 @@ export interface GraphOptions {
 }
 
 /**
- * The single source of truth for the map. Notes, sources and concept nodes are
- * the *same* objects the sidebar shows — here they become graph nodes. Edges:
+ * The single source of truth for the map. Notes and concept nodes always show
+ * (they're deliberate creations); sources only show once the user has placed
+ * them on the map (map.included) — dragged in from the library panel. Edges:
  *   1. wikilink   — [[note]] / ![[src-id]] references in note bodies
  *   2. manual/ai  — persisted edges from map.json (drag-to-link, accepted AI)
  *   3. tag        — OPTIONAL soft "shares a tag" edges, off unless asked for
@@ -57,7 +58,14 @@ export function buildGraph(data: RoomData, opts: GraphOptions = {}): Graph {
     }
   }
 
+  // Placed on the map explicitly, or embedded in a note (![[src]]) — both are
+  // deliberate acts, so both count as "on the map".
+  const included = new Set(data.map.included ?? [])
+  for (const n of data.notes) {
+    for (const embedId of extractSourceEmbeds(n.body)) included.add(embedId)
+  }
   for (const s of data.sources) {
+    if (!included.has(s.id)) continue
     add({ id: s.id, label: s.title, type: 'source', kind: s.kind, tags: s.tags })
   }
   const noteBySlug = new Map<string, NoteInfo>()

@@ -30,7 +30,7 @@ function makeSource(
 }
 
 async function semanticScholar(query: string, f: FetchFn): Promise<SourceItem[]> {
-  const url = `https://api.semanticscholar.org/graph/v1/paper/search?query=${encodeURIComponent(query)}&limit=15&fields=title,authors,year,venue,abstract,externalIds,url`
+  const url = `https://api.semanticscholar.org/graph/v1/paper/search?query=${encodeURIComponent(query)}&limit=100&fields=title,authors,year,venue,abstract,externalIds,url`
   const res = await f(url, { headers: UA })
   if (!res.ok) throw new Error(`Semantic Scholar ${res.status}`)
   const data = (await res.json()) as {
@@ -62,7 +62,7 @@ async function semanticScholar(query: string, f: FetchFn): Promise<SourceItem[]>
 }
 
 async function crossref(query: string, f: FetchFn): Promise<SourceItem[]> {
-  const url = `https://api.crossref.org/works?query=${encodeURIComponent(query)}&rows=12&select=title,author,issued,container-title,DOI,URL,abstract`
+  const url = `https://api.crossref.org/works?query=${encodeURIComponent(query)}&rows=50&select=title,author,issued,container-title,DOI,URL,abstract`
   const res = await f(url, { headers: UA })
   if (!res.ok) throw new Error(`Crossref ${res.status}`)
   const data = (await res.json()) as {
@@ -98,7 +98,7 @@ async function crossref(query: string, f: FetchFn): Promise<SourceItem[]> {
 }
 
 async function arxiv(query: string, f: FetchFn): Promise<SourceItem[]> {
-  const url = `https://export.arxiv.org/api/query?search_query=all:${encodeURIComponent(query)}&max_results=12`
+  const url = `https://export.arxiv.org/api/query?search_query=all:${encodeURIComponent(query)}&max_results=50`
   const res = await f(url, { headers: UA })
   if (!res.ok) throw new Error(`arXiv ${res.status}`)
   const xml = await res.text()
@@ -126,7 +126,7 @@ async function arxiv(query: string, f: FetchFn): Promise<SourceItem[]> {
 }
 
 async function wikipedia(query: string, lang: string, f: FetchFn): Promise<SourceItem[]> {
-  const url = `https://${lang}.wikipedia.org/w/rest.php/v1/search/page?q=${encodeURIComponent(query)}&limit=6`
+  const url = `https://${lang}.wikipedia.org/w/rest.php/v1/search/page?q=${encodeURIComponent(query)}&limit=25`
   const res = await f(url, { headers: UA })
   if (!res.ok) throw new Error(`Wikipedia(${lang}) ${res.status}`)
   const data = (await res.json()) as {
@@ -149,7 +149,7 @@ async function wikipedia(query: string, lang: string, f: FetchFn): Promise<Sourc
 }
 
 async function openverse(query: string, f: FetchFn): Promise<SourceItem[]> {
-  const url = `https://api.openverse.org/v1/images/?q=${encodeURIComponent(query)}&page_size=20`
+  const url = `https://api.openverse.org/v1/images/?q=${encodeURIComponent(query)}&page_size=50`
   const res = await f(url, { headers: UA })
   if (!res.ok) throw new Error(`Openverse ${res.status}`)
   const data = (await res.json()) as {
@@ -189,7 +189,7 @@ async function duckduckgo(query: string, f: FetchFn): Promise<SourceItem[]> {
   const re =
     /<a[^>]+class="result__a"[^>]+href="([^"]+)"[^>]*>([\s\S]*?)<\/a>[\s\S]*?(?:class="result__snippet"[^>]*>([\s\S]*?)<\/a>)?/g
   let m: RegExpExecArray | null
-  while ((m = re.exec(html)) && out.length < 12) {
+  while ((m = re.exec(html)) && out.length < 30) {
     let href = m[1]
     const redirect = href.match(/uddg=([^&]+)/)
     if (redirect) href = decodeURIComponent(redirect[1])

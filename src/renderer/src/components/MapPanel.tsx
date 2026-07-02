@@ -211,16 +211,44 @@ export default function MapPanel(): React.JSX.Element {
 
   // Build with explicit edges only (tag links opt-in), minus hidden nodes, then
   // apply the node-type view filter and drop edges that lose an endpoint.
+  // Sources only enter the graph once placed on the map (map.included / embeds).
+  const fullGraph = useMemo(
+    () =>
+      buildGraph(
+        { meta: {} as never, sources, notes, map },
+        { tagLinks: showTagLinks, hidden: new Set(map.hidden ?? []) }
+      ),
+    [sources, notes, map, showTagLinks]
+  )
   const graph = useMemo(() => {
-    const g = buildGraph(
-      { meta: {} as never, sources, notes, map },
-      { tagLinks: showTagLinks, hidden: new Set(map.hidden ?? []) }
-    )
-    const nodes = g.nodes.filter((n) => showTypes[n.type])
+    const nodes = fullGraph.nodes.filter((n) => showTypes[n.type])
     const kept = new Set(nodes.map((n) => n.id))
-    const edges = g.edges.filter((e) => kept.has(e.from) && kept.has(e.to))
+    const edges = fullGraph.edges.filter((e) => kept.has(e.from) && kept.has(e.to))
     return { nodes, edges }
-  }, [sources, notes, map, showTagLinks, showTypes])
+  }, [fullGraph, showTypes])
+
+  // The library: collected sources that are not on the canvas yet. Drag one
+  // onto the map (or hit its ＋) to place it.
+  const onMapIds = useMemo(() => new Set(fullGraph.nodes.map((n) => n.id)), [fullGraph])
+  const librarySources = useMemo(
+    () =>
+      sources
+        .filter((s) => !onMapIds.has(s.id))
+        .sort((a, b) => b.addedAt.localeCompare(a.addedAt)),
+    [sources, onMapIds]
+  )
+
+  const placeOnMap = async (sourceId: string): Promise<void> => {
+    if (!activeRoomId) return
+    await invoke('map:includeNode', activeRoomId, sourceId)
+    await useApp.getState().refreshRoomData()
+  }
+  const removeFromMap = async (sourceId: string): Promise<void> => {
+    if (!activeRoomId) return
+    setCtx(null)
+    await invoke('map:excludeNode', activeRoomId, sourceId)
+    await useApp.getState().refreshRoomData()
+  }
 
   const applyRoomData = (): Promise<void> => useApp.getState().refreshRoomData()
 
@@ -406,7 +434,20 @@ export default function MapPanel(): React.JSX.Element {
 
   return (
     <div className="absolute inset-0 flex overflow-hidden bg-neutral-950">
-      <div className="relative min-w-0 flex-1" onClick={() => setCtx(null)}>
+      <div
+        className="relative min-w-0 flex-1"
+        onClick={() => setCtx(null)}
+        onDragOver={(e) => {
+          if (e.dataTransfer.types.includes('wisp/source-id')) e.preventDefault()
+        }}
+        onDrop={(e) => {
+          const id = e.dataTransfer.getData('wisp/source-id')
+          if (id) {
+            e.preventDefault()
+            void placeOnMap(id)
+          }
+        }}
+      >
         <div ref={host} className="h-full w-full" />
 
         {/* Filter bar: what shows on the map. Tag links are off by default. */}
@@ -421,7 +462,8 @@ export default function MapPanel(): React.JSX.Element {
                 ? 'border-accent/50 bg-accent/15 text-accent'
                 : 'border-neutral-850 text-neutral-600'
             }`}
-            title={t('map.tagLinks.hint')}
+            data-tip={t('map.tagLinks.hint')}
+            data-tip-pos="bottom"
           >
             {t('map.tagLinks')}
           </button>
@@ -453,7 +495,15 @@ export default function MapPanel(): React.JSX.Element {
                 {t('map.ctx.deleteConcept')}
               </button>
             )}
-            {ctx.nodeId && ctx.nodeType !== 'concept' && (
+            {ctx.nodeId && ctx.nodeType === 'source' && (
+              <button
+                className="block w-full px-3 py-1.5 text-left text-neutral-200 hover:bg-neutral-800"
+                onClick={() => void removeFromMap(ctx.nodeId!)}
+              >
+                {t('map.ctx.removeFromMap')}
+              </button>
+            )}
+            {ctx.nodeId && ctx.nodeType === 'note' && (
               <button
                 className="block w-full px-3 py-1.5 text-left text-neutral-200 hover:bg-neutral-800"
                 onClick={() => void hideNode(ctx.nodeId!)}
@@ -512,6 +562,47 @@ export default function MapPanel(): React.JSX.Element {
               </div>
             </div>
           )}
+
+          {/* Library: sources collected but not yet placed on the map. */}
+          <div className="mb-3">
+            <div className="mb-1.5 text-[10px] tracking-wide text-neutral-500 uppercase">
+              {t('map.library')}
+            </div>
+            {librarySources.length === 0 ? (
+              <div className="px-1 py-1 text-[10px] text-neutral-600">{t('map.library.empty')}</div>
+            ) : (
+              <>
+                <div className="mb-1.5 text-[10px] text-neutral-600">{t('map.library.hint')}</div>
+                <div className="max-h-56 space-y-0.5 overflow-y-auto">
+                  {librarySources.map((s) => (
+                    <div
+                      key={s.id}
+                      draggable
+                      onDragStart={(e) => {
+                        e.dataTransfer.setData('wisp/source-id', s.id)
+                        e.dataTransfer.effectAllowed = 'copy'
+                      }}
+                      className="group flex cursor-grab items-center gap-1.5 rounded px-1.5 py-1 text-[11px] text-neutral-400 hover:bg-neutral-850 active:cursor-grabbing"
+                      title={s.title}
+                    >
+                      <span
+                        className="inline-block h-2 w-2 shrink-0 rounded-sm"
+                        style={{ background: TYPE_COLOR.source }}
+                      />
+                      <span className="min-w-0 flex-1 truncate">{s.title}</span>
+                      <button
+                        className="hidden shrink-0 text-neutral-500 group-hover:inline hover:text-accent"
+                        onClick={() => void placeOnMap(s.id)}
+                        data-tip={t('map.library.add')}
+                      >
+                        ＋
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              </>
+            )}
+          </div>
 
           <div>
             <div className="mb-1.5 flex items-center justify-between">

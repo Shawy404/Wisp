@@ -56,7 +56,7 @@ export interface SourceItem {
   excerpt?: string
   tags: string[]
   addedAt: string
-  origin: 'search' | 'clip' | 'reader'
+  origin: 'search' | 'clip' | 'reader' | 'manual'
 }
 
 /** A note on disk (rooms/<slug>/notes/<name>.md). Also a node in the graph. */
@@ -91,6 +91,12 @@ export interface MapData {
   edges: MapEdge[]
   /** Node ids the user has hidden from the map (sources/notes they don't want shown). */
   hidden?: string[]
+  /**
+   * Source ids the user has placed on the map. Sources never appear on the map
+   * by themselves — they're dragged in (or added) from the map's library panel,
+   * so the map stays a deliberate canvas instead of a dump of every source.
+   */
+  included?: string[]
 }
 
 /** Everything the renderer needs about one room's knowledge base. */
@@ -102,6 +108,8 @@ export interface RoomData {
 }
 
 export type ThemeId = 'dark' | 'midnight' | 'forest' | 'plum' | 'light' | 'sepia'
+
+export type SearchEngineId = 'google' | 'duckduckgo' | 'bing' | 'brave'
 
 /** Global settings (~/Wisp/config.json). */
 export interface WispConfig {
@@ -129,6 +137,10 @@ export interface WispConfig {
   backgroundBlur?: number
   /** Zen-style glass: make the UI surfaces translucent so the background shows through. */
   translucentUi?: boolean
+  /** Real window transparency (compositor glass) — needs an app restart. */
+  windowTransparent?: boolean
+  /** Engine used for address-bar web searches. */
+  searchEngine?: SearchEngineId
 }
 
 /** Search results returned by the main-process search aggregator. */

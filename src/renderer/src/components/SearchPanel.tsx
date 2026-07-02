@@ -17,6 +17,7 @@ const TAB_KEY: Record<ResultTab, TKey> = {
 export default function SearchPanel(): React.JSX.Element {
   const activeRoomId = useApp((s) => s.activeRoomId)
   const devMode = useApp((s) => s.config?.devMode ?? false)
+  const savedSources = useApp((s) => s.sources)
   const t = useT()
   const [query, setQuery] = useState('')
   const [results, setResults] = useState<SearchResults | null>(null)
@@ -70,6 +71,32 @@ export default function SearchPanel(): React.JSX.Element {
 
   const items: SourceItem[] = results ? results[tab] : []
 
+  // Nothing saves automatically anymore — every result carries its own save
+  // button, and already-saved ones show a check instead.
+  const savedIds = new Set(savedSources.map((s) => s.id))
+  const saveResult = async (s: SourceItem): Promise<void> => {
+    if (!activeRoomId || savedIds.has(s.id)) return
+    await invoke('sources:add', activeRoomId, s)
+    await useApp.getState().refreshRoomData()
+  }
+
+  const SaveButton = ({ source }: { source: SourceItem }): React.JSX.Element => {
+    const saved = savedIds.has(source.id)
+    return (
+      <button
+        className={`rounded px-1.5 py-px text-[10px] ${
+          saved
+            ? 'cursor-default text-accent'
+            : 'text-neutral-400 hover:bg-neutral-800 hover:text-accent'
+        }`}
+        onClick={() => void saveResult(source)}
+        data-tip={saved ? t('search.savedTip') : t('search.saveTip')}
+      >
+        {saved ? `✓ ${t('search.saved')}` : `＋ ${t('search.save')}`}
+      </button>
+    )
+  }
+
   return (
     <div className="absolute inset-0 flex flex-col overflow-hidden bg-neutral-950">
       <div className="mx-auto flex w-full max-w-3xl flex-col gap-3 px-6 pt-6 pb-2">
@@ -118,7 +145,8 @@ export default function SearchPanel(): React.JSX.Element {
                   className={`rounded px-2 py-0.5 text-[10px] ${
                     showJson ? 'bg-neutral-800 text-accent' : 'text-neutral-600 hover:text-neutral-400'
                   }`}
-                  title={t('search.jsonToggle')}
+                  data-tip={t('search.jsonToggle')}
+                  data-tip-pos="bottom"
                 >
                   {'{ } JSON'}
                 </button>
@@ -148,28 +176,45 @@ export default function SearchPanel(): React.JSX.Element {
           (tab === 'images' ? (
             <div className="grid grid-cols-3 gap-2 sm:grid-cols-4">
               {items.map((s) => (
-                <button
+                <div
                   key={s.id}
                   className="group relative aspect-square overflow-hidden rounded-lg border border-neutral-800 bg-neutral-900"
                   title={s.title}
-                  onClick={() => {
-                    if (s.url) {
-                      useApp.getState().newTab(s.url)
-                      useApp.getState().setOverlay('none')
-                    }
-                  }}
                 >
-                  {s.imageUrl && (
-                    <img src={s.imageUrl} alt={s.title} className="h-full w-full object-cover" loading="lazy" />
-                  )}
+                  <button
+                    className="h-full w-full"
+                    onClick={() => {
+                      if (s.url) {
+                        useApp.getState().newTab(s.url)
+                        useApp.getState().setOverlay('none')
+                      }
+                    }}
+                  >
+                    {s.imageUrl && (
+                      <img src={s.imageUrl} alt={s.title} className="h-full w-full object-cover" loading="lazy" />
+                    )}
+                  </button>
+                  <button
+                    className={`absolute top-1 right-1 flex h-6 w-6 items-center justify-center rounded-md text-xs backdrop-blur ${
+                      savedIds.has(s.id)
+                        ? 'bg-black/60 text-accent'
+                        : 'bg-black/60 text-neutral-200 opacity-0 group-hover:opacity-100 hover:text-accent'
+                    }`}
+                    onClick={() => void saveResult(s)}
+                    data-tip={savedIds.has(s.id) ? t('search.savedTip') : t('search.saveTip')}
+                  >
+                    {savedIds.has(s.id) ? '✓' : '＋'}
+                  </button>
                   <span className="absolute inset-x-0 bottom-0 truncate bg-black/60 px-1.5 py-0.5 text-[10px] text-neutral-200 opacity-0 group-hover:opacity-100">
                     {s.title}
                   </span>
-                </button>
+                </div>
               ))}
             </div>
           ) : (
-            items.map((s) => <SourceCard key={s.id} source={s} />)
+            items.map((s) => (
+              <SourceCard key={s.id} source={s} extraActions={<SaveButton source={s} />} />
+            ))
           ))}
         {!loading && results && items.length === 0 && (
           <div className="pt-8 text-center text-xs text-neutral-600">{t('search.noResultsInTab')}</div>

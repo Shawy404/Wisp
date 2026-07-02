@@ -53,6 +53,36 @@ export function registerClip(ctx: WispContext): void {
 
       const template: Electron.MenuItemConstructorOptions[] = []
 
+      // The primary way to collect sources while researching: right-click a
+      // page and take it as a source. Lightweight — title + URL, no clip file.
+      if (pageUrl && !pageUrl.startsWith('about:')) {
+        template.push({
+          label: t('main.clip.addSourceLabel', { room: roomName }),
+          click: () => {
+            const source: SourceItem = {
+              id: `src-${stableId(pageUrl)}`,
+              kind: 'web',
+              title: pageTitle || pageUrl,
+              url: pageUrl,
+              venue: (() => {
+                try {
+                  return new URL(pageUrl).hostname
+                } catch {
+                  return undefined
+                }
+              })(),
+              tags: extractKeywords(pageTitle || '', 4).map(tagSlug),
+              addedAt: new Date().toISOString(),
+              origin: 'manual'
+            }
+            addSources(roomId, [source])
+            notify(roomId)
+            toast(t('main.clip.addSourceToast'))
+          }
+        })
+        template.push({ type: 'separator' })
+      }
+
       if (params.selectionText && params.selectionText.trim()) {
         template.push({
           label: t('main.clip.selectionLabel', { room: roomName }),
