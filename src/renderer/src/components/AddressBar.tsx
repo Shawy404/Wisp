@@ -100,14 +100,13 @@ export default function AddressBar(): React.JSX.Element {
 
   const submit = (): void => {
     const resolved = resolveAddress(value)
-    const { activeTabId, navigate, newTab, setOverlay } = useApp.getState()
+    const { activeTabId, navigate, newTab, requestSearch } = useApp.getState()
     if (resolved.type === 'url') {
       if (activeTabId) navigate(activeTabId, resolved.url)
       else newTab(resolved.url)
     } else if (resolved.query) {
       // Non-URL input opens the room's search panel with the query.
-      window.dispatchEvent(new CustomEvent('wisp:search', { detail: resolved.query }))
-      setOverlay('search')
+      requestSearch(resolved.query)
     }
     inputRef.current?.blur()
   }
@@ -159,6 +158,30 @@ export default function AddressBar(): React.JSX.Element {
           </svg>
         </NavButton>
       )}
+      <NavButton
+        title={t('address.zap')}
+        disabled={!activeTab || activeTab.url === 'about:blank'}
+        onClick={() => {
+          window.dispatchEvent(new CustomEvent('wisp:toast-local', { detail: t('address.zapHint') }))
+          void invoke<{ zapped: boolean }>('zap:start').then((res) => {
+            if (res.zapped) {
+              window.dispatchEvent(
+                new CustomEvent('wisp:toast-local', { detail: t('address.zapDone') })
+              )
+            }
+          })
+        }}
+      >
+        <svg width="12" height="12" viewBox="0 0 12 12">
+          <path
+            d="M1.5 1.5 L10.5 10.5 M4.2 3.1 C4.8 2.8 5.4 2.7 6 2.7 C8.5 2.7 10.4 4.9 11 6 C10.7 6.6 10.1 7.4 9.3 8.1 M6.9 6.9 A1.3 1.3 0 1 1 5.1 5.1 M2.8 3.9 C1.9 4.6 1.3 5.4 1 6 C1.6 7.1 3.5 9.3 6 9.3 C6.6 9.3 7.2 9.2 7.7 9"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="1.1"
+            strokeLinecap="round"
+          />
+        </svg>
+      </NavButton>
       <NavButton
         title={t('address.reader')}
         disabled={!activeTab || activeTab.url === 'about:blank'}

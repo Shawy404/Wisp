@@ -38,8 +38,8 @@ export class TabManager {
   private visible = true
   /** Called whenever a room's tab set changes, for persistence. */
   onPersist: (roomId: string, urls: string[], activeIndex: number) => void = () => {}
-  /** Hook for attaching per-tab behaviour (e.g. context menus) to new views. */
-  onViewCreated: (view: WebContentsView, tabId: string) => void = () => {}
+  /** Hooks for attaching per-tab behaviour (context menus, zapper…) to new views. */
+  viewHooks: ((view: WebContentsView, tabId: string) => void)[] = []
 
   constructor(win: BrowserWindow) {
     this.win = win
@@ -93,7 +93,7 @@ export class TabManager {
     }
     this.order.get(roomId)!.push(id)
     this.wireEvents(entry)
-    this.onViewCreated(view, id)
+    for (const hook of this.viewHooks) hook(view, id)
     if (url && url !== 'about:blank' && isSafeTabUrl(url)) {
       view.webContents.loadURL(url).catch(() => {})
     }

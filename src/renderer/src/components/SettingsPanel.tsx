@@ -138,6 +138,35 @@ export default function SettingsPanel(): React.JSX.Element {
           </div>
         </Section>
 
+        {Object.keys(config.zappedSelectors ?? {}).length > 0 && (
+          <Section title={t('settings.zap')}>
+            <div className="mb-2 text-[11px] text-neutral-500">{t('settings.zap.hint')}</div>
+            <div className="space-y-1">
+              {Object.entries(config.zappedSelectors ?? {}).map(([host, sels]) => (
+                <div
+                  key={host}
+                  className="flex items-center gap-2 rounded-md border border-neutral-800 bg-neutral-900 px-3 py-1.5 text-xs"
+                >
+                  <span className="min-w-0 flex-1 truncate text-neutral-200">{host}</span>
+                  <span className="text-[10px] text-neutral-600">
+                    {t('settings.zap.count', { count: sels.length })}
+                  </span>
+                  <button
+                    className="text-neutral-500 hover:text-red-400"
+                    onClick={() => {
+                      const next = { ...(config.zappedSelectors ?? {}) }
+                      delete next[host]
+                      void setConfig({ zappedSelectors: next })
+                    }}
+                  >
+                    {t('settings.zap.clear')}
+                  </button>
+                </div>
+              ))}
+            </div>
+          </Section>
+        )}
+
         <Section title={t('settings.devMode')}>
           <label className="flex items-center gap-2 text-xs text-neutral-300">
             <input

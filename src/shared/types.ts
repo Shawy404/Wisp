@@ -110,6 +110,10 @@ export interface WispConfig {
   adblockAllowlist: string[]
   anthropicApiKey?: string
   lastRoomId?: string
+  /** Remembered per-site permission decisions (host → permission → verdict). */
+  sitePermissions?: Record<string, Record<string, 'allow' | 'deny'>>
+  /** Per-site element-zapper CSS selectors (host → hidden selectors). */
+  zappedSelectors?: Record<string, string[]>
   profile: string
   /** Web-dev mode: DevTools + the search JSON viewer. */
   devMode?: boolean

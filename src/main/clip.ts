@@ -41,7 +41,7 @@ export function registerClip(ctx: WispContext): void {
     if (!ctx.win.isDestroyed()) ctx.win.webContents.send('toast', text)
   }
 
-  ctx.tabs.onViewCreated = (view, tabId) => {
+  ctx.tabs.viewHooks.push((view, tabId) => {
     view.webContents.on('context-menu', (_e, params) => {
       const roomId = ctx.tabs.currentRoomId()
       if (!roomId) return
@@ -145,5 +145,5 @@ export function registerClip(ctx: WispContext): void {
 
       Menu.buildFromTemplate(template).popup()
     })
-  }
+  })
 }

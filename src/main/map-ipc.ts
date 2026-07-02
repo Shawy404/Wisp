@@ -83,23 +83,31 @@ export function registerMapIpc(ctx: WispContext): void {
         fetch: (url: string | URL | Request, init?: RequestInit) =>
           net.fetch(url.toString(), init as Parameters<typeof net.fetch>[1]) as unknown as Promise<Response>
       })
+      // Prompt in the UI language so suggestion labels match the rest of the app.
+      const lang = ctx.config.language ?? 'tr'
+      const system =
+        lang === 'tr'
+          ? 'Sen bir araştırma asistanısın. Verilen düğümler (kaynaklar, notlar, kavramlar) arasındaki ' +
+            'anlamlı ilişkileri bul. Sadece gerçekten ilişkili çiftler için kısa, yönlü bir etiket ver ' +
+            '(ör. "X, Y’nin bir mekanizmasıdır", "A, B ile çelişir", "P, Q’yu destekler"). ' +
+            'Yalnızca verilen id’leri kullan. Yanıtı JSON ver.'
+          : 'You are a research assistant. Find meaningful relationships between the given nodes ' +
+            '(sources, notes, concepts). Give a short directed label only for genuinely related pairs ' +
+            '(e.g. "X is a mechanism of Y", "A contradicts B", "P supports Q"). ' +
+            'Use only the given ids. Answer in JSON.'
+      const user =
+        lang === 'tr'
+          ? `Düğümler:\n${nodeList}\n\n` +
+            'Aralarındaki en güçlü 3-10 ilişkiyi öner. Şu formatta JSON dizisi döndür:\n' +
+            '[{"from":"<id>","to":"<id>","label":"kısa ilişki"}]'
+          : `Nodes:\n${nodeList}\n\n` +
+            'Suggest the 3-10 strongest relationships between them. Return a JSON array like:\n' +
+            '[{"from":"<id>","to":"<id>","label":"short relationship"}]'
       const res = await client.messages.create({
         model: 'claude-opus-4-8',
         max_tokens: 2048,
-        system:
-          'Sen bir araştırma asistanısın. Verilen düğümler (kaynaklar, notlar, kavramlar) arasındaki ' +
-          'anlamlı ilişkileri bul. Sadece gerçekten ilişkili çiftler için kısa, yönlü bir etiket ver ' +
-          '(ör. "X, Y’nin bir mekanizmasıdır", "A, B ile çelişir", "P, Q’yu destekler"). ' +
-          'Yalnızca verilen id’leri kullan. Yanıtı JSON ver.',
-        messages: [
-          {
-            role: 'user',
-            content:
-              `Düğümler:\n${nodeList}\n\n` +
-              'Aralarındaki en güçlü 3-10 ilişkiyi öner. Şu formatta JSON dizisi döndür:\n' +
-              '[{"from":"<id>","to":"<id>","label":"kısa ilişki"}]'
-          }
-        ],
+        system,
+        messages: [{ role: 'user', content: user }],
         output_config: {
           format: {
             type: 'json_schema',
