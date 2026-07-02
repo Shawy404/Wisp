@@ -13,7 +13,19 @@ import type {
 
 export const wispRoot = (): string => process.env.WISP_HOME || join(homedir(), 'Wisp')
 export const roomsDir = (): string => join(wispRoot(), 'rooms')
-export const roomDir = (id: string): string => join(roomsDir(), id)
+
+/**
+ * Room and note ids come over IPC and end up in filesystem paths, so they must
+ * never be able to escape their directory.
+ */
+function assertSafeId(id: string): string {
+  if (!id || id.includes('/') || id.includes('\\') || id.includes('..')) {
+    throw new Error(`unsafe id: ${id}`)
+  }
+  return id
+}
+
+export const roomDir = (id: string): string => join(roomsDir(), assertSafeId(id))
 export const notesDir = (id: string): string => join(roomDir(id), 'notes')
 export const clipsDir = (id: string): string => join(roomDir(id), 'clips')
 
@@ -165,7 +177,7 @@ export function listNotes(id: string): NoteInfo[] {
 }
 
 export function writeNote(roomId: string, noteId: string, body: string): NoteInfo {
-  const file = join(notesDir(roomId), `${noteId}.md`)
+  const file = join(notesDir(roomId), `${assertSafeId(noteId)}.md`)
   fs.mkdirSync(notesDir(roomId), { recursive: true })
   fs.writeFileSync(file, body)
   return {
@@ -178,12 +190,12 @@ export function writeNote(roomId: string, noteId: string, body: string): NoteInf
 }
 
 export function deleteNote(roomId: string, noteId: string): void {
-  fs.rmSync(join(notesDir(roomId), `${noteId}.md`), { force: true })
+  fs.rmSync(join(notesDir(roomId), `${assertSafeId(noteId)}.md`), { force: true })
 }
 
 export function renameNote(roomId: string, oldId: string, newId: string): boolean {
-  const from = join(notesDir(roomId), `${oldId}.md`)
-  const to = join(notesDir(roomId), `${newId}.md`)
+  const from = join(notesDir(roomId), `${assertSafeId(oldId)}.md`)
+  const to = join(notesDir(roomId), `${assertSafeId(newId)}.md`)
   if (!fs.existsSync(from) || fs.existsSync(to)) return false
   fs.renameSync(from, to)
   return true

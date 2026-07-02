@@ -1,5 +1,5 @@
 // Wisp — © Shawy404. All rights reserved.
-import { app, BrowserWindow, shell } from 'electron'
+import { app, BrowserWindow } from 'electron'
 import { join } from 'path'
 import { loadConfig } from './storage'
 import { TabManager } from './tabs'
@@ -10,6 +10,7 @@ import { registerClip } from './clip'
 import { registerNotesIpc } from './notes-ipc'
 import { registerMapIpc } from './map-ipc'
 import { initAdblock } from './adblock'
+import { hardenApp, openExternalSafe } from './security'
 
 // Wayland/Hyprland friendliness: let Chromium pick the native platform.
 app.commandLine.appendSwitch('ozone-platform-hint', 'auto')
@@ -25,6 +26,7 @@ function createWindow(): void {
     show: false,
     autoHideMenuBar: true,
     backgroundColor: '#0e0e12',
+    icon: join(__dirname, '../../build/icon.png'),
     // Frameless with in-app window controls; tiling WMs (Hyprland) manage
     // geometry themselves so no server-side decorations are needed.
     frame: false,
@@ -32,14 +34,14 @@ function createWindow(): void {
       preload: join(__dirname, '../preload/index.js'),
       contextIsolation: true,
       nodeIntegration: false,
-      sandbox: false
+      sandbox: true
     }
   })
 
   win.on('ready-to-show', () => win.show())
 
   win.webContents.setWindowOpenHandler(({ url }) => {
-    shell.openExternal(url)
+    openExternalSafe(url)
     return { action: 'deny' }
   })
 
@@ -59,19 +61,34 @@ function createWindow(): void {
   }
 }
 
-app.whenReady().then(() => {
-  createWindow()
-
-  if (process.env.WISP_SMOKE) {
-    console.log('WISP_READY')
-    setTimeout(() => app.quit(), 2500)
-  }
-
-  app.on('activate', () => {
-    if (BrowserWindow.getAllWindows().length === 0) createWindow()
-  })
-})
-
-app.on('window-all-closed', () => {
+// A second launch focuses the existing window instead of a second instance
+// fighting over ~/Wisp state.
+if (!app.requestSingleInstanceLock()) {
   app.quit()
-})
+} else {
+  app.on('second-instance', () => {
+    const win = ctx?.win
+    if (win && !win.isDestroyed()) {
+      if (win.isMinimized()) win.restore()
+      win.focus()
+    }
+  })
+
+  app.whenReady().then(() => {
+    hardenApp((wc) => wc === ctx?.win.webContents)
+    createWindow()
+
+    if (process.env.WISP_SMOKE) {
+      console.log('WISP_READY')
+      setTimeout(() => app.quit(), 2500)
+    }
+
+    app.on('activate', () => {
+      if (BrowserWindow.getAllWindows().length === 0) createWindow()
+    })
+  })
+
+  app.on('window-all-closed', () => {
+    app.quit()
+  })
+}

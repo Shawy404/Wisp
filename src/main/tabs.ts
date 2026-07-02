@@ -1,6 +1,7 @@
 // Wisp — © Shawy404. All rights reserved.
 import { BrowserWindow, WebContentsView } from 'electron'
 import type { TabInfo } from '@shared/types'
+import { WEB_PARTITION, isSafeTabUrl, openExternalSafe } from './security'
 
 interface TabEntry {
   id: string
@@ -72,8 +73,14 @@ export class TabManager {
 
   openTab(roomId: string, url: string, activate = true, silent = false): string {
     const id = `tab-${nextTabId++}`
+    // Pages live in their own persisted partition, isolated from the UI session.
     const view = new WebContentsView({
-      webPreferences: { contextIsolation: true, nodeIntegration: false, sandbox: true }
+      webPreferences: {
+        contextIsolation: true,
+        nodeIntegration: false,
+        sandbox: true,
+        partition: WEB_PARTITION
+      }
     })
     const entry: TabEntry = { id, roomId, url, title: url, view }
     // Match the rounded corners of the renderer's viewport card.
@@ -87,7 +94,9 @@ export class TabManager {
     this.order.get(roomId)!.push(id)
     this.wireEvents(entry)
     this.onViewCreated(view, id)
-    if (url && url !== 'about:blank') view.webContents.loadURL(url).catch(() => {})
+    if (url && url !== 'about:blank' && isSafeTabUrl(url)) {
+      view.webContents.loadURL(url).catch(() => {})
+    }
     if (activate) this.activateTab(id)
     if (!silent) {
       this.broadcast()
@@ -136,6 +145,7 @@ export class TabManager {
   }
 
   navigate(id: string, url: string): void {
+    if (!isSafeTabUrl(url)) return
     this.tabs.get(id)?.view.webContents.loadURL(url).catch(() => {})
   }
 
@@ -273,7 +283,8 @@ export class TabManager {
       this.broadcast()
     })
     wc.setWindowOpenHandler(({ url }) => {
-      this.openTab(entry.roomId, url, true)
+      if (isSafeTabUrl(url)) this.openTab(entry.roomId, url, true)
+      else openExternalSafe(url)
       return { action: 'deny' }
     })
   }
