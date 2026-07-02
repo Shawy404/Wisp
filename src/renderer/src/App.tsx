@@ -9,6 +9,7 @@ import SourcesPanel from './components/SourcesPanel'
 import ReaderPanel from './components/ReaderPanel'
 import NotesPanel from './components/NotesPanel'
 import MapPanel from './components/MapPanel'
+import HistoryPanel from './components/HistoryPanel'
 import SplitView from './components/SplitView'
 import CommandPalette from './components/CommandPalette'
 import SettingsPanel from './components/SettingsPanel'
@@ -77,6 +78,7 @@ export default function App(): React.JSX.Element {
           {overlay === 'reader' && <ReaderPanel />}
           {overlay === 'notes' && <NotesPanel />}
           {overlay === 'map' && <MapPanel />}
+          {overlay === 'history' && <HistoryPanel />}
           {overlay === 'split' && <SplitView />}
           {overlay === 'settings' && <SettingsPanel />}
           <CommandPalette />

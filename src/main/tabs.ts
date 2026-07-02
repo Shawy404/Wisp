@@ -38,6 +38,9 @@ export class TabManager {
   private visible = true
   /** Called whenever a room's tab set changes, for persistence. */
   onPersist: (roomId: string, urls: string[], activeIndex: number) => void = () => {}
+  /** Called on navigation and title/favicon updates, for the room's history. */
+  onVisit: (roomId: string, visit: { url: string; title: string; favicon?: string }) => void =
+    () => {}
   /** Hooks for attaching per-tab behaviour (context menus, zapper…) to new views. */
   viewHooks: ((view: WebContentsView, tabId: string) => void)[] = []
 
@@ -270,17 +273,31 @@ export class TabManager {
       entry.title = wc.getTitle() || entry.title
       this.broadcast()
     }
+    const visit = (): void => {
+      const url = wc.getURL()
+      if (/^https?:/i.test(url)) {
+        this.onVisit(entry.roomId, { url, title: wc.getTitle() || url, favicon: entry.favicon })
+      }
+    }
     wc.on('did-navigate', () => {
       sync()
       this.persist(entry.roomId)
+      visit()
     })
-    wc.on('did-navigate-in-page', sync)
-    wc.on('page-title-updated', sync)
+    wc.on('did-navigate-in-page', () => {
+      sync()
+      visit()
+    })
+    wc.on('page-title-updated', () => {
+      sync()
+      visit()
+    })
     wc.on('did-start-loading', () => this.broadcast())
     wc.on('did-stop-loading', () => this.broadcast())
     wc.on('page-favicon-updated', (_e, favicons) => {
       entry.favicon = favicons[0]
       this.broadcast()
+      visit()
     })
     wc.setWindowOpenHandler(({ url }) => {
       if (isSafeTabUrl(url)) this.openTab(entry.roomId, url, true)

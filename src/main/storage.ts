@@ -3,6 +3,7 @@ import * as fs from 'fs'
 import { join } from 'path'
 import { homedir } from 'os'
 import type {
+  HistoryEntry,
   MapData,
   NoteInfo,
   RoomData,
@@ -153,6 +154,18 @@ export function loadMap(id: string): MapData {
 
 export function saveMap(id: string, map: MapData): void {
   writeJson(join(roomDir(id), 'map.json'), map)
+}
+
+/** Browsing history, per room — the room is the research context. */
+const HISTORY_CAP = 3000
+
+export function loadHistory(id: string): HistoryEntry[] {
+  return readJson<{ entries: HistoryEntry[] }>(join(roomDir(id), 'history.json'), { entries: [] })
+    .entries
+}
+
+export function saveHistory(id: string, entries: HistoryEntry[]): void {
+  writeJson(join(roomDir(id), 'history.json'), { entries: entries.slice(-HISTORY_CAP) })
 }
 
 /** Notes live as plain .md files — Obsidian compatible. Tags come from #hashtags. */

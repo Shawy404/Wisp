@@ -11,6 +11,7 @@ import { registerNotesIpc } from './notes-ipc'
 import { registerMapIpc } from './map-ipc'
 import { registerZapper } from './zapper'
 import { registerBackground } from './background'
+import { registerHistory } from './history'
 import { initAdblock } from './adblock'
 import { hardenApp, openExternalSafe, webSession } from './security'
 
@@ -62,6 +63,7 @@ function createWindow(): void {
   registerMapIpc(ctx)
   registerZapper(ctx)
   registerBackground(ctx)
+  registerHistory(ctx)
   void initAdblock(ctx.config)
 
   if (process.env.ELECTRON_RENDERER_URL) {

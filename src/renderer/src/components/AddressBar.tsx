@@ -95,6 +95,11 @@ export default function AddressBar(): React.JSX.Element {
         const { activeTabId, closeTab } = useApp.getState()
         if (activeTabId) closeTab(activeTabId)
       }
+      if (e.ctrlKey && e.key.toLowerCase() === 'h') {
+        e.preventDefault()
+        const { overlay, setOverlay } = useApp.getState()
+        setOverlay(overlay === 'history' ? 'none' : 'history')
+      }
     }
     window.addEventListener('keydown', handler)
     return () => window.removeEventListener('keydown', handler)

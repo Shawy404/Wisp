@@ -64,6 +64,7 @@ export default function CommandPalette(): React.JSX.Element | null {
       { id: 'sources', label: t('palette.openSources'), hint: t('palette.hint.panel'), run: go('sources') },
       { id: 'notes', label: t('palette.openNotes'), hint: t('palette.hint.panel'), run: go('notes') },
       { id: 'map', label: t('palette.openMap'), hint: t('palette.hint.panel'), run: go('map') },
+      { id: 'history', label: t('palette.openHistory'), hint: t('palette.hint.panel'), run: go('history') },
       { id: 'settings', label: t('palette.openSettings'), hint: t('palette.hint.panel'), run: go('settings') },
       {
         id: 'newtab',
