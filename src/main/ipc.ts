@@ -1,5 +1,5 @@
 // Wisp — © Shawy404. All rights reserved.
-import { BrowserWindow, ipcMain } from 'electron'
+import { app, BrowserWindow, ipcMain } from 'electron'
 import type { PinnedTab, RoomMeta, WispConfig } from '@shared/types'
 import * as store from './storage'
 import { TabManager } from './tabs'
@@ -114,6 +114,13 @@ export function registerCoreIpc(ctx: WispContext): void {
   // Web-dev mode: open DevTools for the active tab's page (detached window).
   ipcMain.handle('tabs:devtools', () => {
     ctx.tabs.activeView()?.webContents.openDevTools({ mode: 'detach' })
+  })
+
+  // Window transparency is fixed at window creation, so flipping it needs a
+  // full relaunch — the settings panel offers this right after the toggle.
+  ipcMain.handle('app:relaunch', () => {
+    app.relaunch()
+    app.exit(0)
   })
 
   ipcMain.handle('window:minimize', () => win.minimize())

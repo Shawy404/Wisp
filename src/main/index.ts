@@ -20,6 +20,11 @@ app.commandLine.appendSwitch('ozone-platform-hint', 'auto')
 let ctx: WispContext | null = null
 
 function createWindow(): void {
+  const config = loadConfig()
+  // Real compositor transparency (Zen-style glass): the window itself has no
+  // background, so the desktop shows through the shell. Hyprland blur rules
+  // make it frosted. Needs to be decided at window creation → restart to flip.
+  const transparent = config.windowTransparent === true
   const win = new BrowserWindow({
     width: 1440,
     height: 900,
@@ -27,7 +32,8 @@ function createWindow(): void {
     minHeight: 600,
     show: false,
     autoHideMenuBar: true,
-    backgroundColor: '#0e0e12',
+    transparent,
+    backgroundColor: transparent ? '#00000000' : '#0e0e12',
     icon: join(__dirname, '../../build/icon.png'),
     // Frameless with in-app window controls; tiling WMs (Hyprland) manage
     // geometry themselves so no server-side decorations are needed.
@@ -47,7 +53,7 @@ function createWindow(): void {
     return { action: 'deny' }
   })
 
-  ctx = { win, tabs: new TabManager(win), config: loadConfig() }
+  ctx = { win, tabs: new TabManager(win), config }
   registerCoreIpc(ctx)
   registerSearchIpc(ctx)
   registerReaderIpc(ctx)

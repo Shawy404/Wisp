@@ -16,7 +16,7 @@ function RailButton(props: {
           ? 'bg-accent/15 text-accent'
           : 'text-neutral-500 hover:bg-neutral-800 hover:text-neutral-200'
       }`}
-      title={props.title}
+      data-tip={props.title}
       onClick={props.onClick}
     >
       {props.children}
@@ -46,7 +46,7 @@ export default function RoomSidebar(): React.JSX.Element {
 
   return (
     <div
-      className={`flex shrink-0 flex-col border-r border-neutral-800/60 bg-neutral-925 transition-[width] duration-150 ${
+      className={`wisp-chrome flex shrink-0 flex-col border-r border-neutral-800/60 bg-neutral-925 transition-[width] duration-150 ${
         collapsed ? 'w-12' : 'w-56'
       }`}
     >
@@ -60,7 +60,8 @@ export default function RoomSidebar(): React.JSX.Element {
           <button
             key={r.id}
             onClick={() => void switchRoom(r.id)}
-            title={r.name}
+            data-tip={r.name}
+            data-tip-pos="bottom"
             className={`flex h-5 w-5 items-center justify-center rounded-full transition-transform hover:scale-110 ${
               r.id === activeRoomId ? 'ring-2 ring-white/70 ring-offset-1 ring-offset-neutral-925' : ''
             }`}
@@ -72,7 +73,8 @@ export default function RoomSidebar(): React.JSX.Element {
             setCollapsed(false)
             setCreating(true)
           }}
-          title={t('sidebar.newRoom')}
+          data-tip={t('sidebar.newRoom')}
+          data-tip-pos="bottom"
           className="flex h-5 w-5 items-center justify-center rounded-full border border-dashed border-neutral-600 text-[11px] text-neutral-500 hover:border-neutral-400 hover:text-neutral-300"
         >
           +

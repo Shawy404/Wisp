@@ -51,7 +51,8 @@ export default function FocusTimer(): React.JSX.Element {
           active ? 'text-accent' : 'text-neutral-500 hover:text-neutral-300'
         }`}
         onClick={() => setOpen((v) => !v)}
-        title={t('focus.title')}
+        data-tip={t('focus.title')}
+        data-tip-pos="bottom"
       >
         <span>◔</span>
         {active && <span className="tabular-nums">{mm}:{ss}</span>}

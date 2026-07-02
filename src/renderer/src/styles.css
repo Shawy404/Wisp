@@ -128,23 +128,77 @@ body,
 }
 
 /*
- * Zen-style glass. When translucency is on (and a background is set), the shell
- * surfaces drop to a semi-transparent dark glass so the background image shows
- * through the whole UI. It's a distinct "mode" — a coherent dark glass on top
- * of any theme — rather than a per-theme tint.
+ * Zen-style glass. Active when a background image should shine through the
+ * shell, or when the window itself is transparent (compositor glass — the
+ * desktop shows through; Hyprland blur rules make it frosted). A coherent
+ * dark glass on top of any theme, rather than a per-theme tint.
  */
+html.wisp-translucent,
 html.wisp-translucent body {
   background: transparent;
 }
 html.wisp-translucent {
-  --color-neutral-950: rgb(14 14 18 / 0.62);
-  --color-neutral-925: rgb(19 19 22 / 0.6);
-  --color-neutral-900: rgb(23 23 27 / 0.58);
-  --color-neutral-850: rgb(31 31 35 / 0.62);
-  --color-neutral-800: rgb(38 38 44 / 0.6);
+  --color-neutral-950: rgb(14 14 18 / 0.55);
+  --color-neutral-925: rgb(19 19 22 / 0.52);
+  --color-neutral-900: rgb(23 23 27 / 0.5);
+  --color-neutral-850: rgb(33 33 38 / 0.55);
+  --color-neutral-800: rgb(42 42 48 / 0.55);
 }
-html.wisp-translucent .wisp-glass {
+/* Frost the in-window layers (background image, overlays). The desktop behind
+   a transparent window is blurred by the compositor, not by CSS. */
+html.wisp-translucent .wisp-chrome {
   backdrop-filter: blur(18px) saturate(1.2);
+}
+
+/*
+ * Tooltips. Native `title` bubbles are slow and easy to miss on a frameless
+ * window, so every control uses `data-tip` instead: a fast, styled bubble.
+ * Default above; `data-tip-pos="bottom"` flips below (title-bar row) and
+ * `data-tip-align="end"` pins to the right edge (window controls).
+ */
+[data-tip] {
+  position: relative;
+}
+[data-tip]::after {
+  content: attr(data-tip);
+  position: absolute;
+  left: 50%;
+  bottom: calc(100% + 7px);
+  transform: translateX(-50%);
+  max-width: 260px;
+  width: max-content;
+  background: var(--color-neutral-900, #17171b);
+  color: var(--color-neutral-200, #e5e5e5);
+  border: 1px solid var(--color-neutral-700, #3f3f46);
+  box-shadow: 0 4px 14px rgb(0 0 0 / 0.35);
+  padding: 4px 8px;
+  border-radius: 7px;
+  font-size: 11px;
+  font-weight: 400;
+  line-height: 1.35;
+  white-space: normal;
+  text-align: center;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.1s ease;
+  z-index: 90;
+}
+[data-tip]:hover::after {
+  opacity: 1;
+  transition-delay: 0.3s;
+}
+[data-tip][data-tip-pos='bottom']::after {
+  bottom: auto;
+  top: calc(100% + 7px);
+}
+[data-tip][data-tip-align='end']::after {
+  left: auto;
+  right: 0;
+  transform: none;
+}
+/* Tooltips must stay readable on glass. */
+html.wisp-translucent [data-tip]::after {
+  background: rgb(19 19 23 / 0.92);
 }
 
 ::-webkit-scrollbar {

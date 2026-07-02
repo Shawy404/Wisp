@@ -63,7 +63,7 @@ export default function VerticalTabs({ collapsed }: { collapsed: boolean }): Rea
               <button
                 className="absolute -top-1 -right-1 hidden h-3.5 w-3.5 items-center justify-center rounded-full bg-neutral-700 text-[8px] text-neutral-200 group-hover:flex hover:bg-red-500"
                 onClick={() => void unpinTab(p.url)}
-                title={t('tabs.unpin')}
+                data-tip={t('tabs.unpin')}
               >
                 ×
               </button>
@@ -81,7 +81,7 @@ export default function VerticalTabs({ collapsed }: { collapsed: boolean }): Rea
         <button
           className="flex h-5 w-5 items-center justify-center rounded text-neutral-500 hover:bg-neutral-800 hover:text-neutral-200"
           onClick={() => window.dispatchEvent(new CustomEvent('wisp:open-palette'))}
-          title={t('tabs.newTab')}
+          data-tip={t('tabs.newTab')}
         >
           +
         </button>

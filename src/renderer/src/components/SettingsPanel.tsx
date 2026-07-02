@@ -2,9 +2,16 @@
 import { useState } from 'react'
 import { THEMES } from '@shared/themes'
 import { invoke, useApp, useT } from '@/store'
-import type { WispConfig } from '@shared/types'
+import type { SearchEngineId, WispConfig } from '@shared/types'
 
 const PRESET_ACCENTS = ['#7dd3a8', '#8ab4f8', '#f8b48a', '#c58af8', '#f87d9a', '#e8d47d']
+
+const SEARCH_ENGINES: { id: SearchEngineId; name: string }[] = [
+  { id: 'google', name: 'Google' },
+  { id: 'duckduckgo', name: 'DuckDuckGo' },
+  { id: 'bing', name: 'Bing' },
+  { id: 'brave', name: 'Brave' }
+]
 
 function Section(props: { title: string; children: React.ReactNode }): React.JSX.Element {
   return (
@@ -23,6 +30,9 @@ export default function SettingsPanel(): React.JSX.Element {
   const t = useT()
   const [apiKey, setApiKey] = useState(config?.anthropicApiKey ?? '')
   const [allowlistText, setAllowlistText] = useState((config?.adblockAllowlist ?? []).join('\n'))
+  // Window transparency is decided at window creation → offer a relaunch
+  // right after the toggle changes.
+  const [needsRestart, setNeedsRestart] = useState(false)
 
   const pickBackground = async (): Promise<void> => {
     const res = await invoke<{ dataUrl: string | null; config: WispConfig } | null>('bg:pick')
@@ -182,6 +192,49 @@ export default function SettingsPanel(): React.JSX.Element {
               />
               {t('settings.background.translucent')}
             </label>
+            <div>
+              <label className="flex items-center gap-2 text-xs text-neutral-300">
+                <input
+                  type="checkbox"
+                  checked={config.windowTransparent ?? false}
+                  onChange={(e) => {
+                    void setConfig({ windowTransparent: e.target.checked })
+                    setNeedsRestart(true)
+                  }}
+                />
+                {t('settings.background.windowTransparent')}
+              </label>
+              <div className="mt-1 ml-6 text-[11px] text-neutral-600">
+                {t('settings.background.windowTransparent.hint')}
+              </div>
+              {needsRestart && (
+                <button
+                  className="mt-2 ml-6 rounded-md bg-accent/15 px-3 py-1.5 text-xs text-accent hover:bg-accent/25"
+                  onClick={() => void invoke('app:relaunch')}
+                >
+                  {t('settings.background.restart')}
+                </button>
+              )}
+            </div>
+          </div>
+        </Section>
+
+        <Section title={t('settings.searchEngine')}>
+          <div className="mb-2 text-[11px] text-neutral-500">{t('settings.searchEngine.hint')}</div>
+          <div className="flex items-center gap-2">
+            {SEARCH_ENGINES.map((engine) => (
+              <button
+                key={engine.id}
+                onClick={() => void setConfig({ searchEngine: engine.id })}
+                className={`rounded-md px-3 py-1.5 text-xs ${
+                  (config.searchEngine ?? 'google') === engine.id
+                    ? 'bg-neutral-800 text-neutral-100'
+                    : 'text-neutral-500 hover:text-neutral-300'
+                }`}
+              >
+                {engine.name}
+              </button>
+            ))}
           </div>
         </Section>
 

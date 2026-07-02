@@ -27,15 +27,18 @@ export default function App(): React.JSX.Element {
 
   // Live theme: accent drives every `text-accent`/`bg-accent` via the CSS var,
   // a `wisp-<theme>` class swaps the whole shell palette (dark = default), and
-  // `wisp-translucent` turns the shell to glass so a background shows through.
+  // `wisp-translucent` turns the shell to glass — over a background image, or
+  // over the actual desktop when the window itself is transparent.
   useEffect(() => {
     if (!config) return
     const el = document.documentElement
     el.style.setProperty('--wisp-accent', config.accent)
     for (const cls of [...el.classList]) if (cls.startsWith('wisp-')) el.classList.remove(cls)
     if (config.theme && config.theme !== 'dark') el.classList.add(`wisp-${config.theme}`)
-    if (config.translucentUi && backgroundUrl) el.classList.add('wisp-translucent')
-  }, [config?.accent, config?.theme, config?.translucentUi, backgroundUrl])
+    if (config.windowTransparent || (config.translucentUi && backgroundUrl)) {
+      el.classList.add('wisp-translucent')
+    }
+  }, [config?.accent, config?.theme, config?.translucentUi, config?.windowTransparent, backgroundUrl])
 
   if (!ready) {
     return (
