@@ -9,8 +9,9 @@ import { registerReaderIpc } from './reader'
 import { registerClip } from './clip'
 import { registerNotesIpc } from './notes-ipc'
 import { registerMapIpc } from './map-ipc'
+import { registerZapper } from './zapper'
 import { initAdblock } from './adblock'
-import { hardenApp, openExternalSafe } from './security'
+import { hardenApp, openExternalSafe, webSession } from './security'
 
 // Wayland/Hyprland friendliness: let Chromium pick the native platform.
 app.commandLine.appendSwitch('ozone-platform-hint', 'auto')
@@ -52,6 +53,7 @@ function createWindow(): void {
   registerClip(ctx)
   registerNotesIpc(ctx)
   registerMapIpc(ctx)
+  registerZapper(ctx)
   void initAdblock(ctx.config)
 
   if (process.env.ELECTRON_RENDERER_URL) {
@@ -75,7 +77,11 @@ if (!app.requestSingleInstanceLock()) {
   })
 
   app.whenReady().then(() => {
-    hardenApp((wc) => wc === ctx?.win.webContents)
+    hardenApp(
+      (wc) => wc === ctx?.win.webContents,
+      () => ctx?.win ?? null,
+      () => ctx?.config ?? loadConfig()
+    )
     createWindow()
 
     if (process.env.WISP_SMOKE) {
@@ -86,6 +92,16 @@ if (!app.requestSingleInstanceLock()) {
     app.on('activate', () => {
       if (BrowserWindow.getAllWindows().length === 0) createWindow()
     })
+  })
+
+  // Chromium writes cookies lazily; force a flush on quit so logins survive
+  // even when the app is closed right after signing in somewhere.
+  app.on('before-quit', () => {
+    try {
+      webSession().flushStorageData()
+    } catch {
+      /* session may not exist yet */
+    }
   })
 
   app.on('window-all-closed', () => {

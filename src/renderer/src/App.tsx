@@ -13,6 +13,7 @@ import SplitView from './components/SplitView'
 import CommandPalette from './components/CommandPalette'
 import SettingsPanel from './components/SettingsPanel'
 import Toast from './components/Toast'
+import PermissionPrompt from './components/PermissionPrompt'
 
 export default function App(): React.JSX.Element {
   const ready = useApp((s) => s.ready)
@@ -44,6 +45,7 @@ export default function App(): React.JSX.Element {
   return (
     <div className="flex h-full flex-col">
       <TitleBar />
+      <PermissionPrompt />
       <div className="flex min-h-0 flex-1">
         <RoomSidebar />
         <Viewport>
