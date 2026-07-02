@@ -89,6 +89,8 @@ export interface ConceptNode {
 export interface MapData {
   concepts: ConceptNode[]
   edges: MapEdge[]
+  /** Node ids the user has hidden from the map (sources/notes they don't want shown). */
+  hidden?: string[]
 }
 
 /** Everything the renderer needs about one room's knowledge base. */
@@ -119,6 +121,14 @@ export interface WispConfig {
   devMode?: boolean
   /** Per-room pomodoro focus session length in minutes. */
   focusMinutes?: number
+  /** Background image: 'icon' (default watermark), 'none', or a stored filename. */
+  backgroundImage?: string
+  /** Background layer opacity, 0–1 (default 0.15). */
+  backgroundOpacity?: number
+  /** Background blur in px (default 0). */
+  backgroundBlur?: number
+  /** Zen-style glass: make the UI surfaces translucent so the background shows through. */
+  translucentUi?: boolean
 }
 
 /** Search results returned by the main-process search aggregator. */

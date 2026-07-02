@@ -98,6 +98,8 @@ function cyStyle(c: MapColors): cytoscape.StylesheetJson {
       selector: 'node.hovered',
       style: { 'z-index': 99, 'font-size': '12px', 'text-outline-width': 3, color: c.label }
     },
+    // Focus mode: everything outside the clicked node's neighbourhood dims.
+    { selector: '.faded', style: { opacity: 0.12 } },
     { selector: '.link-source', style: { 'border-width': 3, 'border-color': '#f8b48a' } }
   ]
 }
@@ -167,6 +169,17 @@ function toElements(graph: Graph): ElementDefinition[] {
   return [...nodes, ...edges]
 }
 
+type NodeType = 'source' | 'note' | 'concept'
+
+interface CtxMenu {
+  x: number
+  y: number
+  nodeId?: string
+  nodeType?: NodeType
+  edgeId?: string
+  edgeKind?: string
+}
+
 export default function MapPanel(): React.JSX.Element {
   const sources = useApp((s) => s.sources)
   const notes = useApp((s) => s.notes)
@@ -185,10 +198,31 @@ export default function MapPanel(): React.JSX.Element {
   const [conceptName, setConceptName] = useState('')
   const [hint, setHint] = useState('')
 
-  const graph = useMemo(
-    () => buildGraph({ meta: {} as never, sources, notes, map }),
-    [sources, notes, map]
-  )
+  // View filters — edges stay explicit by default; tag links are opt-in.
+  const [showTypes, setShowTypes] = useState<Record<NodeType, boolean>>({
+    source: true,
+    note: true,
+    concept: true
+  })
+  const [showTagLinks, setShowTagLinks] = useState(false)
+  const [ctx, setCtx] = useState<CtxMenu | null>(null)
+
+  const hiddenCount = map.hidden?.length ?? 0
+
+  // Build with explicit edges only (tag links opt-in), minus hidden nodes, then
+  // apply the node-type view filter and drop edges that lose an endpoint.
+  const graph = useMemo(() => {
+    const g = buildGraph(
+      { meta: {} as never, sources, notes, map },
+      { tagLinks: showTagLinks, hidden: new Set(map.hidden ?? []) }
+    )
+    const nodes = g.nodes.filter((n) => showTypes[n.type])
+    const kept = new Set(nodes.map((n) => n.id))
+    const edges = g.edges.filter((e) => kept.has(e.from) && kept.has(e.to))
+    return { nodes, edges }
+  }, [sources, notes, map, showTagLinks, showTypes])
+
+  const applyRoomData = (): Promise<void> => useApp.getState().refreshRoomData()
 
   useEffect(() => {
     if (!host.current) return
@@ -201,29 +235,67 @@ export default function MapPanel(): React.JSX.Element {
     })
     runLayout(cy.current)
 
-    // Shift-click two nodes to create a manual edge between them.
+    const focusNode = (target: cytoscape.NodeSingular): void => {
+      const c = cy.current
+      if (!c) return
+      const hood = target.closedNeighborhood()
+      c.elements().addClass('faded')
+      hood.removeClass('faded')
+      target.removeClass('faded')
+    }
+    const clearFocus = (): void => {
+      cy.current?.elements().removeClass('faded')
+    }
+
     cy.current.on('tap', 'node', (evt) => {
+      setCtx(null)
       const id = evt.target.id()
-      if (!evt.originalEvent.shiftKey) {
-        linkFrom.current = null
-        cy.current?.nodes().removeClass('link-source')
+      // Shift-click chains two nodes into a manual link.
+      if (evt.originalEvent.shiftKey) {
+        if (!linkFrom.current) {
+          linkFrom.current = id
+          evt.target.addClass('link-source')
+          setHint(t('map.hint.shiftSecond'))
+        } else if (linkFrom.current !== id && activeRoomId) {
+          void invoke('map:addEdge', activeRoomId, linkFrom.current, id, 'manual').then(applyRoomData)
+          linkFrom.current = null
+          cy.current?.nodes().removeClass('link-source')
+          setHint('')
+        }
         return
       }
-      if (!linkFrom.current) {
-        linkFrom.current = id
-        evt.target.addClass('link-source')
-        setHint(t('map.hint.shiftSecond'))
-      } else if (linkFrom.current !== id && activeRoomId) {
-        void invoke('map:addEdge', activeRoomId, linkFrom.current, id, 'manual').then(() =>
-          useApp.getState().refreshRoomData()
-        )
-        linkFrom.current = null
-        cy.current?.nodes().removeClass('link-source')
-        setHint('')
+      // Plain click focuses the node and its neighbours (Obsidian-style).
+      linkFrom.current = null
+      cy.current?.nodes().removeClass('link-source')
+      focusNode(evt.target as cytoscape.NodeSingular)
+    })
+
+    // Click empty canvas: clear focus and any open menu.
+    cy.current.on('tap', (evt) => {
+      if (evt.target === cy.current) {
+        clearFocus()
+        setCtx(null)
       }
     })
 
-    // Hover: show the full title and dim everything else so the node stands out.
+    // Right-click a node or edge → context menu (hide / delete).
+    cy.current.on('cxttap', 'node', (evt) => {
+      evt.originalEvent.preventDefault()
+      const p = evt.renderedPosition
+      setCtx({
+        x: p.x,
+        y: p.y,
+        nodeId: evt.target.id(),
+        nodeType: evt.target.data('type') as NodeType
+      })
+    })
+    cy.current.on('cxttap', 'edge', (evt) => {
+      evt.originalEvent.preventDefault()
+      const p = evt.renderedPosition
+      setCtx({ x: p.x, y: p.y, edgeId: evt.target.id(), edgeKind: evt.target.data('kind') })
+    })
+
+    // Hover shows the full title and lifts the node.
     cy.current.on('mouseover', 'node', (evt) => {
       evt.target.data('label', evt.target.data('fullLabel'))
       evt.target.addClass('hovered')
@@ -234,15 +306,6 @@ export default function MapPanel(): React.JSX.Element {
       evt.target.removeClass('hovered')
     })
 
-    cy.current.on('tap', 'edge', (evt) => {
-      const kind = evt.target.data('kind')
-      if ((kind === 'manual' || kind === 'ai-suggested') && activeRoomId && evt.originalEvent.altKey) {
-        void invoke('map:removeEdge', activeRoomId, evt.target.id()).then(() =>
-          useApp.getState().refreshRoomData()
-        )
-      }
-    })
-
     return () => {
       cy.current?.destroy()
       cy.current = null
@@ -250,8 +313,7 @@ export default function MapPanel(): React.JSX.Element {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
-  // Rebuild elements when the underlying room data changes, so edits made in
-  // the sources list or the note editor show up here immediately.
+  // Rebuild elements when the underlying room data or filters change.
   useEffect(() => {
     if (!cy.current) return
     const c = cy.current
@@ -266,6 +328,30 @@ export default function MapPanel(): React.JSX.Element {
   useEffect(() => {
     cy.current?.style(cyStyle(mapColors(themeId)))
   }, [themeId])
+
+  const hideNode = async (nodeId: string): Promise<void> => {
+    if (!activeRoomId) return
+    setCtx(null)
+    await invoke('map:hideNode', activeRoomId, nodeId)
+    await applyRoomData()
+  }
+  const deleteEdge = async (edgeId: string): Promise<void> => {
+    if (!activeRoomId) return
+    setCtx(null)
+    await invoke('map:removeEdge', activeRoomId, edgeId)
+    await applyRoomData()
+  }
+  const deleteConcept = async (nodeId: string): Promise<void> => {
+    if (!activeRoomId) return
+    setCtx(null)
+    await invoke('map:removeConcept', activeRoomId, nodeId.replace(/^concept:/, ''))
+    await applyRoomData()
+  }
+  const clearHidden = async (): Promise<void> => {
+    if (!activeRoomId) return
+    await invoke('map:clearHidden', activeRoomId)
+    await applyRoomData()
+  }
 
   const runSuggest = async (): Promise<void> => {
     if (!activeRoomId) return
@@ -301,28 +387,91 @@ export default function MapPanel(): React.JSX.Element {
 
   const labelFor = (id: string): string => graph.nodes.find((n) => n.id === id)?.label ?? id
 
+  const TypeChip = ({ type, label }: { type: NodeType; label: string }): React.JSX.Element => (
+    <button
+      onClick={() => setShowTypes((s) => ({ ...s, [type]: !s[type] }))}
+      className={`flex items-center gap-1 rounded-full border px-2 py-0.5 text-[10px] transition ${
+        showTypes[type]
+          ? 'border-neutral-700 bg-neutral-850 text-neutral-200'
+          : 'border-neutral-850 text-neutral-600'
+      }`}
+    >
+      <span
+        className={`inline-block h-2 w-2 ${type === 'concept' ? 'rotate-45' : type === 'source' ? 'rounded-sm' : 'rounded-full'}`}
+        style={{ background: showTypes[type] ? TYPE_COLOR[type] : '#52525b' }}
+      />
+      {label}
+    </button>
+  )
+
   return (
     <div className="absolute inset-0 flex overflow-hidden bg-neutral-950">
-      <div className="relative min-w-0 flex-1">
+      <div className="relative min-w-0 flex-1" onClick={() => setCtx(null)}>
         <div ref={host} className="h-full w-full" />
-        <div className="pointer-events-none absolute top-3 left-3 flex flex-col gap-1 text-[10px] text-neutral-500">
-          <div className="flex items-center gap-1.5">
-            <span className="inline-block h-2 w-2 rounded-full" style={{ background: TYPE_COLOR.note }} />{' '}
-            {t('map.legend.note')}
-            <span className="ml-2 inline-block h-2 w-2 rounded-sm" style={{ background: TYPE_COLOR.source }} />{' '}
-            {t('map.legend.source')}
-            <span className="ml-2 inline-block h-2 w-2 rotate-45" style={{ background: TYPE_COLOR.concept }} />{' '}
-            {t('map.legend.concept')}
-          </div>
-          <div>{t('map.legend.edges')}</div>
+
+        {/* Filter bar: what shows on the map. Tag links are off by default. */}
+        <div className="pointer-events-auto absolute top-3 left-3 flex flex-wrap items-center gap-1.5">
+          <TypeChip type="source" label={t('map.legend.source')} />
+          <TypeChip type="note" label={t('map.legend.note')} />
+          <TypeChip type="concept" label={t('map.legend.concept')} />
+          <button
+            onClick={() => setShowTagLinks((v) => !v)}
+            className={`rounded-full border px-2 py-0.5 text-[10px] transition ${
+              showTagLinks
+                ? 'border-accent/50 bg-accent/15 text-accent'
+                : 'border-neutral-850 text-neutral-600'
+            }`}
+            title={t('map.tagLinks.hint')}
+          >
+            {t('map.tagLinks')}
+          </button>
         </div>
-        <div className="absolute right-3 bottom-3 flex flex-col items-end gap-1 text-[10px] text-neutral-600">
-          <span>{t('map.hint.shiftAlt')}</span>
+
+        <div className="pointer-events-none absolute right-3 bottom-3 flex flex-col items-end gap-1 text-[10px] text-neutral-600">
+          <span>{t('map.hint.interact')}</span>
           {hint && <span className="text-accent">{hint}</span>}
         </div>
+
         {graph.nodes.length === 0 && (
           <div className="absolute inset-0 flex items-center justify-center text-sm text-neutral-600">
             {t('map.empty')}
+          </div>
+        )}
+
+        {/* Right-click context menu */}
+        {ctx && (
+          <div
+            className="absolute z-50 min-w-[140px] overflow-hidden rounded-lg border border-neutral-700 bg-neutral-900 py-1 text-xs shadow-2xl shadow-black/50"
+            style={{ left: ctx.x, top: ctx.y }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            {ctx.nodeId && ctx.nodeType === 'concept' && (
+              <button
+                className="block w-full px-3 py-1.5 text-left text-neutral-200 hover:bg-neutral-800"
+                onClick={() => void deleteConcept(ctx.nodeId!)}
+              >
+                {t('map.ctx.deleteConcept')}
+              </button>
+            )}
+            {ctx.nodeId && ctx.nodeType !== 'concept' && (
+              <button
+                className="block w-full px-3 py-1.5 text-left text-neutral-200 hover:bg-neutral-800"
+                onClick={() => void hideNode(ctx.nodeId!)}
+              >
+                {t('map.ctx.hideNode')}
+              </button>
+            )}
+            {ctx.edgeId && (ctx.edgeKind === 'manual' || ctx.edgeKind === 'ai-suggested') && (
+              <button
+                className="block w-full px-3 py-1.5 text-left text-neutral-200 hover:bg-neutral-800"
+                onClick={() => void deleteEdge(ctx.edgeId!)}
+              >
+                {t('map.ctx.deleteLink')}
+              </button>
+            )}
+            {ctx.edgeId && ctx.edgeKind !== 'manual' && ctx.edgeKind !== 'ai-suggested' && (
+              <div className="px-3 py-1.5 text-neutral-600">{t('map.ctx.derivedLink')}</div>
+            )}
           </div>
         )}
       </div>
@@ -419,7 +568,15 @@ export default function MapPanel(): React.JSX.Element {
         </div>
 
         <div className="border-t border-neutral-800 p-3 text-[10px] text-neutral-600">
-          {t('map.stats', { nodes: graph.nodes.length, edges: graph.edges.length })}
+          <div>{t('map.stats', { nodes: graph.nodes.length, edges: graph.edges.length })}</div>
+          {hiddenCount > 0 && (
+            <button
+              className="mt-1 text-neutral-500 underline decoration-dotted hover:text-neutral-300"
+              onClick={() => void clearHidden()}
+            >
+              {t('map.hidden.restore', { count: hiddenCount })}
+            </button>
+          )}
         </div>
       </div>
     </div>

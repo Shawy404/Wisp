@@ -37,6 +37,35 @@ export function registerMapIpc(ctx: WispContext): void {
     return map
   })
 
+  // Hide a source/note node from the map without deleting the underlying item.
+  ipcMain.handle('map:hideNode', (_e, roomId: string, nodeId: string) => {
+    const map = store.loadMap(roomId)
+    const hidden = new Set(map.hidden ?? [])
+    hidden.add(nodeId)
+    map.hidden = [...hidden]
+    // Drop any persisted edges that touched the now-hidden node.
+    map.edges = map.edges.filter((edge) => edge.from !== nodeId && edge.to !== nodeId)
+    store.saveMap(roomId, map)
+    notify(roomId)
+    return map
+  })
+
+  ipcMain.handle('map:unhideNode', (_e, roomId: string, nodeId: string) => {
+    const map = store.loadMap(roomId)
+    map.hidden = (map.hidden ?? []).filter((id) => id !== nodeId)
+    store.saveMap(roomId, map)
+    notify(roomId)
+    return map
+  })
+
+  ipcMain.handle('map:clearHidden', (_e, roomId: string) => {
+    const map = store.loadMap(roomId)
+    map.hidden = []
+    store.saveMap(roomId, map)
+    notify(roomId)
+    return map
+  })
+
   ipcMain.handle('map:addConcept', (_e, roomId: string, title: string, tags: string[] = []) => {
     const map = store.loadMap(roomId)
     const concept: ConceptNode = { id: `c-${stableId(title + Date.now())}`, title, tags }

@@ -23,22 +23,34 @@ export interface Graph {
   edges: GraphEdge[]
 }
 
-const noteNodeId = (id: string): string => `note:${id}`
-const conceptNodeId = (id: string): string => `concept:${id}`
+export const noteNodeId = (id: string): string => `note:${id}`
+export const conceptNodeId = (id: string): string => `concept:${id}`
+
+export interface GraphOptions {
+  /**
+   * Include tag-similarity edges. Off by default — like Logseq/Obsidian, the
+   * map is built from *explicit* links (wikilinks, manual, accepted AI), not
+   * from guessed keyword overlap, so you don't get connections you never made.
+   */
+  tagLinks?: boolean
+  /** Node ids the user has hidden from the map (persisted per room). */
+  hidden?: Set<string>
+}
 
 /**
  * The single source of truth for the map. Notes, sources and concept nodes are
- * the *same* objects the sidebar shows — here they become graph nodes. Edges
- * come from three places, unified:
+ * the *same* objects the sidebar shows — here they become graph nodes. Edges:
  *   1. wikilink   — [[note]] / ![[src-id]] references in note bodies
- *   2. tag        — two nodes sharing a tag get a soft "suggested" edge
- *   3. manual/ai  — persisted edges from map.json (drag-to-link, AI suggestions)
- * Editing any underlying object and rebuilding keeps all three views in sync.
+ *   2. manual/ai  — persisted edges from map.json (drag-to-link, accepted AI)
+ *   3. tag        — OPTIONAL soft "shares a tag" edges, off unless asked for
+ * Editing any underlying object and rebuilding keeps every view in sync.
  */
-export function buildGraph(data: RoomData): Graph {
+export function buildGraph(data: RoomData, opts: GraphOptions = {}): Graph {
+  const hidden = opts.hidden ?? new Set<string>()
   const nodes: GraphNode[] = []
   const nodeIds = new Set<string>()
   const add = (n: GraphNode): void => {
+    if (hidden.has(n.id)) return
     if (!nodeIds.has(n.id)) {
       nodeIds.add(n.id)
       nodes.push(n)
@@ -80,64 +92,62 @@ export function buildGraph(data: RoomData): Graph {
     }
   }
 
-  // 2. Tag-based suggested edges (free, deterministic, live).
-  //
-  // A single shared keyword is weak evidence — titles share generic words all
-  // the time and the map drowned in junk edges. Instead every co-occurring tag
-  // contributes a specificity score (multi-word tags count double, tags shared
-  // by many nodes count less), a pair needs enough accumulated evidence to get
-  // an edge at all, and each node keeps only its strongest few suggestions.
-  const byTag = new Map<string, string[]>()
-  for (const node of nodes) {
-    for (const tag of node.tags) {
-      if (tag.length < 3) continue
-      if (!byTag.has(tag)) byTag.set(tag, [])
-      byTag.get(tag)!.push(node.id)
-    }
-  }
-  interface PairScore {
-    a: string
-    b: string
-    score: number
-    bestTag: string
-    bestSpec: number
-  }
-  const pairs = new Map<string, PairScore>()
-  for (const [tag, ids] of byTag) {
-    if (ids.length < 2 || ids.length > 8) continue // hub tags are noise, skip
-    const multiWord = tag.includes('-') || tag.includes(' ')
-    const specificity = (multiWord ? 2 : 1) / Math.log2(1 + ids.length)
-    for (let i = 0; i < ids.length; i++) {
-      for (let j = i + 1; j < ids.length; j++) {
-        const key = [ids[i], ids[j]].sort().join('|')
-        const p = pairs.get(key) ?? { a: ids[i], b: ids[j], score: 0, bestTag: tag, bestSpec: 0 }
-        p.score += specificity
-        if (specificity > p.bestSpec) {
-          p.bestSpec = specificity
-          p.bestTag = tag
-        }
-        pairs.set(key, p)
+  // 2. Persisted manual + AI edges from map.json (explicit user connections).
+  for (const e of data.map.edges) pushEdge(e.from, e.to, e.kind, e.label)
+
+  // 3. Optional tag-similarity edges — only when the user turns them on, and
+  //    even then kept conservative: each shared tag scores by specificity
+  //    (multi-word and rarer tags count more), a pair needs real accumulated
+  //    evidence to link, and every node keeps only its few strongest links.
+  if (opts.tagLinks) {
+    const byTag = new Map<string, string[]>()
+    for (const node of nodes) {
+      for (const tag of node.tags) {
+        if (tag.length < 3) continue
+        if (!byTag.has(tag)) byTag.set(tag, [])
+        byTag.get(tag)!.push(node.id)
       }
     }
+    interface PairScore {
+      a: string
+      b: string
+      score: number
+      bestTag: string
+      bestSpec: number
+    }
+    const pairs = new Map<string, PairScore>()
+    for (const [tag, ids] of byTag) {
+      if (ids.length < 2 || ids.length > 8) continue // hub tags are noise, skip
+      const multiWord = tag.includes('-') || tag.includes(' ')
+      const specificity = (multiWord ? 2 : 1) / Math.log2(1 + ids.length)
+      for (let i = 0; i < ids.length; i++) {
+        for (let j = i + 1; j < ids.length; j++) {
+          const key = [ids[i], ids[j]].sort().join('|')
+          const p = pairs.get(key) ?? { a: ids[i], b: ids[j], score: 0, bestTag: tag, bestSpec: 0 }
+          p.score += specificity
+          if (specificity > p.bestSpec) {
+            p.bestSpec = specificity
+            p.bestTag = tag
+          }
+          pairs.set(key, p)
+        }
+      }
+    }
+    const MIN_PAIR_SCORE = 0.85 // one specific multi-word tag, or ~two shared unigrams
+    const MAX_TAG_EDGES_PER_NODE = 3
+    const tagDegree = new Map<string, number>()
+    const ranked = [...pairs.values()]
+      .filter((p) => p.score >= MIN_PAIR_SCORE)
+      .sort((x, y) => y.score - x.score)
+    for (const p of ranked) {
+      const da = tagDegree.get(p.a) ?? 0
+      const db = tagDegree.get(p.b) ?? 0
+      if (da >= MAX_TAG_EDGES_PER_NODE || db >= MAX_TAG_EDGES_PER_NODE) continue
+      pushEdge(p.a, p.b, 'tag', `#${p.bestTag}`)
+      tagDegree.set(p.a, da + 1)
+      tagDegree.set(p.b, db + 1)
+    }
   }
-  const MIN_PAIR_SCORE = 0.85 // one specific multi-word tag, or ~two shared unigrams
-  const MAX_TAG_EDGES_PER_NODE = 3
-  const tagDegree = new Map<string, number>()
-  const ranked = [...pairs.values()]
-    .filter((p) => p.score >= MIN_PAIR_SCORE)
-    .sort((x, y) => y.score - x.score)
-  for (const p of ranked) {
-    const da = tagDegree.get(p.a) ?? 0
-    const db = tagDegree.get(p.b) ?? 0
-    if (da >= MAX_TAG_EDGES_PER_NODE || db >= MAX_TAG_EDGES_PER_NODE) continue
-    pushEdge(p.a, p.b, 'tag', `#${p.bestTag}`)
-    tagDegree.set(p.a, da + 1)
-    tagDegree.set(p.b, db + 1)
-  }
-
-  // 3. Persisted manual + AI edges from map.json (highest authority — added last
-  //    so a manual link on a pair also carrying a tag edge still renders solid).
-  for (const e of data.map.edges) pushEdge(e.from, e.to, e.kind, e.label)
 
   return { nodes, edges }
 }
