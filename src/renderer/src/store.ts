@@ -30,10 +30,15 @@ interface AppState {
   sources: SourceItem[]
   notes: NoteInfo[]
   map: MapData
+  /** Query queued for the search panel — survives the panel not being mounted yet. */
+  pendingSearch: string | null
 
   init: () => Promise<void>
   refreshRoomData: (roomId?: string) => Promise<void>
   setOverlay: (overlay: Overlay) => void
+  /** Open the search panel and run this query (from the address bar / palette). */
+  requestSearch: (query: string) => void
+  consumePendingSearch: () => string | null
   setConfig: (patch: Partial<WispConfig>) => Promise<void>
 
   createRoom: (name: string) => Promise<void>
@@ -91,9 +96,22 @@ export const useApp = create<AppState>((set, get) => ({
     }
   },
 
+  pendingSearch: null,
+
   setOverlay: (overlay) => {
     set({ overlay })
     void invoke('viewport:visible', overlay === 'none')
+  },
+
+  requestSearch: (query) => {
+    set({ pendingSearch: query })
+    get().setOverlay('search')
+  },
+
+  consumePendingSearch: () => {
+    const q = get().pendingSearch
+    if (q !== null) set({ pendingSearch: null })
+    return q
   },
 
   setConfig: async (patch) => {

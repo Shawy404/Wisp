@@ -24,9 +24,12 @@ export default function SearchPanel(): React.JSX.Element {
   const [tab, setTab] = useState<ResultTab>('academic')
   const [showJson, setShowJson] = useState(false)
   const inputRef = useRef<HTMLInputElement>(null)
+  // Guards the "restore last results" effect from clobbering a fresh search.
+  const searchedRef = useRef(false)
 
   const run = async (q: string): Promise<void> => {
     if (!q.trim()) return
+    searchedRef.current = true
     setLoading(true)
     try {
       const res = await invoke<SearchResults>('search:run', q.trim())
@@ -37,22 +40,24 @@ export default function SearchPanel(): React.JSX.Element {
     }
   }
 
+  // Address-bar / palette searches land here via the store, so they work even
+  // when the panel wasn't mounted at the moment the query was submitted.
+  const pendingSearch = useApp((s) => s.pendingSearch)
   useEffect(() => {
-    // Address-bar searches land here.
-    const handler = (e: Event): void => {
-      const q = (e as CustomEvent<string>).detail
+    const q = useApp.getState().consumePendingSearch()
+    if (q) {
       setQuery(q)
       void run(q)
     }
-    window.addEventListener('wisp:search', handler)
-    return () => window.removeEventListener('wisp:search', handler)
-  }, [])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [pendingSearch])
 
   useEffect(() => {
-    // Restore the room's last results when reopening the panel.
-    if (!results && activeRoomId) {
+    // Restore the room's last results when reopening the panel (unless a fresh
+    // query is already queued).
+    if (!results && activeRoomId && !searchedRef.current) {
       void invoke<SearchResults | null>('search:last', activeRoomId).then((last) => {
-        if (last) {
+        if (last && !searchedRef.current) {
           setResults(last)
           setQuery(last.query)
           setTab(last.classification === 'academic' ? 'academic' : 'wiki')

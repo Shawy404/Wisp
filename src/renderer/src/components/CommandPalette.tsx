@@ -121,8 +121,7 @@ export default function CommandPalette(): React.JSX.Element | null {
             label: t('palette.searchFor', { query: resolved.query ?? '' }),
             hint: t('palette.hint.search'),
             run: () => {
-              window.dispatchEvent(new CustomEvent('wisp:search', { detail: resolved.query }))
-              useApp.getState().setOverlay('search')
+              useApp.getState().requestSearch(resolved.query ?? '')
               setOpen(false)
             }
           }
