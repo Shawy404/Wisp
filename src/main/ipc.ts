@@ -3,7 +3,7 @@ import { BrowserWindow, ipcMain } from 'electron'
 import type { PinnedTab, RoomMeta, WispConfig } from '@shared/types'
 import * as store from './storage'
 import { TabManager } from './tabs'
-import { setAdblock } from './adblock'
+import { getBlockedCount, setAdblock } from './adblock'
 
 export interface WispContext {
   win: BrowserWindow
@@ -98,6 +98,8 @@ export function registerCoreIpc(ctx: WispContext): void {
     tabs.reorderTabs(roomId, ids)
   )
   ipcMain.handle('tabs:state', () => tabs.state())
+
+  ipcMain.handle('adblock:stats', () => ({ blocked: getBlockedCount() }))
 
   ipcMain.handle('viewport:bounds', (_e, b: { x: number; y: number; width: number; height: number }) => {
     tabs.setBounds({

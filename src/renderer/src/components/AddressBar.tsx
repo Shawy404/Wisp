@@ -21,6 +21,47 @@ function NavButton(props: {
   )
 }
 
+/** Shield badge: session-wide blocked request count, refreshed while browsing. */
+function ShieldBadge(): React.JSX.Element | null {
+  const adblock = useApp((s) => s.config?.adblock ?? false)
+  const t = useT()
+  const [blocked, setBlocked] = useState(0)
+
+  useEffect(() => {
+    if (!adblock) return
+    let alive = true
+    const tick = async (): Promise<void> => {
+      const stats = (await invoke('adblock:stats')) as { blocked: number }
+      if (alive) setBlocked(stats.blocked)
+    }
+    void tick()
+    const id = setInterval(() => void tick(), 4000)
+    return () => {
+      alive = false
+      clearInterval(id)
+    }
+  }, [adblock])
+
+  if (!adblock) return null
+  return (
+    <div
+      className="flex h-6 shrink-0 items-center gap-1 rounded-full px-1.5 text-[10px] text-neutral-500"
+      title={t('address.shield')}
+    >
+      <svg width="11" height="11" viewBox="0 0 12 12">
+        <path
+          d="M6 1 L10.5 2.8 V6 C10.5 8.6 8.6 10.4 6 11 C3.4 10.4 1.5 8.6 1.5 6 V2.8 Z"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="1.1"
+          strokeLinejoin="round"
+        />
+      </svg>
+      {blocked > 0 && <span className="tabular-nums">{blocked > 999 ? '1k+' : blocked}</span>}
+    </div>
+  )
+}
+
 export default function AddressBar(): React.JSX.Element {
   const tabs = useApp((s) => s.tabs)
   const activeTabId = useApp((s) => s.activeTabId)
@@ -146,6 +187,7 @@ export default function AddressBar(): React.JSX.Element {
         className="h-7 min-w-0 flex-1 bg-transparent px-2 text-center text-xs text-neutral-200 outline-none placeholder:text-neutral-600 focus:text-left"
         spellCheck={false}
       />
+      <ShieldBadge />
     </div>
   )
 }
