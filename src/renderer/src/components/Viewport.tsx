@@ -9,6 +9,15 @@ import { invoke, useApp, useT } from '@/store'
  * the view gets matching rounded corners via setBorderRadius. Overlays render
  * on top by hiding the native view.
  */
+const QUICK_LINKS = [
+  { name: 'Google', url: 'https://www.google.com' },
+  { name: 'YouTube', url: 'https://www.youtube.com' },
+  { name: 'Wikipedia', url: 'https://www.wikipedia.org' },
+  { name: 'Scholar', url: 'https://scholar.google.com' },
+  { name: 'GitHub', url: 'https://github.com' },
+  { name: 'Translate', url: 'https://translate.google.com' }
+]
+
 export default function Viewport({ children }: { children?: React.ReactNode }): React.JSX.Element {
   const inner = useRef<HTMLDivElement>(null)
   const tabs = useApp((s) => s.tabs)
@@ -42,6 +51,17 @@ export default function Viewport({ children }: { children?: React.ReactNode }): 
             <div className="text-3xl font-semibold tracking-tight text-accent">Wisp</div>
             <div className="max-w-sm text-center text-sm text-neutral-500">
               {t('viewport.emptyHint')}
+            </div>
+            <div className="mt-2 flex flex-wrap items-center justify-center gap-2">
+              {QUICK_LINKS.map((link) => (
+                <button
+                  key={link.url}
+                  onClick={() => useApp.getState().newTab(link.url)}
+                  className="rounded-full border border-neutral-800 bg-neutral-900/60 px-3.5 py-1.5 text-xs text-neutral-400 hover:border-neutral-600 hover:text-neutral-100"
+                >
+                  {link.name}
+                </button>
+              ))}
             </div>
             <div className="text-xs text-neutral-600">{t('viewport.shortcuts')}</div>
           </div>

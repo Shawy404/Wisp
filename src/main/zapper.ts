@@ -1,30 +1,58 @@
 // Wisp — © Shawy404. All rights reserved.
 import { ipcMain, type WebContents } from 'electron'
+import { translate } from '@shared/i18n'
 import { saveConfig } from './storage'
 import type { WispContext } from './ipc'
 
 /**
  * The element zapper — "hide distracting elements". Entering zap mode injects
- * a picker into the page: hovering outlines an element, clicking hides it and
- * remembers a CSS selector for it per-host, Escape cancels. Remembered
- * selectors are re-hidden on every future load of that host, on top of what
- * the adblocker already removes.
+ * a picker into the page: a floating highlight box follows the element under
+ * the cursor (no element styles are touched), clicking asks for confirmation
+ * before hiding, cancel resumes picking, Escape leaves zap mode. Confirmed
+ * selectors are remembered per-host and re-hidden on every future load, on
+ * top of what the adblocker already removes.
  */
 
-const PICKER_SCRIPT = `
+interface PickerStrings {
+  prompt: string
+  hide: string
+  cancel: string
+}
+
+const pickerScript = (s: PickerStrings): string => `
 new Promise((resolve) => {
-  const HL = '__wispZapHL'
-  if (window[HL]) { resolve(null); return }
-  window[HL] = true
-  let current = null
-  let prevOutline = ''
-  const cleanup = () => {
-    if (current) current.style.outline = prevOutline
-    document.removeEventListener('mouseover', over, true)
-    document.removeEventListener('click', click, true)
-    document.removeEventListener('keydown', key, true)
-    delete window[HL]
+  const FLAG = '__wispZap'
+  if (window[FLAG]) { resolve(null); return }
+  window[FLAG] = true
+
+  // Floating UI: a highlight box that tracks the hovered element, and a
+  // confirm bar shown after a click. Both live outside the page's layout.
+  const box = document.createElement('div')
+  box.style.cssText = 'position:fixed;z-index:2147483646;pointer-events:none;' +
+    'border:2px solid #ef4444;background:rgba(239,68,68,0.12);border-radius:4px;' +
+    'transition:all 60ms ease;display:none'
+  const bar = document.createElement('div')
+  bar.style.cssText = 'position:fixed;z-index:2147483647;left:50%;top:16px;transform:translateX(-50%);' +
+    'display:none;align-items:center;gap:10px;background:#17171b;color:#e5e5e5;' +
+    'border:1px solid #3f3f46;border-radius:10px;padding:10px 14px;' +
+    'font:13px system-ui,sans-serif;box-shadow:0 8px 30px rgba(0,0,0,0.5)'
+  const label = document.createElement('span')
+  label.textContent = ${JSON.stringify(s.prompt)}
+  const mkBtn = (text, bg) => {
+    const b = document.createElement('button')
+    b.textContent = text
+    b.style.cssText = 'border:0;border-radius:7px;padding:5px 12px;cursor:pointer;' +
+      'font:12px system-ui,sans-serif;color:#fff;background:' + bg
+    return b
   }
+  const okBtn = mkBtn(${JSON.stringify(s.hide)}, '#dc2626')
+  const cancelBtn = mkBtn(${JSON.stringify(s.cancel)}, '#3f3f46')
+  bar.append(label, okBtn, cancelBtn)
+  document.documentElement.append(box, bar)
+
+  let current = null
+  let confirming = false
+
   const selectorFor = (el) => {
     if (el.id) return '#' + CSS.escape(el.id)
     const parts = []
@@ -43,24 +71,77 @@ new Promise((resolve) => {
     }
     return parts.join(' > ')
   }
-  const over = (ev) => {
-    if (current) current.style.outline = prevOutline
-    current = ev.target
-    prevOutline = current.style.outline
-    current.style.outline = '2px solid #ef4444'
+
+  const highlight = (el) => {
+    if (!el || el === document.body || el === document.documentElement) {
+      box.style.display = 'none'
+      return
+    }
+    const r = el.getBoundingClientRect()
+    box.style.display = 'block'
+    box.style.left = r.left - 2 + 'px'
+    box.style.top = r.top - 2 + 'px'
+    box.style.width = r.width + 'px'
+    box.style.height = r.height + 'px'
   }
+
+  const cleanup = () => {
+    document.removeEventListener('mouseover', over, true)
+    document.removeEventListener('click', click, true)
+    document.removeEventListener('keydown', key, true)
+    box.remove()
+    bar.remove()
+    delete window[FLAG]
+  }
+
+  const over = (ev) => {
+    if (confirming) return
+    if (bar.contains(ev.target)) return
+    current = ev.target
+    highlight(current)
+  }
+
   const click = (ev) => {
+    // Clicks on the confirm bar's own buttons must go through.
+    if (bar.contains(ev.target)) return
     ev.preventDefault()
     ev.stopPropagation()
-    const el = ev.target
-    const sel = selectorFor(el)
-    cleanup()
-    el.style.setProperty('display', 'none', 'important')
-    resolve(sel)
+    if (confirming) return
+    current = ev.target
+    highlight(current)
+    confirming = true
+    bar.style.display = 'flex'
   }
+
   const key = (ev) => {
-    if (ev.key === 'Escape') { cleanup(); resolve(null) }
+    if (ev.key !== 'Escape') return
+    ev.preventDefault()
+    ev.stopPropagation()
+    if (confirming) {
+      confirming = false
+      bar.style.display = 'none'
+    } else {
+      cleanup()
+      resolve(null)
+    }
   }
+
+  okBtn.addEventListener('click', (ev) => {
+    ev.preventDefault()
+    ev.stopPropagation()
+    const el = current
+    const sel = el ? selectorFor(el) : null
+    cleanup()
+    if (el && sel) el.style.setProperty('display', 'none', 'important')
+    resolve(sel)
+  })
+  cancelBtn.addEventListener('click', (ev) => {
+    ev.preventDefault()
+    ev.stopPropagation()
+    confirming = false
+    bar.style.display = 'none'
+  })
+
   document.addEventListener('mouseover', over, true)
   document.addEventListener('click', click, true)
   document.addEventListener('keydown', key, true)
@@ -88,12 +169,18 @@ export function registerZapper(ctx: WispContext): void {
     view.webContents.on('dom-ready', () => applySaved(ctx, view.webContents))
   })
 
-  // Enter zap mode on the active tab; resolves once the user picks or cancels.
+  // Enter zap mode on the active tab; resolves once the user confirms or quits.
   ipcMain.handle('zap:start', async () => {
     const wc = ctx.tabs.activeView()?.webContents
     if (!wc || wc.getURL().startsWith('about:')) return { zapped: false }
+    const lang = ctx.config.language ?? 'tr'
+    const strings: PickerStrings = {
+      prompt: translate(lang, 'main.zap.confirm'),
+      hide: translate(lang, 'main.zap.hide'),
+      cancel: translate(lang, 'main.zap.cancel')
+    }
     try {
-      const selector = (await wc.executeJavaScript(PICKER_SCRIPT, true)) as string | null
+      const selector = (await wc.executeJavaScript(pickerScript(strings), true)) as string | null
       if (!selector) return { zapped: false }
       const host = hostOf(wc.getURL())
       if (host) {

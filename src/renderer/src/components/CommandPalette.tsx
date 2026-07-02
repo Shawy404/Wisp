@@ -1,6 +1,6 @@
 // Wisp — © Shawy404. All rights reserved.
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { resolveAddress } from '@shared/address'
+import { resolveAddress, webSearchUrl } from '@shared/address'
 import { invoke, useApp, useT, type Overlay } from '@/store'
 
 interface Command {
@@ -102,33 +102,49 @@ export default function CommandPalette(): React.JSX.Element | null {
     const q = query.trim().toLowerCase()
     if (!q) return commands.slice(0, 12)
 
-    // Serbest metin bir komut çubuğu girdisidir: URL ise aç, değilse ara.
+    // Serbest metin bir komut çubuğu girdisidir: URL ise aç; değilse önce
+    // normal web araması, sonra Wisp'in araştırma araması önerilir.
     const resolved = resolveAddress(query.trim().replace(/^\?/, ''))
-    const goCommand: Command =
+    const goCommands: Command[] =
       resolved.type === 'url'
-        ? {
-            id: 'go-url',
-            label: t('palette.open', { url: resolved.url }),
-            hint: t('palette.hint.newTab'),
-            run: () => {
-              useApp.getState().newTab(resolved.url)
-              useApp.getState().setOverlay('none')
-              setOpen(false)
+        ? [
+            {
+              id: 'go-url',
+              label: t('palette.open', { url: resolved.url }),
+              hint: t('palette.hint.newTab'),
+              run: () => {
+                useApp.getState().newTab(resolved.url)
+                useApp.getState().setOverlay('none')
+                setOpen(false)
+              }
             }
-          }
-        : {
-            id: 'quick-search',
-            label: t('palette.searchFor', { query: resolved.query ?? '' }),
-            hint: t('palette.hint.search'),
-            run: () => {
-              useApp.getState().requestSearch(resolved.query ?? '')
-              setOpen(false)
+          ]
+        : [
+            {
+              id: 'web-search',
+              label: t('palette.webSearchFor', { query: resolved.query ?? '' }),
+              hint: t('palette.hint.web'),
+              run: () => {
+                const { newTab, setOverlay, config } = useApp.getState()
+                newTab(webSearchUrl(config?.searchEngine, resolved.query ?? ''))
+                setOverlay('none')
+                setOpen(false)
+              }
+            },
+            {
+              id: 'quick-search',
+              label: t('palette.searchFor', { query: resolved.query ?? '' }),
+              hint: t('palette.hint.search'),
+              run: () => {
+                useApp.getState().requestSearch(resolved.query ?? '')
+                setOpen(false)
+              }
             }
-          }
+          ]
 
     const term = q.startsWith('?') ? q.slice(1).trim() : q
     const matches = commands.filter((c) => c.label.toLowerCase().includes(term)).slice(0, 10)
-    return [goCommand, ...matches]
+    return [...goCommands, ...matches]
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [query, commands])
 

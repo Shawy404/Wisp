@@ -1,6 +1,6 @@
 // Wisp — © Shawy404. All rights reserved.
 import { useEffect, useRef, useState } from 'react'
-import { resolveAddress } from '@shared/address'
+import { resolveAddress, webSearchUrl } from '@shared/address'
 import { invoke, useApp, useT } from '@/store'
 
 function NavButton(props: {
@@ -14,7 +14,8 @@ function NavButton(props: {
       className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-neutral-400 hover:bg-neutral-800 hover:text-neutral-100 disabled:opacity-30 disabled:hover:bg-transparent"
       onClick={props.onClick}
       disabled={props.disabled}
-      title={props.title}
+      data-tip={props.title}
+      data-tip-pos="bottom"
     >
       {props.children}
     </button>
@@ -46,7 +47,8 @@ function ShieldBadge(): React.JSX.Element | null {
   return (
     <div
       className="flex h-6 shrink-0 items-center gap-1 rounded-full px-1.5 text-[10px] text-neutral-500"
-      title={t('address.shield')}
+      data-tip={t('address.shield')}
+      data-tip-pos="bottom"
     >
       <svg width="11" height="11" viewBox="0 0 12 12">
         <path
@@ -99,14 +101,23 @@ export default function AddressBar(): React.JSX.Element {
   }, [])
 
   const submit = (): void => {
+    const { activeTabId, navigate, newTab, requestSearch, config } = useApp.getState()
+    // "?" prefix targets Wisp's research search; anything else behaves like a
+    // normal browser — URLs open, plain text goes to the web search engine.
+    if (value.trim().startsWith('?')) {
+      const q = value.trim().slice(1).trim()
+      if (q) requestSearch(q)
+      inputRef.current?.blur()
+      return
+    }
     const resolved = resolveAddress(value)
-    const { activeTabId, navigate, newTab, requestSearch } = useApp.getState()
     if (resolved.type === 'url') {
       if (activeTabId) navigate(activeTabId, resolved.url)
       else newTab(resolved.url)
     } else if (resolved.query) {
-      // Non-URL input opens the room's search panel with the query.
-      requestSearch(resolved.query)
+      const url = webSearchUrl(config?.searchEngine, resolved.query)
+      if (activeTabId) navigate(activeTabId, url)
+      else newTab(url)
     }
     inputRef.current?.blur()
   }
