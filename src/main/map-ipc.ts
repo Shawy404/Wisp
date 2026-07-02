@@ -4,6 +4,7 @@ import Anthropic from '@anthropic-ai/sdk'
 import type { AiEdgeSuggestion, ConceptNode, MapEdge } from '@shared/types'
 import { buildGraph } from '@shared/graph'
 import { stableId } from '@shared/tags'
+import { translate } from '@shared/i18n'
 import * as store from './storage'
 import type { WispContext } from './ipc'
 
@@ -60,14 +61,16 @@ export function registerMapIpc(ctx: WispContext): void {
     suggestions: AiEdgeSuggestion[]
     error?: string
   }> => {
+    const t = (key: Parameters<typeof translate>[1]): string =>
+      translate(ctx.config.language ?? 'tr', key)
     if (!ctx.config.anthropicApiKey) {
-      return { suggestions: [], error: 'Ayarlardan Anthropic API anahtarı ekleyin.' }
+      return { suggestions: [], error: t('main.map.needApiKey') }
     }
     const data = store.loadRoomData(roomId)
-    if (!data) return { suggestions: [], error: 'Oda bulunamadı.' }
+    if (!data) return { suggestions: [], error: t('main.map.roomNotFound') }
     const graph = buildGraph(data)
     if (graph.nodes.length < 2) {
-      return { suggestions: [], error: 'Öneri için en az 2 düğüm gerekli.' }
+      return { suggestions: [], error: t('main.map.needTwoNodes') }
     }
 
     const nodeList = graph.nodes
@@ -124,7 +127,7 @@ export function registerMapIpc(ctx: WispContext): void {
         }
       })
       if (res.stop_reason === 'refusal') {
-        return { suggestions: [], error: 'Model bu isteği reddetti.' }
+        return { suggestions: [], error: t('main.map.refused') }
       }
       const textBlock = res.content.find((b) => b.type === 'text')
       const parsed = textBlock && 'text' in textBlock ? JSON.parse(textBlock.text) : { edges: [] }

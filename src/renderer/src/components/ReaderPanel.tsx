@@ -1,6 +1,6 @@
 // Wisp — © Shawy404. All rights reserved.
 import { useEffect, useState } from 'react'
-import { invoke, useApp } from '@/store'
+import { invoke, useApp, useT } from '@/store'
 
 interface Article {
   title: string
@@ -14,6 +14,7 @@ interface Article {
 
 export default function ReaderPanel(): React.JSX.Element {
   const activeTabId = useApp((s) => s.activeTabId)
+  const t = useT()
   const [article, setArticle] = useState<Article | null>(null)
   const [loading, setLoading] = useState(true)
   const [saved, setSaved] = useState(false)
@@ -42,10 +43,12 @@ export default function ReaderPanel(): React.JSX.Element {
     <div className="absolute inset-0 flex flex-col overflow-hidden bg-neutral-950">
       <div className="flex items-center gap-2 border-b border-neutral-800 px-6 py-3">
         <span className="text-xs font-medium tracking-wide text-neutral-500 uppercase">
-          Reader Modu
+          {t('reader.title')}
         </span>
         {article && (
-          <span className="text-[11px] text-neutral-600">~{article.words} kelime</span>
+          <span className="text-[11px] text-neutral-600">
+            {t('reader.wordCount', { count: article.words })}
+          </span>
         )}
         <div className="ml-auto flex items-center gap-2">
           <button
@@ -53,13 +56,13 @@ export default function ReaderPanel(): React.JSX.Element {
             onClick={() => void save()}
             disabled={!article || saved}
           >
-            {saved ? 'Kaydedildi ✓' : 'Odaya kaydet'}
+            {saved ? t('reader.saved') : t('reader.save')}
           </button>
           <button
             className="rounded-md px-3 py-1.5 text-xs text-neutral-400 hover:bg-neutral-800 hover:text-neutral-200"
             onClick={() => useApp.getState().setOverlay('none')}
           >
-            Kapat
+            {t('reader.close')}
           </button>
         </div>
       </div>
@@ -67,13 +70,11 @@ export default function ReaderPanel(): React.JSX.Element {
         {loading && (
           <div className="flex items-center justify-center gap-2 pt-16 text-sm text-neutral-500">
             <span className="h-4 w-4 animate-spin rounded-full border border-neutral-600 border-t-accent" />
-            Sayfa temizleniyor…
+            {t('reader.loading')}
           </div>
         )}
         {!loading && !article && (
-          <div className="pt-16 text-center text-sm text-neutral-600">
-            Bu sayfadan okunabilir bir makale çıkarılamadı.
-          </div>
+          <div className="pt-16 text-center text-sm text-neutral-600">{t('reader.noArticle')}</div>
         )}
         {article && (
           <article className="mx-auto max-w-2xl px-6 py-8 select-text">

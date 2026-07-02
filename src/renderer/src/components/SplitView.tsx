@@ -1,7 +1,7 @@
 // Wisp — © Shawy404. All rights reserved.
 import { useEffect, useRef, useState } from 'react'
 import type { NoteInfo } from '@shared/types'
-import { invoke, useApp } from '@/store'
+import { invoke, useApp, useT } from '@/store'
 import NoteEditor from '../editor/NoteEditor'
 import SourceCard from './SourceCard'
 
@@ -23,6 +23,7 @@ export default function SplitView(): React.JSX.Element {
   const notes = useApp((s) => s.notes)
   const activeRoomId = useApp((s) => s.activeRoomId)
   const activeTabId = useApp((s) => s.activeTabId)
+  const t = useT()
   const [left, setLeft] = useState<'reader' | 'sources'>(activeTabId ? 'reader' : 'sources')
   const [article, setArticle] = useState<ReaderArticle | null>(null)
   const [readerLoading, setReaderLoading] = useState(false)
@@ -56,7 +57,7 @@ export default function SplitView(): React.JSX.Element {
 
   const createNote = async (): Promise<void> => {
     if (!activeRoomId) return
-    const title = article?.title?.slice(0, 60) || 'Yeni not'
+    const title = article?.title?.slice(0, 60) || t('splitView.defaultNoteTitle')
     const note = await invoke<NoteInfo>('notes:create', activeRoomId, title)
     await useApp.getState().refreshRoomData()
     setNoteId(note.id)
@@ -70,19 +71,19 @@ export default function SplitView(): React.JSX.Element {
             className={`rounded px-2 py-1 text-[11px] ${left === 'reader' ? 'bg-neutral-800 text-neutral-100' : 'text-neutral-500 hover:text-neutral-300'}`}
             onClick={() => setLeft('reader')}
           >
-            Reader
+            {t('splitView.reader')}
           </button>
           <button
             className={`rounded px-2 py-1 text-[11px] ${left === 'sources' ? 'bg-neutral-800 text-neutral-100' : 'text-neutral-500 hover:text-neutral-300'}`}
             onClick={() => setLeft('sources')}
           >
-            Kaynaklar
+            {t('splitView.sources')}
           </button>
         </div>
         <div className="flex-1 overflow-y-auto">
           {left === 'reader' &&
             (readerLoading ? (
-              <div className="pt-10 text-center text-xs text-neutral-500">Temizleniyor…</div>
+              <div className="pt-10 text-center text-xs text-neutral-500">{t('splitView.cleaning')}</div>
             ) : article ? (
               <article className="mx-auto max-w-xl px-5 py-6 select-text">
                 <h1 className="text-xl font-semibold text-neutral-100">{article.title}</h1>
@@ -95,9 +96,7 @@ export default function SplitView(): React.JSX.Element {
                 />
               </article>
             ) : (
-              <div className="pt-10 text-center text-xs text-neutral-600">
-                Okunabilir sayfa yok — bir makale aç.
-              </div>
+              <div className="pt-10 text-center text-xs text-neutral-600">{t('splitView.noArticle')}</div>
             ))}
           {left === 'sources' && (
             <div className="space-y-2 p-4">
@@ -105,7 +104,7 @@ export default function SplitView(): React.JSX.Element {
                 <SourceCard key={s.id} source={s} />
               ))}
               {sources.length === 0 && (
-                <div className="pt-8 text-center text-xs text-neutral-600">Kaynak yok.</div>
+                <div className="pt-8 text-center text-xs text-neutral-600">{t('splitView.noSources')}</div>
               )}
             </div>
           )}
@@ -129,13 +128,13 @@ export default function SplitView(): React.JSX.Element {
             className="rounded bg-accent/15 px-2 py-1 text-[11px] text-accent hover:bg-accent/25"
             onClick={() => void createNote()}
           >
-            + not
+            {t('splitView.newNote')}
           </button>
           <button
             className="ml-auto rounded px-2 py-1 text-[11px] text-neutral-400 hover:bg-neutral-800"
             onClick={() => useApp.getState().setOverlay('none')}
           >
-            Kapat
+            {t('splitView.close')}
           </button>
         </div>
         <div className="min-h-0 flex-1 px-2">
@@ -148,7 +147,7 @@ export default function SplitView(): React.JSX.Element {
             />
           ) : (
             <div className="flex h-full items-center justify-center text-xs text-neutral-600">
-              Not oluştur ve yanında oku.
+              {t('splitView.pickNote')}
             </div>
           )}
         </div>

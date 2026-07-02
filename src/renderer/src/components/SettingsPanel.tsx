@@ -1,6 +1,6 @@
 // Wisp — © Shawy404. All rights reserved.
 import { useState } from 'react'
-import { useApp } from '@/store'
+import { useApp, useT } from '@/store'
 
 const PRESET_ACCENTS = ['#7dd3a8', '#8ab4f8', '#f8b48a', '#c58af8', '#f87d9a', '#e8d47d']
 
@@ -18,6 +18,7 @@ function Section(props: { title: string; children: React.ReactNode }): React.JSX
 export default function SettingsPanel(): React.JSX.Element {
   const config = useApp((s) => s.config)
   const { setConfig } = useApp.getState()
+  const t = useT()
   const [apiKey, setApiKey] = useState(config?.anthropicApiKey ?? '')
   const [allowlistText, setAllowlistText] = useState((config?.adblockAllowlist ?? []).join('\n'))
 
@@ -26,29 +27,48 @@ export default function SettingsPanel(): React.JSX.Element {
   return (
     <div className="absolute inset-0 overflow-y-auto bg-neutral-950">
       <div className="mx-auto max-w-2xl px-8 py-6">
-        <h1 className="mb-2 text-xl font-semibold text-neutral-100">Ayarlar</h1>
+        <h1 className="mb-2 text-xl font-semibold text-neutral-100">{t('settings.title')}</h1>
         <p className="mb-4 text-xs text-neutral-600">
-          Her şey diskte: <code className="text-neutral-500">~/Wisp/config.json</code>. Bulut yok.
+          {t('settings.subtitle')} <code className="text-neutral-500">~/Wisp/config.json</code>.{' '}
+          {t('settings.subtitle.noCloud')}
         </p>
 
-        <Section title="Tema">
+        <Section title={t('settings.language')}>
           <div className="flex items-center gap-2">
-            {(['dark', 'light'] as const).map((t) => (
+            {(['tr', 'en'] as const).map((l) => (
               <button
-                key={t}
-                onClick={() => void setConfig({ theme: t })}
+                key={l}
+                onClick={() => void setConfig({ language: l })}
                 className={`rounded-md px-3 py-1.5 text-xs ${
-                  config.theme === t
+                  config.language === l
                     ? 'bg-neutral-800 text-neutral-100'
                     : 'text-neutral-500 hover:text-neutral-300'
                 }`}
               >
-                {t === 'dark' ? 'Koyu' : 'Açık'}
+                {l === 'tr' ? t('settings.language.tr') : t('settings.language.en')}
+              </button>
+            ))}
+          </div>
+        </Section>
+
+        <Section title={t('settings.theme')}>
+          <div className="flex items-center gap-2">
+            {(['dark', 'light'] as const).map((tm) => (
+              <button
+                key={tm}
+                onClick={() => void setConfig({ theme: tm })}
+                className={`rounded-md px-3 py-1.5 text-xs ${
+                  config.theme === tm
+                    ? 'bg-neutral-800 text-neutral-100'
+                    : 'text-neutral-500 hover:text-neutral-300'
+                }`}
+              >
+                {tm === 'dark' ? t('settings.theme.dark') : t('settings.theme.light')}
               </button>
             ))}
           </div>
           <div className="mt-3 flex items-center gap-2">
-            <span className="text-xs text-neutral-500">Vurgu rengi</span>
+            <span className="text-xs text-neutral-500">{t('settings.accent')}</span>
             {PRESET_ACCENTS.map((c) => (
               <button
                 key={c}
@@ -62,23 +82,23 @@ export default function SettingsPanel(): React.JSX.Element {
               value={config.accent}
               onChange={(e) => void setConfig({ accent: e.target.value })}
               className="h-5 w-8 cursor-pointer rounded bg-transparent"
-              title="Özel hex"
+              title={t('settings.accent.custom')}
             />
           </div>
         </Section>
 
-        <Section title="Reklam engelleme">
+        <Section title={t('settings.adblock')}>
           <label className="flex items-center gap-2 text-xs text-neutral-300">
             <input
               type="checkbox"
               checked={config.adblock}
               onChange={(e) => void setConfig({ adblock: e.target.checked })}
             />
-            EasyList + EasyPrivacy ile reklam ve izleyici engelle
+            {t('settings.adblock.toggle')}
           </label>
           <div className="mt-3">
             <div className="mb-1 text-[11px] text-neutral-500">
-              Site istisnaları (her satıra bir host — bu sitelerde engelleme kapanır)
+              {t('settings.adblock.allowlistLabel')}
             </div>
             <textarea
               value={allowlistText}
@@ -91,28 +111,26 @@ export default function SettingsPanel(): React.JSX.Element {
                     .filter(Boolean)
                 })
               }
-              placeholder="example.com&#10;news.site"
+              placeholder={t('settings.adblock.allowlistPlaceholder')}
               className="h-20 w-full rounded-md border border-neutral-800 bg-neutral-900 px-3 py-2 text-xs text-neutral-200 outline-none focus:border-accent/60"
               spellCheck={false}
             />
           </div>
         </Section>
 
-        <Section title="Web geliştirici modu">
+        <Section title={t('settings.devMode')}>
           <label className="flex items-center gap-2 text-xs text-neutral-300">
             <input
               type="checkbox"
               checked={config.devMode ?? false}
               onChange={(e) => void setConfig({ devMode: e.target.checked })}
             />
-            DevTools erişimi + arama sonuçları için JSON görüntüleyici (oda-bazlı, hafif)
+            {t('settings.devMode.toggle')}
           </label>
         </Section>
 
-        <Section title="AI — Bağlantı önerileri">
-          <div className="mb-1 text-[11px] text-neutral-500">
-            Anthropic API anahtarı ('Bağlantıları bul' için; yalnızca istek üzerine kullanılır)
-          </div>
+        <Section title={t('settings.ai')}>
+          <div className="mb-1 text-[11px] text-neutral-500">{t('settings.ai.hint')}</div>
           <div className="flex gap-2">
             <input
               type="password"
@@ -126,27 +144,23 @@ export default function SettingsPanel(): React.JSX.Element {
               className="rounded-md bg-accent/15 px-3 py-2 text-xs text-accent hover:bg-accent/25"
               onClick={() => void setConfig({ anthropicApiKey: apiKey.trim() || undefined })}
             >
-              Kaydet
+              {t('settings.ai.save')}
             </button>
           </div>
         </Section>
 
-        <Section title="Profil">
+        <Section title={t('settings.profile')}>
           <div className="flex items-center gap-2">
             <input
               value={config.profile}
               onChange={(e) => void setConfig({ profile: e.target.value })}
               className="rounded-md border border-neutral-800 bg-neutral-900 px-3 py-1.5 text-xs text-neutral-200 outline-none focus:border-accent/60"
             />
-            <span className="text-[11px] text-neutral-600">
-              (çoklu profil için — şimdilik etiket)
-            </span>
+            <span className="text-[11px] text-neutral-600">{t('settings.profile.hint')}</span>
           </div>
         </Section>
 
-        <div className="py-4 text-center text-[10px] text-neutral-700">
-          Wisp — © Shawy404. All rights reserved.
-        </div>
+        <div className="py-4 text-center text-[10px] text-neutral-700">{t('settings.footer')}</div>
       </div>
     </div>
   )

@@ -34,6 +34,7 @@ function writeJson(file: string, data: unknown): void {
 
 const defaultConfig: WispConfig = {
   theme: 'dark',
+  language: 'tr',
   accent: '#7dd3a8',
   adblock: true,
   adblockAllowlist: [],

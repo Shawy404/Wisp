@@ -2,14 +2,15 @@
 import { useState } from 'react'
 import type { SourceItem } from '@shared/types'
 import { formatCitation, type CitationFormat } from '@shared/citation'
-import { useApp } from '@/store'
+import { useApp, useT } from '@/store'
+import type { TKey } from '@shared/i18n'
 
-const KIND_LABEL: Record<SourceItem['kind'], string> = {
-  academic: 'Akademik',
-  wiki: 'Wiki',
-  image: 'Görsel',
-  web: 'Web',
-  clip: 'Klip'
+const KIND_KEY: Record<SourceItem['kind'], TKey> = {
+  academic: 'sourceCard.kind.academic',
+  wiki: 'sourceCard.kind.wiki',
+  image: 'sourceCard.kind.image',
+  web: 'sourceCard.kind.web',
+  clip: 'sourceCard.kind.clip'
 }
 
 const KIND_COLOR: Record<SourceItem['kind'], string> = {
@@ -27,6 +28,7 @@ export default function SourceCard(props: {
 }): React.JSX.Element {
   const { source } = props
   const { newTab, setOverlay } = useApp.getState()
+  const t = useT()
   const [citeOpen, setCiteOpen] = useState(false)
   const [copied, setCopied] = useState<CitationFormat | null>(null)
 
@@ -63,7 +65,7 @@ export default function SourceCard(props: {
             <span
               className={`shrink-0 rounded border px-1 py-px text-[9px] tracking-wide uppercase ${KIND_COLOR[source.kind]}`}
             >
-              {KIND_LABEL[source.kind]}
+              {t(KIND_KEY[source.kind])}
             </span>
             <button
               className="min-w-0 flex-1 truncate text-left text-xs font-medium text-neutral-200 hover:text-accent"
@@ -99,7 +101,7 @@ export default function SourceCard(props: {
                 className="rounded px-1.5 py-px text-[10px] text-neutral-400 hover:bg-neutral-800 hover:text-neutral-200"
                 onClick={() => setCiteOpen((v) => !v)}
               >
-                atıf
+                {t('sourceCard.cite')}
               </button>
               {citeOpen && (
                 <span className="absolute top-5 right-0 z-20 flex overflow-hidden rounded-md border border-neutral-700 bg-neutral-900 shadow-xl">
@@ -119,7 +121,7 @@ export default function SourceCard(props: {
                   className="rounded px-1.5 py-px text-[10px] text-red-400/80 hover:bg-red-400/10"
                   onClick={props.onDelete}
                 >
-                  sil
+                  {t('sourceCard.delete')}
                 </button>
               )}
             </span>

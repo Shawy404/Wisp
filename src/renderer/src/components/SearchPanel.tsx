@@ -1,21 +1,23 @@
 // Wisp — © Shawy404. All rights reserved.
 import { useEffect, useRef, useState } from 'react'
 import type { SearchResults, SourceItem } from '@shared/types'
-import { invoke, useApp } from '@/store'
+import { invoke, useApp, useT } from '@/store'
+import type { TKey } from '@shared/i18n'
 import SourceCard from './SourceCard'
 
 type ResultTab = 'academic' | 'wiki' | 'images' | 'web'
 
-const TAB_LABEL: Record<ResultTab, string> = {
-  academic: 'Akademik',
-  wiki: 'Genel Bakış',
-  images: 'Görsel',
-  web: 'Web'
+const TAB_KEY: Record<ResultTab, TKey> = {
+  academic: 'search.tab.academic',
+  wiki: 'search.tab.wiki',
+  images: 'search.tab.images',
+  web: 'search.tab.web'
 }
 
 export default function SearchPanel(): React.JSX.Element {
   const activeRoomId = useApp((s) => s.activeRoomId)
   const devMode = useApp((s) => s.config?.devMode ?? false)
+  const t = useT()
   const [query, setQuery] = useState('')
   const [results, setResults] = useState<SearchResults | null>(null)
   const [loading, setLoading] = useState(false)
@@ -72,7 +74,7 @@ export default function SearchPanel(): React.JSX.Element {
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             onKeyDown={(e) => e.key === 'Enter' && void run(query)}
-            placeholder="Ara — akademik + wiki + görsel sonuçlar bu odaya kaydedilir"
+            placeholder={t('search.placeholder')}
             className="h-10 flex-1 rounded-lg border border-neutral-800 bg-neutral-900 px-4 text-sm text-neutral-100 outline-none placeholder:text-neutral-600 focus:border-accent/60"
             spellCheck={false}
           />
@@ -81,29 +83,29 @@ export default function SearchPanel(): React.JSX.Element {
             onClick={() => void run(query)}
             disabled={loading}
           >
-            {loading ? 'Aranıyor…' : 'Ara'}
+            {loading ? t('search.searching') : t('search.button')}
           </button>
         </div>
 
         {results && (
           <div className="flex items-center gap-1">
-            {(Object.keys(TAB_LABEL) as ResultTab[]).map((t) => (
+            {(Object.keys(TAB_KEY) as ResultTab[]).map((rt) => (
               <button
-                key={t}
-                onClick={() => setTab(t)}
+                key={rt}
+                onClick={() => setTab(rt)}
                 className={`rounded-md px-3 py-1 text-xs ${
-                  tab === t
+                  tab === rt
                     ? 'bg-neutral-800 text-neutral-100'
                     : 'text-neutral-500 hover:text-neutral-300'
                 }`}
               >
-                {TAB_LABEL[t]}
-                <span className="ml-1.5 text-[10px] text-neutral-600">{results[t].length}</span>
+                {t(TAB_KEY[rt])}
+                <span className="ml-1.5 text-[10px] text-neutral-600">{results[rt].length}</span>
               </button>
             ))}
             <span className="ml-auto flex items-center gap-2">
               {results.classification === 'academic' && (
-                <span className="text-[10px] text-neutral-600">akademik sorgu algılandı</span>
+                <span className="text-[10px] text-neutral-600">{t('search.academicDetected')}</span>
               )}
               {devMode && (
                 <button
@@ -111,7 +113,7 @@ export default function SearchPanel(): React.JSX.Element {
                   className={`rounded px-2 py-0.5 text-[10px] ${
                     showJson ? 'bg-neutral-800 text-accent' : 'text-neutral-600 hover:text-neutral-400'
                   }`}
-                  title="Ham API sonuçlarını JSON olarak göster (web dev modu)"
+                  title={t('search.jsonToggle')}
                 >
                   {'{ } JSON'}
                 </button>
@@ -130,13 +132,11 @@ export default function SearchPanel(): React.JSX.Element {
         {loading && (
           <div className="flex items-center gap-2 pt-8 text-sm text-neutral-500">
             <span className="h-4 w-4 animate-spin rounded-full border border-neutral-600 border-t-accent" />
-            Beş kaynak paralel aranıyor…
+            {t('search.loading')}
           </div>
         )}
         {!loading && !results && (
-          <div className="pt-10 text-center text-sm text-neutral-600">
-            Arama yap — sonuçlar otomatik olarak odanın kaynaklarına eklenir.
-          </div>
+          <div className="pt-10 text-center text-sm text-neutral-600">{t('search.empty')}</div>
         )}
         {!loading &&
           results &&
@@ -167,11 +167,11 @@ export default function SearchPanel(): React.JSX.Element {
             items.map((s) => <SourceCard key={s.id} source={s} />)
           ))}
         {!loading && results && items.length === 0 && (
-          <div className="pt-8 text-center text-xs text-neutral-600">Bu sekmede sonuç yok.</div>
+          <div className="pt-8 text-center text-xs text-neutral-600">{t('search.noResultsInTab')}</div>
         )}
         {results && results.errors.length > 0 && (
           <div className="pt-2 text-[10px] text-neutral-700">
-            ulaşılamayan kaynaklar: {results.errors.join(' · ')}
+            {t('search.unreachable', { list: results.errors.join(' · ') })}
           </div>
         )}
       </div>

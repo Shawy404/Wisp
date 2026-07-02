@@ -3,7 +3,7 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import cytoscape, { type Core, type ElementDefinition } from 'cytoscape'
 import type { AiEdgeSuggestion, MapData } from '@shared/types'
 import { buildGraph, type Graph } from '@shared/graph'
-import { invoke, useApp } from '@/store'
+import { invoke, useApp, useT } from '@/store'
 
 const TYPE_COLOR: Record<string, string> = {
   source: '#8ab4f8',
@@ -28,6 +28,7 @@ export default function MapPanel(): React.JSX.Element {
   const notes = useApp((s) => s.notes)
   const map = useApp((s) => s.map)
   const activeRoomId = useApp((s) => s.activeRoomId)
+  const t = useT()
   const host = useRef<HTMLDivElement>(null)
   const cy = useRef<Core | null>(null)
   const linkFrom = useRef<string | null>(null)
@@ -114,7 +115,7 @@ export default function MapPanel(): React.JSX.Element {
       if (!linkFrom.current) {
         linkFrom.current = id
         evt.target.addClass('link-source')
-        setHint('İkinci düğüme Shift+tıkla — bağ oluşsun.')
+        setHint(t('map.hint.shiftSecond'))
       } else if (linkFrom.current !== id && activeRoomId) {
         void invoke('map:addEdge', activeRoomId, linkFrom.current, id, 'manual').then(() =>
           useApp.getState().refreshRoomData()
@@ -194,19 +195,22 @@ export default function MapPanel(): React.JSX.Element {
         <div ref={host} className="h-full w-full" />
         <div className="pointer-events-none absolute top-3 left-3 flex flex-col gap-1 text-[10px] text-neutral-500">
           <div className="flex items-center gap-1.5">
-            <span className="inline-block h-2 w-2 rounded-full" style={{ background: TYPE_COLOR.note }} /> not
-            <span className="ml-2 inline-block h-2 w-2 rounded-sm" style={{ background: TYPE_COLOR.source }} /> kaynak
-            <span className="ml-2 inline-block h-2 w-2 rotate-45" style={{ background: TYPE_COLOR.concept }} /> kavram
+            <span className="inline-block h-2 w-2 rounded-full" style={{ background: TYPE_COLOR.note }} />{' '}
+            {t('map.legend.note')}
+            <span className="ml-2 inline-block h-2 w-2 rounded-sm" style={{ background: TYPE_COLOR.source }} />{' '}
+            {t('map.legend.source')}
+            <span className="ml-2 inline-block h-2 w-2 rotate-45" style={{ background: TYPE_COLOR.concept }} />{' '}
+            {t('map.legend.concept')}
           </div>
-          <div>— kesikli: etiket bağı · yeşil ok: wikilink · gri: manuel · turuncu nokta: AI</div>
+          <div>{t('map.legend.edges')}</div>
         </div>
         <div className="absolute right-3 bottom-3 flex flex-col items-end gap-1 text-[10px] text-neutral-600">
-          <span>Shift+tıkla iki düğüm → bağ · Alt+tıkla bağ → sil</span>
+          <span>{t('map.hint.shiftAlt')}</span>
           {hint && <span className="text-accent">{hint}</span>}
         </div>
         {graph.nodes.length === 0 && (
           <div className="absolute inset-0 flex items-center justify-center text-sm text-neutral-600">
-            Bu odada henüz düğüm yok — kaynak topla, not yaz, kavram ekle.
+            {t('map.empty')}
           </div>
         )}
       </div>
@@ -218,7 +222,7 @@ export default function MapPanel(): React.JSX.Element {
             onClick={() => void runSuggest()}
             disabled={aiState === 'loading'}
           >
-            {aiState === 'loading' ? 'Bağlantılar aranıyor…' : '✦ Bağlantıları bul (AI)'}
+            {aiState === 'loading' ? t('map.suggesting') : t('map.suggestLinks')}
           </button>
           {aiState === 'error' && <div className="mt-2 text-[10px] text-red-400">{aiError}</div>}
         </div>
@@ -227,7 +231,7 @@ export default function MapPanel(): React.JSX.Element {
           {suggestions.length > 0 && (
             <div className="mb-3">
               <div className="mb-1.5 text-[10px] tracking-wide text-neutral-500 uppercase">
-                AI önerileri
+                {t('map.aiSuggestions')}
               </div>
               <div className="space-y-1.5">
                 {suggestions.map((s, i) => (
@@ -240,7 +244,7 @@ export default function MapPanel(): React.JSX.Element {
                       className="mt-1 rounded bg-neutral-800 px-2 py-0.5 text-[10px] text-neutral-300 hover:bg-neutral-700"
                       onClick={() => void acceptSuggestion(s)}
                     >
-                      Kalıcı bağ yap
+                      {t('map.makePermantent')}
                     </button>
                   </div>
                 ))}
@@ -251,7 +255,7 @@ export default function MapPanel(): React.JSX.Element {
           <div>
             <div className="mb-1.5 flex items-center justify-between">
               <span className="text-[10px] tracking-wide text-neutral-500 uppercase">
-                Kavram düğümleri
+                {t('map.conceptNodes')}
               </span>
               <button
                 className="text-neutral-500 hover:text-neutral-200"
@@ -265,7 +269,7 @@ export default function MapPanel(): React.JSX.Element {
                 autoFocus
                 value={conceptName}
                 onChange={(e) => setConceptName(e.target.value)}
-                placeholder="Kavram adı…"
+                placeholder={t('map.conceptPlaceholder')}
                 onKeyDown={(e) => {
                   if (e.key === 'Enter') void addConcept()
                   if (e.key === 'Escape') setAddingConcept(false)
@@ -296,16 +300,14 @@ export default function MapPanel(): React.JSX.Element {
                 </div>
               ))}
               {map.concepts.length === 0 && !addingConcept && (
-                <div className="px-1 py-2 text-[10px] text-neutral-600">
-                  Kavram düğümü ekle, sonra kaynak/notlarla bağla.
-                </div>
+                <div className="px-1 py-2 text-[10px] text-neutral-600">{t('map.noConcepts')}</div>
               )}
             </div>
           </div>
         </div>
 
         <div className="border-t border-neutral-800 p-3 text-[10px] text-neutral-600">
-          {graph.nodes.length} düğüm · {graph.edges.length} bağ
+          {t('map.stats', { nodes: graph.nodes.length, edges: graph.edges.length })}
         </div>
       </div>
     </div>

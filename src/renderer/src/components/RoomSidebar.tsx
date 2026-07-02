@@ -1,6 +1,6 @@
 // Wisp — © Shawy404. All rights reserved.
 import { useState } from 'react'
-import { useApp, type Overlay } from '@/store'
+import { useApp, useT, type Overlay } from '@/store'
 import VerticalTabs from './VerticalTabs'
 
 function RailButton(props: {
@@ -33,6 +33,7 @@ export default function RoomSidebar(): React.JSX.Element {
   const activeRoomId = useApp((s) => s.activeRoomId)
   const overlay = useApp((s) => s.overlay)
   const { switchRoom, createRoom, deleteRoom, renameRoom, setOverlay } = useApp.getState()
+  const t = useT()
   const [collapsed, setCollapsed] = useState(false)
   const [creating, setCreating] = useState(false)
   const [name, setName] = useState('')
@@ -71,7 +72,7 @@ export default function RoomSidebar(): React.JSX.Element {
             setCollapsed(false)
             setCreating(true)
           }}
-          title="Yeni oda"
+          title={t('sidebar.newRoom')}
           className="flex h-5 w-5 items-center justify-center rounded-full border border-dashed border-neutral-600 text-[11px] text-neutral-500 hover:border-neutral-400 hover:text-neutral-300"
         >
           +
@@ -86,7 +87,7 @@ export default function RoomSidebar(): React.JSX.Element {
               autoFocus
               value={name}
               onChange={(e) => setName(e.target.value)}
-              placeholder="Oda adı…"
+              placeholder={t('sidebar.roomNamePlaceholder')}
               onKeyDown={(e) => {
                 if (e.key === 'Enter' && name.trim()) {
                   void createRoom(name.trim())
@@ -117,7 +118,7 @@ export default function RoomSidebar(): React.JSX.Element {
             <button
               className="group flex w-full items-center gap-2 text-left"
               onClick={() => setMenuOpen((v) => !v)}
-              title="Oda menüsü"
+              title={t('sidebar.roomMenu')}
             >
               <span
                 className="inline-block h-2 w-2 shrink-0 rounded-full"
@@ -139,7 +140,7 @@ export default function RoomSidebar(): React.JSX.Element {
                   setMenuOpen(false)
                 }}
               >
-                Yeniden adlandır
+                {t('sidebar.rename')}
               </button>
               <button
                 className="block w-full px-3 py-1.5 text-left text-red-400 hover:bg-neutral-800"
@@ -148,7 +149,7 @@ export default function RoomSidebar(): React.JSX.Element {
                   void deleteRoom(room.id)
                 }}
               >
-                Odayı sil
+                {t('sidebar.deleteRoom')}
               </button>
             </div>
           )}
@@ -164,26 +165,26 @@ export default function RoomSidebar(): React.JSX.Element {
           collapsed ? 'flex-col gap-1' : 'justify-around px-1'
         }`}
       >
-        <RailButton title="Arama (odaya kaydedilir)" active={overlay === 'search'} onClick={() => toggle('search')}>
+        <RailButton title={t('sidebar.search')} active={overlay === 'search'} onClick={() => toggle('search')}>
           ⌕
         </RailButton>
-        <RailButton title="Kaynaklar" active={overlay === 'sources'} onClick={() => toggle('sources')}>
+        <RailButton title={t('sidebar.sources')} active={overlay === 'sources'} onClick={() => toggle('sources')}>
           ▤
         </RailButton>
-        <RailButton title="Notlar" active={overlay === 'notes'} onClick={() => toggle('notes')}>
+        <RailButton title={t('sidebar.notes')} active={overlay === 'notes'} onClick={() => toggle('notes')}>
           ✎
         </RailButton>
-        <RailButton title="Kavram haritası" active={overlay === 'map'} onClick={() => toggle('map')}>
+        <RailButton title={t('sidebar.map')} active={overlay === 'map'} onClick={() => toggle('map')}>
           ❋
         </RailButton>
-        <RailButton title="Split view (kaynak | not)" active={overlay === 'split'} onClick={() => toggle('split')}>
+        <RailButton title={t('sidebar.split')} active={overlay === 'split'} onClick={() => toggle('split')}>
           ◫
         </RailButton>
-        <RailButton title="Ayarlar" active={overlay === 'settings'} onClick={() => toggle('settings')}>
+        <RailButton title={t('sidebar.settings')} active={overlay === 'settings'} onClick={() => toggle('settings')}>
           ⚙
         </RailButton>
         <RailButton
-          title={collapsed ? 'Kenar çubuğunu genişlet' : 'Kenar çubuğunu daralt'}
+          title={collapsed ? t('sidebar.expand') : t('sidebar.collapse')}
           onClick={() => setCollapsed((v) => !v)}
         >
           {collapsed ? '»' : '«'}

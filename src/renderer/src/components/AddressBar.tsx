@@ -1,7 +1,7 @@
 // Wisp — © Shawy404. All rights reserved.
 import { useEffect, useRef, useState } from 'react'
 import { resolveAddress } from '@shared/address'
-import { invoke, useApp } from '@/store'
+import { invoke, useApp, useT } from '@/store'
 
 function NavButton(props: {
   onClick: () => void
@@ -25,7 +25,8 @@ export default function AddressBar(): React.JSX.Element {
   const tabs = useApp((s) => s.tabs)
   const activeTabId = useApp((s) => s.activeTabId)
   const devMode = useApp((s) => s.config?.devMode ?? false)
-  const activeTab = tabs.find((t) => t.id === activeTabId)
+  const t = useT()
+  const activeTab = tabs.find((tab) => tab.id === activeTabId)
   const [value, setValue] = useState('')
   const [focused, setFocused] = useState(false)
   const inputRef = useRef<HTMLInputElement>(null)
@@ -73,7 +74,7 @@ export default function AddressBar(): React.JSX.Element {
   return (
     <div className="no-drag mx-auto flex h-8 min-w-0 flex-1 max-w-2xl items-center gap-1 rounded-full border border-neutral-800 bg-neutral-900/70 px-1.5 focus-within:border-accent/50">
       <NavButton
-        title="Geri"
+        title={t('address.back')}
         disabled={!activeTab?.canGoBack}
         onClick={() => activeTabId && invoke('tabs:back', activeTabId)}
       >
@@ -82,7 +83,7 @@ export default function AddressBar(): React.JSX.Element {
         </svg>
       </NavButton>
       <NavButton
-        title="İleri"
+        title={t('address.forward')}
         disabled={!activeTab?.canGoForward}
         onClick={() => activeTabId && invoke('tabs:forward', activeTabId)}
       >
@@ -90,7 +91,7 @@ export default function AddressBar(): React.JSX.Element {
           <path d="M4 1 L9 6 L4 11" fill="none" stroke="currentColor" strokeWidth="1.5" />
         </svg>
       </NavButton>
-      <NavButton title="Yenile" onClick={() => activeTabId && invoke('tabs:reload', activeTabId)}>
+      <NavButton title={t('address.reload')} onClick={() => activeTabId && invoke('tabs:reload', activeTabId)}>
         <svg width="12" height="12" viewBox="0 0 12 12">
           <path
             d="M10.5 6 A4.5 4.5 0 1 1 6 1.5 M6 1.5 L8.5 1.5 M6 1.5 L6 4"
@@ -102,7 +103,7 @@ export default function AddressBar(): React.JSX.Element {
       </NavButton>
       {devMode && (
         <NavButton
-          title="DevTools (web dev modu)"
+          title={t('address.devtools')}
           disabled={!activeTab}
           onClick={() => invoke('tabs:devtools')}
         >
@@ -118,7 +119,7 @@ export default function AddressBar(): React.JSX.Element {
         </NavButton>
       )}
       <NavButton
-        title="Reader modu"
+        title={t('address.reader')}
         disabled={!activeTab || activeTab.url === 'about:blank'}
         onClick={() => useApp.getState().setOverlay('reader')}
       >
@@ -141,7 +142,7 @@ export default function AddressBar(): React.JSX.Element {
         }}
         onBlur={() => setFocused(false)}
         onKeyDown={(e) => e.key === 'Enter' && submit()}
-        placeholder="URL yaz ya da ara — aramalar odaya kaydedilir"
+        placeholder={t('address.placeholder')}
         className="h-7 min-w-0 flex-1 bg-transparent px-2 text-center text-xs text-neutral-200 outline-none placeholder:text-neutral-600 focus:text-left"
         spellCheck={false}
       />

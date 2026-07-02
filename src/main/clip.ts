@@ -4,6 +4,7 @@ import { join } from 'path'
 import { Menu, net } from 'electron'
 import type { SourceItem } from '@shared/types'
 import { extractKeywords, stableId, tagSlug } from '@shared/tags'
+import { translate } from '@shared/i18n'
 import * as store from './storage'
 import { addSources } from './search-ipc'
 import type { WispContext } from './ipc'
@@ -44,7 +45,9 @@ export function registerClip(ctx: WispContext): void {
     view.webContents.on('context-menu', (_e, params) => {
       const roomId = ctx.tabs.currentRoomId()
       if (!roomId) return
-      const roomName = store.loadRoomMeta(roomId)?.name ?? 'oda'
+      const t = (key: Parameters<typeof translate>[1], vars?: Record<string, string | number>): string =>
+        translate(ctx.config.language ?? 'tr', key, vars)
+      const roomName = store.loadRoomMeta(roomId)?.name ?? t('main.clip.defaultRoomName')
       const pageUrl = view.webContents.getURL()
       const pageTitle = view.webContents.getTitle()
 
@@ -52,7 +55,7 @@ export function registerClip(ctx: WispContext): void {
 
       if (params.selectionText && params.selectionText.trim()) {
         template.push({
-          label: `Seçili metni "${roomName}"na klipsle`,
+          label: t('main.clip.selectionLabel', { room: roomName }),
           click: () => {
             const excerpt = params.selectionText.trim()
             const source: SourceItem = {
@@ -67,20 +70,20 @@ export function registerClip(ctx: WispContext): void {
             }
             addSources(roomId, [source])
             notify(roomId)
-            toast('Seçili metin klipslendi')
+            toast(t('main.clip.selectionToast'))
           }
         })
       }
 
       if (params.mediaType === 'image' && params.srcURL) {
         template.push({
-          label: `Görseli "${roomName}"na klipsle`,
+          label: t('main.clip.imageLabel', { room: roomName }),
           click: async () => {
             const clipFile = await saveImageClip(roomId, params.srcURL)
             const source: SourceItem = {
               id: `src-${stableId(params.srcURL)}`,
               kind: 'image',
-              title: params.titleText || pageTitle || 'Görsel',
+              title: params.titleText || pageTitle || t('main.clip.imageDefaultTitle'),
               url: pageUrl,
               imageUrl: params.srcURL,
               clipFile: clipFile ?? undefined,
@@ -90,13 +93,13 @@ export function registerClip(ctx: WispContext): void {
             }
             addSources(roomId, [source])
             notify(roomId)
-            toast('Görsel klipslendi')
+            toast(t('main.clip.imageToast'))
           }
         })
       }
 
       template.push({
-        label: `Tüm sayfayı "${roomName}"na klipsle`,
+        label: t('main.clip.pageLabel', { room: roomName }),
         click: async () => {
           const res = await extractReadable(ctx, tabId)
           const text = res?.article?.textContent ?? ''
@@ -122,19 +125,23 @@ export function registerClip(ctx: WispContext): void {
           }
           addSources(roomId, [source])
           notify(roomId)
-          toast('Sayfa klipslendi')
+          toast(t('main.clip.pageToast'))
         }
       })
 
       template.push({ type: 'separator' })
       if (params.linkURL) {
         template.push({
-          label: 'Bağlantıyı yeni sekmede aç',
+          label: t('main.clip.openLink'),
           click: () => ctx.tabs.openTab(roomId, params.linkURL, true)
         })
       }
-      template.push({ label: 'Geri', enabled: view.webContents.navigationHistory.canGoBack(), click: () => view.webContents.navigationHistory.goBack() })
-      template.push({ label: 'Yenile', click: () => view.webContents.reload() })
+      template.push({
+        label: t('main.clip.back'),
+        enabled: view.webContents.navigationHistory.canGoBack(),
+        click: () => view.webContents.navigationHistory.goBack()
+      })
+      template.push({ label: t('main.clip.reload'), click: () => view.webContents.reload() })
 
       Menu.buildFromTemplate(template).popup()
     })

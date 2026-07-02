@@ -102,6 +102,7 @@ export interface RoomData {
 /** Global settings (~/Wisp/config.json). */
 export interface WispConfig {
   theme: 'dark' | 'light'
+  language: 'tr' | 'en'
   accent: string
   adblock: boolean
   adblockAllowlist: string[]

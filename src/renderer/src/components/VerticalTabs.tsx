@@ -1,6 +1,6 @@
 // Wisp — © Shawy404. All rights reserved.
 import { useRef } from 'react'
-import { useApp } from '@/store'
+import { useApp, useT } from '@/store'
 
 /**
  * Sidebar tab area: a pinned-tabs grid on top (saved places that survive
@@ -14,6 +14,7 @@ export default function VerticalTabs({ collapsed }: { collapsed: boolean }): Rea
   const rooms = useApp((s) => s.rooms)
   const activeRoomId = useApp((s) => s.activeRoomId)
   const { activateTab, closeTab, newTab, reorderTabs, pinTab, unpinTab } = useApp.getState()
+  const t = useT()
   const dragId = useRef<string | null>(null)
 
   const pinned = rooms.find((r) => r.id === activeRoomId)?.pinned ?? []
@@ -62,7 +63,7 @@ export default function VerticalTabs({ collapsed }: { collapsed: boolean }): Rea
               <button
                 className="absolute -top-1 -right-1 hidden h-3.5 w-3.5 items-center justify-center rounded-full bg-neutral-700 text-[8px] text-neutral-200 group-hover:flex hover:bg-red-500"
                 onClick={() => void unpinTab(p.url)}
-                title="Sabiti kaldır"
+                title={t('tabs.unpin')}
               >
                 ×
               </button>
@@ -74,13 +75,13 @@ export default function VerticalTabs({ collapsed }: { collapsed: boolean }): Rea
       <div className={`flex items-center px-3 pt-3 pb-1 ${collapsed ? 'justify-center px-0' : 'justify-between'}`}>
         {!collapsed && (
           <span className="text-[11px] font-semibold tracking-wider text-neutral-500 uppercase">
-            Sekmeler
+            {t('tabs.title')}
           </span>
         )}
         <button
           className="flex h-5 w-5 items-center justify-center rounded text-neutral-500 hover:bg-neutral-800 hover:text-neutral-200"
           onClick={() => window.dispatchEvent(new CustomEvent('wisp:open-palette'))}
-          title="Yeni sekme — komut çubuğu (Ctrl+T)"
+          title={t('tabs.newTab')}
         >
           +
         </button>
@@ -113,10 +114,10 @@ export default function VerticalTabs({ collapsed }: { collapsed: boolean }): Rea
             )}
             {!collapsed && (
               <>
-                <span className="min-w-0 flex-1 truncate">{tab.title || 'Yeni sekme'}</span>
+                <span className="min-w-0 flex-1 truncate">{tab.title || t('tabs.newTabDefault')}</span>
                 <button
                   className="hidden h-4 w-4 shrink-0 items-center justify-center rounded text-neutral-500 group-hover:flex hover:bg-neutral-700 hover:text-accent"
-                  title="Sabitle"
+                  title={t('tabs.pin')}
                   onClick={(e) => {
                     e.stopPropagation()
                     void pinTab(tab.url, tab.title || tab.url, tab.favicon)
@@ -147,9 +148,7 @@ export default function VerticalTabs({ collapsed }: { collapsed: boolean }): Rea
           </div>
         ))}
         {tabs.length === 0 && !collapsed && (
-          <div className="px-2 py-4 text-center text-[10px] text-neutral-600">
-            Sekme yok — + ile aç ya da adres çubuğuna yaz.
-          </div>
+          <div className="px-2 py-4 text-center text-[10px] text-neutral-600">{t('tabs.empty')}</div>
         )}
       </div>
     </div>

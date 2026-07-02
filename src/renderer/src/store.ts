@@ -1,6 +1,7 @@
 // Wisp — © Shawy404. All rights reserved.
 import { create } from 'zustand'
 import type { MapData, NoteInfo, RoomData, RoomMeta, SourceItem, TabInfo, WispConfig } from '@shared/types'
+import { translate, type TKey } from '@shared/i18n'
 
 export type Overlay =
   | 'none'
@@ -149,3 +150,9 @@ export const useApp = create<AppState>((set, get) => ({
     if (roomId) void invoke('tabs:reorder', roomId, ids)
   }
 }))
+
+/** Bound to the current config language; falls back to Turkish until config loads. */
+export function useT(): (key: TKey, vars?: Record<string, string | number>) => string {
+  const lang = useApp((s) => s.config?.language ?? 'tr')
+  return (key, vars) => translate(lang, key, vars)
+}

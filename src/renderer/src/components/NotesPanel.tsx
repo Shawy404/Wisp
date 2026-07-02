@@ -2,13 +2,14 @@
 import { useEffect, useRef, useState } from 'react'
 import type { NoteInfo } from '@shared/types'
 import { noteSlug } from '@shared/wikilink'
-import { invoke, useApp } from '@/store'
+import { invoke, useApp, useT } from '@/store'
 import NoteEditor from '../editor/NoteEditor'
 
 export default function NotesPanel(): React.JSX.Element {
   const notes = useApp((s) => s.notes)
   const sources = useApp((s) => s.sources)
   const activeRoomId = useApp((s) => s.activeRoomId)
+  const t = useT()
   const [activeId, setActiveId] = useState<string | null>(null)
   const [creating, setCreating] = useState(false)
   const [newTitle, setNewTitle] = useState('')
@@ -69,12 +70,12 @@ export default function NotesPanel(): React.JSX.Element {
       <div className="flex w-56 flex-col border-r border-neutral-800">
         <div className="flex items-center justify-between px-3 pt-3 pb-1">
           <span className="text-[11px] font-semibold tracking-wider text-neutral-500 uppercase">
-            Notlar
+            {t('notes.title')}
           </span>
           <button
             className="flex h-5 w-5 items-center justify-center rounded text-neutral-500 hover:bg-neutral-800 hover:text-neutral-200"
             onClick={() => setCreating(true)}
-            title="Yeni not"
+            title={t('notes.new')}
           >
             +
           </button>
@@ -85,7 +86,7 @@ export default function NotesPanel(): React.JSX.Element {
               autoFocus
               value={newTitle}
               onChange={(e) => setNewTitle(e.target.value)}
-              placeholder="Not başlığı…"
+              placeholder={t('notes.titlePlaceholder')}
               onKeyDown={(e) => {
                 if (e.key === 'Enter') void createNote(newTitle)
                 if (e.key === 'Escape') setCreating(false)
@@ -122,15 +123,13 @@ export default function NotesPanel(): React.JSX.Element {
             </button>
           ))}
           {notes.length === 0 && !creating && (
-            <div className="px-2 py-6 text-center text-[11px] text-neutral-600">
-              Henüz not yok. + ile başla; [[başka not]] yazıp Ctrl+tıkla bağ oluştur.
-            </div>
+            <div className="px-2 py-6 text-center text-[11px] text-neutral-600">{t('notes.empty')}</div>
           )}
         </div>
         {sources.length > 0 && (
           <div className="border-t border-neutral-800 p-2">
             <div className="mb-1 px-1 text-[10px] tracking-wide text-neutral-600 uppercase">
-              Kaynak göm (![[…]])
+              {t('notes.embedSource')}
             </div>
             <div className="max-h-28 space-y-0.5 overflow-y-auto">
               {sources.slice(0, 12).map((s) => (
@@ -176,7 +175,7 @@ export default function NotesPanel(): React.JSX.Element {
           </>
         ) : (
           <div className="flex flex-1 items-center justify-center text-sm text-neutral-600">
-            Bir not seç ya da oluştur.
+            {t('notes.pickOne')}
           </div>
         )}
       </div>

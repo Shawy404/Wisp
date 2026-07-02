@@ -1,11 +1,12 @@
 // Wisp — © Shawy404. All rights reserved.
 import { useEffect, useRef, useState } from 'react'
-import { useApp } from '@/store'
+import { useApp, useT } from '@/store'
 
 /** A tiny per-room pomodoro. Optional, tucked into the title bar. */
 export default function FocusTimer(): React.JSX.Element {
   const config = useApp((s) => s.config)
   const activeRoomId = useApp((s) => s.activeRoomId)
+  const t = useT()
   const total = (config?.focusMinutes ?? 25) * 60
   const [remaining, setRemaining] = useState(total)
   const [running, setRunning] = useState(false)
@@ -25,7 +26,9 @@ export default function FocusTimer(): React.JSX.Element {
         setRemaining((r) => {
           if (r <= 1) {
             setRunning(false)
-            window.dispatchEvent(new CustomEvent('wisp:toast-local', { detail: 'Odak seansı bitti 🎉' }))
+            window.dispatchEvent(
+              new CustomEvent('wisp:toast-local', { detail: t('focus.sessionDone') })
+            )
             return 0
           }
           return r - 1
@@ -48,7 +51,7 @@ export default function FocusTimer(): React.JSX.Element {
           active ? 'text-accent' : 'text-neutral-500 hover:text-neutral-300'
         }`}
         onClick={() => setOpen((v) => !v)}
-        title="Odak sayacı (pomodoro)"
+        title={t('focus.title')}
       >
         <span>◔</span>
         {active && <span className="tabular-nums">{mm}:{ss}</span>}
@@ -63,7 +66,7 @@ export default function FocusTimer(): React.JSX.Element {
               className="rounded bg-accent/15 px-2.5 py-1 text-[11px] text-accent hover:bg-accent/25"
               onClick={() => setRunning((r) => !r)}
             >
-              {running ? 'Duraklat' : 'Başlat'}
+              {running ? t('focus.pause') : t('focus.start')}
             </button>
             <button
               className="rounded bg-neutral-800 px-2.5 py-1 text-[11px] text-neutral-300 hover:bg-neutral-700"
@@ -72,11 +75,14 @@ export default function FocusTimer(): React.JSX.Element {
                 setRemaining(total)
               }}
             >
-              Sıfırla
+              {t('focus.reset')}
             </button>
           </div>
           <div className="mt-2 text-center text-[10px] text-neutral-600">
-            {config?.focusMinutes ?? 25} dk · {activeRoomId ?? 'oda'}
+            {t('focus.minutesRoom', {
+              minutes: config?.focusMinutes ?? 25,
+              room: activeRoomId ?? t('focus.room')
+            })}
           </div>
         </div>
       )}

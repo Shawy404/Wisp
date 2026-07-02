@@ -1,7 +1,7 @@
 // Wisp — © Shawy404. All rights reserved.
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { resolveAddress } from '@shared/address'
-import { invoke, useApp, type Overlay } from '@/store'
+import { invoke, useApp, useT, type Overlay } from '@/store'
 
 interface Command {
   id: string
@@ -13,6 +13,7 @@ interface Command {
 export default function CommandPalette(): React.JSX.Element | null {
   const rooms = useApp((s) => s.rooms)
   const notes = useApp((s) => s.notes)
+  const t = useT()
   const [open, setOpen] = useState(false)
   const [query, setQuery] = useState('')
   const [index, setIndex] = useState(0)
@@ -59,18 +60,23 @@ export default function CommandPalette(): React.JSX.Element | null {
       setOpen(false)
     }
     const list: Command[] = [
-      { id: 'search', label: 'Arama şeridini aç', hint: 'panel', run: go('search') },
-      { id: 'sources', label: 'Kaynakları aç', hint: 'panel', run: go('sources') },
-      { id: 'notes', label: 'Notları aç', hint: 'panel', run: go('notes') },
-      { id: 'map', label: 'Kavram haritasını aç', hint: 'panel', run: go('map') },
-      { id: 'settings', label: 'Ayarları aç', hint: 'panel', run: go('settings') },
-      { id: 'newtab', label: 'Yeni sekme', hint: 'tarayıcı', run: () => { newTab(); setOverlay('none'); setOpen(false) } }
+      { id: 'search', label: t('palette.openSearch'), hint: t('palette.hint.panel'), run: go('search') },
+      { id: 'sources', label: t('palette.openSources'), hint: t('palette.hint.panel'), run: go('sources') },
+      { id: 'notes', label: t('palette.openNotes'), hint: t('palette.hint.panel'), run: go('notes') },
+      { id: 'map', label: t('palette.openMap'), hint: t('palette.hint.panel'), run: go('map') },
+      { id: 'settings', label: t('palette.openSettings'), hint: t('palette.hint.panel'), run: go('settings') },
+      {
+        id: 'newtab',
+        label: t('palette.newTab'),
+        hint: t('palette.hint.browser'),
+        run: () => { newTab(); setOverlay('none'); setOpen(false) }
+      }
     ]
     for (const r of rooms) {
       list.push({
         id: `room-${r.id}`,
-        label: `Odaya geç: ${r.name}`,
-        hint: 'oda',
+        label: t('palette.switchToRoom', { name: r.name }),
+        hint: t('palette.hint.room'),
         run: () => {
           void switchRoom(r.id)
           setOpen(false)
@@ -80,8 +86,8 @@ export default function CommandPalette(): React.JSX.Element | null {
     for (const n of notes.slice(0, 30)) {
       list.push({
         id: `note-${n.id}`,
-        label: `Notu aç: ${n.title}`,
-        hint: 'not',
+        label: t('palette.openNote', { title: n.title }),
+        hint: t('palette.hint.note'),
         run: () => {
           setOverlay('notes')
           setOpen(false)
@@ -89,6 +95,7 @@ export default function CommandPalette(): React.JSX.Element | null {
       })
     }
     return list
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [rooms, notes])
 
   const filtered = useMemo(() => {
@@ -101,8 +108,8 @@ export default function CommandPalette(): React.JSX.Element | null {
       resolved.type === 'url'
         ? {
             id: 'go-url',
-            label: `Aç: ${resolved.url}`,
-            hint: 'yeni sekme',
+            label: t('palette.open', { url: resolved.url }),
+            hint: t('palette.hint.newTab'),
             run: () => {
               useApp.getState().newTab(resolved.url)
               useApp.getState().setOverlay('none')
@@ -111,8 +118,8 @@ export default function CommandPalette(): React.JSX.Element | null {
           }
         : {
             id: 'quick-search',
-            label: `Ara: "${resolved.query}"`,
-            hint: 'arama',
+            label: t('palette.searchFor', { query: resolved.query ?? '' }),
+            hint: t('palette.hint.search'),
             run: () => {
               window.dispatchEvent(new CustomEvent('wisp:search', { detail: resolved.query }))
               useApp.getState().setOverlay('search')
@@ -123,6 +130,7 @@ export default function CommandPalette(): React.JSX.Element | null {
     const term = q.startsWith('?') ? q.slice(1).trim() : q
     const matches = commands.filter((c) => c.label.toLowerCase().includes(term)).slice(0, 10)
     return [goCommand, ...matches]
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [query, commands])
 
   useEffect(() => {
@@ -155,7 +163,7 @@ export default function CommandPalette(): React.JSX.Element | null {
               filtered[index]?.run()
             }
           }}
-          placeholder="URL yaz, ara ya da komut seç — oda/not/panel adları"
+          placeholder={t('palette.placeholder')}
           className="w-full border-b border-neutral-800 bg-transparent px-4 py-3 text-sm text-neutral-100 outline-none placeholder:text-neutral-600"
         />
         <div className="max-h-80 overflow-y-auto py-1">
@@ -173,7 +181,7 @@ export default function CommandPalette(): React.JSX.Element | null {
             </button>
           ))}
           {filtered.length === 0 && (
-            <div className="px-4 py-6 text-center text-xs text-neutral-600">Eşleşme yok.</div>
+            <div className="px-4 py-6 text-center text-xs text-neutral-600">{t('palette.noMatch')}</div>
           )}
         </div>
       </div>

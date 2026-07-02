@@ -1,23 +1,25 @@
 // Wisp — © Shawy404. All rights reserved.
 import { useState } from 'react'
 import type { SourceItem } from '@shared/types'
-import { invoke, useApp } from '@/store'
+import { invoke, useApp, useT } from '@/store'
+import type { TKey } from '@shared/i18n'
 import SourceCard from './SourceCard'
 
 type Filter = 'all' | SourceItem['kind']
 
-const FILTERS: { key: Filter; label: string }[] = [
-  { key: 'all', label: 'Tümü' },
-  { key: 'academic', label: 'Akademik' },
-  { key: 'wiki', label: 'Wiki' },
-  { key: 'image', label: 'Görsel' },
-  { key: 'clip', label: 'Klip' },
-  { key: 'web', label: 'Web' }
+const FILTERS: { key: Filter; labelKey: TKey }[] = [
+  { key: 'all', labelKey: 'sources.filter.all' },
+  { key: 'academic', labelKey: 'sources.filter.academic' },
+  { key: 'wiki', labelKey: 'sources.filter.wiki' },
+  { key: 'image', labelKey: 'sources.filter.image' },
+  { key: 'clip', labelKey: 'sources.filter.clip' },
+  { key: 'web', labelKey: 'sources.filter.web' }
 ]
 
 export default function SourcesPanel(): React.JSX.Element {
   const sources = useApp((s) => s.sources)
   const activeRoomId = useApp((s) => s.activeRoomId)
+  const t = useT()
   const [filter, setFilter] = useState<Filter>('all')
   const [text, setText] = useState('')
 
@@ -37,7 +39,7 @@ export default function SourcesPanel(): React.JSX.Element {
         <input
           value={text}
           onChange={(e) => setText(e.target.value)}
-          placeholder={`Bu odada ${sources.length} kaynak — filtrele…`}
+          placeholder={t('sources.searchPlaceholder', { count: sources.length })}
           className="h-9 flex-1 rounded-lg border border-neutral-800 bg-neutral-900 px-3 text-xs text-neutral-100 outline-none placeholder:text-neutral-600 focus:border-accent/60"
         />
         <div className="flex gap-1">
@@ -51,7 +53,7 @@ export default function SourcesPanel(): React.JSX.Element {
                   : 'text-neutral-500 hover:text-neutral-300'
               }`}
             >
-              {f.label}
+              {t(f.labelKey)}
             </button>
           ))}
         </div>
@@ -65,9 +67,7 @@ export default function SourcesPanel(): React.JSX.Element {
           />
         ))}
         {filtered.length === 0 && (
-          <div className="pt-10 text-center text-xs text-neutral-600">
-            Henüz kaynak yok — arama yap ya da bir sayfayı odaya klipsle.
-          </div>
+          <div className="pt-10 text-center text-xs text-neutral-600">{t('sources.empty')}</div>
         )}
       </div>
     </div>
