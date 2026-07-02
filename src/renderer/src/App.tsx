@@ -19,20 +19,23 @@ export default function App(): React.JSX.Element {
   const ready = useApp((s) => s.ready)
   const overlay = useApp((s) => s.overlay)
   const config = useApp((s) => s.config)
+  const backgroundUrl = useApp((s) => s.backgroundUrl)
 
   useEffect(() => {
     void useApp.getState().init()
   }, [])
 
   // Live theme: accent drives every `text-accent`/`bg-accent` via the CSS var,
-  // and a `wisp-<theme>` class swaps the whole shell palette (dark = default).
+  // a `wisp-<theme>` class swaps the whole shell palette (dark = default), and
+  // `wisp-translucent` turns the shell to glass so a background shows through.
   useEffect(() => {
     if (!config) return
     const el = document.documentElement
     el.style.setProperty('--wisp-accent', config.accent)
     for (const cls of [...el.classList]) if (cls.startsWith('wisp-')) el.classList.remove(cls)
     if (config.theme && config.theme !== 'dark') el.classList.add(`wisp-${config.theme}`)
-  }, [config?.accent, config?.theme])
+    if (config.translucentUi && backgroundUrl) el.classList.add('wisp-translucent')
+  }, [config?.accent, config?.theme, config?.translucentUi, backgroundUrl])
 
   if (!ready) {
     return (
@@ -43,7 +46,24 @@ export default function App(): React.JSX.Element {
   }
 
   return (
-    <div className="flex h-full flex-col">
+    <div className="relative flex h-full flex-col">
+      {backgroundUrl &&
+        (() => {
+          // The built-in icon shows as a centered watermark; a custom image fills.
+          const isIcon = !config?.backgroundImage || config.backgroundImage === 'icon'
+          return (
+            <div
+              className="pointer-events-none fixed inset-0 z-0 bg-center bg-no-repeat"
+              style={{
+                backgroundImage: `url(${backgroundUrl})`,
+                backgroundSize: isIcon ? 'min(38vw, 42vh)' : 'cover',
+                opacity: config?.backgroundOpacity ?? 0.15,
+                filter: config?.backgroundBlur ? `blur(${config.backgroundBlur}px)` : undefined
+              }}
+            />
+          )
+        })()}
+      <div className="relative z-10 flex h-full flex-col">
       <TitleBar />
       <PermissionPrompt />
       <div className="flex min-h-0 flex-1">
@@ -59,6 +79,7 @@ export default function App(): React.JSX.Element {
           <CommandPalette />
           <Toast />
         </Viewport>
+      </div>
       </div>
     </div>
   )

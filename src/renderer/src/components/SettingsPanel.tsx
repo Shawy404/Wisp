@@ -1,7 +1,8 @@
 // Wisp — © Shawy404. All rights reserved.
 import { useState } from 'react'
 import { THEMES } from '@shared/themes'
-import { useApp, useT } from '@/store'
+import { invoke, useApp, useT } from '@/store'
+import type { WispConfig } from '@shared/types'
 
 const PRESET_ACCENTS = ['#7dd3a8', '#8ab4f8', '#f8b48a', '#c58af8', '#f87d9a', '#e8d47d']
 
@@ -22,6 +23,19 @@ export default function SettingsPanel(): React.JSX.Element {
   const t = useT()
   const [apiKey, setApiKey] = useState(config?.anthropicApiKey ?? '')
   const [allowlistText, setAllowlistText] = useState((config?.adblockAllowlist ?? []).join('\n'))
+
+  const pickBackground = async (): Promise<void> => {
+    const res = await invoke<{ dataUrl: string | null; config: WispConfig } | null>('bg:pick')
+    if (res) {
+      useApp.getState().setBackgroundUrl(res.dataUrl)
+      useApp.setState({ config: res.config })
+    }
+  }
+  const resetBackground = async (mode: 'icon' | 'none'): Promise<void> => {
+    const res = await invoke<{ dataUrl: string | null; config: WispConfig }>('bg:reset', mode)
+    useApp.getState().setBackgroundUrl(res.dataUrl)
+    useApp.setState({ config: res.config })
+  }
 
   if (!config) return <div />
 
@@ -104,6 +118,70 @@ export default function SettingsPanel(): React.JSX.Element {
               className="h-5 w-8 cursor-pointer rounded bg-transparent"
               title={t('settings.accent.custom')}
             />
+          </div>
+        </Section>
+
+        <Section title={t('settings.background')}>
+          <div className="flex flex-wrap items-center gap-2">
+            <button
+              onClick={() => void pickBackground()}
+              className="rounded-md bg-neutral-800 px-3 py-1.5 text-xs text-neutral-200 hover:bg-neutral-700"
+            >
+              {t('settings.background.choose')}
+            </button>
+            <button
+              onClick={() => void resetBackground('icon')}
+              className="rounded-md px-3 py-1.5 text-xs text-neutral-500 hover:text-neutral-300"
+            >
+              {t('settings.background.icon')}
+            </button>
+            <button
+              onClick={() => void resetBackground('none')}
+              className="rounded-md px-3 py-1.5 text-xs text-neutral-500 hover:text-neutral-300"
+            >
+              {t('settings.background.none')}
+            </button>
+          </div>
+
+          <div className="mt-4 space-y-3">
+            <div>
+              <div className="mb-1 flex justify-between text-[11px] text-neutral-500">
+                <span>{t('settings.background.opacity')}</span>
+                <span>{Math.round((config.backgroundOpacity ?? 0.15) * 100)}%</span>
+              </div>
+              <input
+                type="range"
+                min={0}
+                max={0.7}
+                step={0.01}
+                value={config.backgroundOpacity ?? 0.15}
+                onChange={(e) => void setConfig({ backgroundOpacity: Number(e.target.value) })}
+                className="w-full accent-accent"
+              />
+            </div>
+            <div>
+              <div className="mb-1 flex justify-between text-[11px] text-neutral-500">
+                <span>{t('settings.background.blur')}</span>
+                <span>{config.backgroundBlur ?? 0}px</span>
+              </div>
+              <input
+                type="range"
+                min={0}
+                max={24}
+                step={1}
+                value={config.backgroundBlur ?? 0}
+                onChange={(e) => void setConfig({ backgroundBlur: Number(e.target.value) })}
+                className="w-full accent-accent"
+              />
+            </div>
+            <label className="flex items-center gap-2 text-xs text-neutral-300">
+              <input
+                type="checkbox"
+                checked={config.translucentUi ?? false}
+                onChange={(e) => void setConfig({ translucentUi: e.target.checked })}
+              />
+              {t('settings.background.translucent')}
+            </label>
           </div>
         </Section>
 

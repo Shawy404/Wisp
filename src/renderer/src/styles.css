@@ -127,6 +127,26 @@ body,
   -webkit-app-region: no-drag;
 }
 
+/*
+ * Zen-style glass. When translucency is on (and a background is set), the shell
+ * surfaces drop to a semi-transparent dark glass so the background image shows
+ * through the whole UI. It's a distinct "mode" — a coherent dark glass on top
+ * of any theme — rather than a per-theme tint.
+ */
+html.wisp-translucent body {
+  background: transparent;
+}
+html.wisp-translucent {
+  --color-neutral-950: rgb(14 14 18 / 0.62);
+  --color-neutral-925: rgb(19 19 22 / 0.6);
+  --color-neutral-900: rgb(23 23 27 / 0.58);
+  --color-neutral-850: rgb(31 31 35 / 0.62);
+  --color-neutral-800: rgb(38 38 44 / 0.6);
+}
+html.wisp-translucent .wisp-glass {
+  backdrop-filter: blur(18px) saturate(1.2);
+}
+
 ::-webkit-scrollbar {
   width: 8px;
   height: 8px;

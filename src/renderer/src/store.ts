@@ -32,6 +32,9 @@ interface AppState {
   map: MapData
   /** Query queued for the search panel — survives the panel not being mounted yet. */
   pendingSearch: string | null
+  /** Data URL of the current background image (null = none). */
+  backgroundUrl: string | null
+  setBackgroundUrl: (url: string | null) => void
 
   init: () => Promise<void>
   refreshRoomData: (roomId?: string) => Promise<void>
@@ -69,6 +72,9 @@ export const useApp = create<AppState>((set, get) => ({
   sources: [],
   notes: [],
   map: { concepts: [], edges: [] },
+  backgroundUrl: null,
+
+  setBackgroundUrl: (url) => set({ backgroundUrl: url }),
 
   init: async () => {
     window.wisp.on('tabs:state', (state) => {
@@ -84,6 +90,8 @@ export const useApp = create<AppState>((set, get) => ({
     set({ ready: true, config: boot.config, rooms: boot.rooms, activeRoomId: boot.activeRoomId })
     const state = await invoke<TabsState>('tabs:state')
     set({ tabs: state.tabs, activeTabId: state.activeTabId })
+    const bg = await invoke<string | null>('bg:get')
+    set({ backgroundUrl: bg })
     await get().refreshRoomData()
   },
 
