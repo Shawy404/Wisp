@@ -76,6 +76,8 @@ export class TabManager {
       webPreferences: { contextIsolation: true, nodeIntegration: false, sandbox: true }
     })
     const entry: TabEntry = { id, roomId, url, title: url, view }
+    // Zen-style floating page: match the renderer's rounded viewport card.
+    if (typeof view.setBorderRadius === 'function') view.setBorderRadius(12)
     this.tabs.set(id, entry)
     if (!this.order.has(roomId)) {
       this.order.set(roomId, [])

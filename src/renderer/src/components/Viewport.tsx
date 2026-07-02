@@ -3,17 +3,18 @@ import { useEffect, useRef } from 'react'
 import { invoke, useApp } from '@/store'
 
 /**
- * The browsing area. The actual page is a native WebContentsView drawn by the
- * main process on top of this element — we just measure and report its rect.
- * When no tab is open (or an overlay hides the view) this renderer content
- * shows through.
+ * The browsing area, Zen-style: the page floats as a rounded card with a thin
+ * gutter around it. The actual page is a native WebContentsView drawn by the
+ * main process — we measure the inner card and report its rect; the view gets
+ * matching rounded corners via setBorderRadius. Overlays render on top by
+ * hiding the native view.
  */
 export default function Viewport({ children }: { children?: React.ReactNode }): React.JSX.Element {
-  const ref = useRef<HTMLDivElement>(null)
+  const inner = useRef<HTMLDivElement>(null)
   const tabs = useApp((s) => s.tabs)
 
   useEffect(() => {
-    const el = ref.current
+    const el = inner.current
     if (!el) return
     const report = (): void => {
       const r = el.getBoundingClientRect()
@@ -30,20 +31,25 @@ export default function Viewport({ children }: { children?: React.ReactNode }): 
   }, [])
 
   return (
-    <div ref={ref} className="relative flex-1 overflow-hidden bg-neutral-950">
-      {tabs.length === 0 && (
-        <div className="flex h-full flex-col items-center justify-center gap-3">
-          <div className="text-3xl font-semibold tracking-tight text-accent">Wisp</div>
-          <div className="max-w-sm text-center text-sm text-neutral-500">
-            Adres çubuğuna bir URL yaz ya da bir şey ara — aradığın her şey bu odanın
-            kaynaklarına kaydedilir.
+    <div className="relative flex-1 overflow-hidden bg-neutral-925 p-2 pl-0">
+      <div
+        ref={inner}
+        className="relative h-full w-full overflow-hidden rounded-xl border border-neutral-800/60 bg-neutral-950 shadow-[0_2px_16px_rgba(0,0,0,0.35)]"
+      >
+        {tabs.length === 0 && (
+          <div className="flex h-full flex-col items-center justify-center gap-3">
+            <div className="text-3xl font-semibold tracking-tight text-accent">Wisp</div>
+            <div className="max-w-sm text-center text-sm text-neutral-500">
+              Adres çubuğuna bir URL yaz ya da bir şey ara — aradığın her şey bu odanın
+              kaynaklarına kaydedilir.
+            </div>
+            <div className="text-xs text-neutral-600">
+              Ctrl+T yeni sekme · Ctrl+L adres çubuğu · Ctrl+K komut paleti
+            </div>
           </div>
-          <div className="text-xs text-neutral-600">
-            Ctrl+T yeni sekme · Ctrl+L adres çubuğu · Ctrl+K komut paleti
-          </div>
-        </div>
-      )}
-      {children}
+        )}
+        {children}
+      </div>
     </div>
   )
 }

@@ -2,7 +2,6 @@
 import { useEffect } from 'react'
 import { useApp } from '@/store'
 import TitleBar from './components/TitleBar'
-import AddressBar from './components/AddressBar'
 import RoomSidebar from './components/RoomSidebar'
 import Viewport from './components/Viewport'
 import SearchPanel from './components/SearchPanel'
@@ -51,7 +50,6 @@ export default function App(): React.JSX.Element {
   return (
     <div className="flex h-full flex-col">
       <TitleBar />
-      <AddressBar />
       <div className="flex min-h-0 flex-1">
         <RoomSidebar />
         <Viewport>

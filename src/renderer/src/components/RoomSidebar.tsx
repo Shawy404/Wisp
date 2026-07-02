@@ -1,6 +1,7 @@
 // Wisp — © Shawy404. All rights reserved.
 import { useState } from 'react'
 import { useApp, type Overlay } from '@/store'
+import VerticalTabs from './VerticalTabs'
 
 function RailButton(props: {
   title: string
@@ -10,7 +11,7 @@ function RailButton(props: {
 }): React.JSX.Element {
   return (
     <button
-      className={`flex h-9 w-9 items-center justify-center rounded-lg text-lg ${
+      className={`flex h-8 w-8 items-center justify-center rounded-lg text-base ${
         props.active
           ? 'bg-accent/15 text-accent'
           : 'text-neutral-500 hover:bg-neutral-800 hover:text-neutral-200'
@@ -23,128 +24,146 @@ function RailButton(props: {
   )
 }
 
+/**
+ * Zen-style sidebar: workspaces (rooms) as a dot row up top, vertical tabs in
+ * the middle, panel rail at the bottom. Collapsible to an icon-only rail.
+ */
 export default function RoomSidebar(): React.JSX.Element {
   const rooms = useApp((s) => s.rooms)
   const activeRoomId = useApp((s) => s.activeRoomId)
   const overlay = useApp((s) => s.overlay)
   const { switchRoom, createRoom, deleteRoom, renameRoom, setOverlay } = useApp.getState()
+  const [collapsed, setCollapsed] = useState(false)
   const [creating, setCreating] = useState(false)
   const [name, setName] = useState('')
-  const [menuRoom, setMenuRoom] = useState<string | null>(null)
-  const [renaming, setRenaming] = useState<string | null>(null)
+  const [menuOpen, setMenuOpen] = useState(false)
+  const [renaming, setRenaming] = useState(false)
   const [renameValue, setRenameValue] = useState('')
 
+  const room = rooms.find((r) => r.id === activeRoomId)
   const toggle = (o: Overlay): void => setOverlay(overlay === o ? 'none' : o)
 
   return (
-    <div className="flex w-52 flex-col border-r border-neutral-800 bg-neutral-925">
-      <div className="flex items-center justify-between px-3 pt-3 pb-1">
-        <span className="text-[11px] font-semibold tracking-wider text-neutral-500 uppercase">
-          Odalar
-        </span>
+    <div
+      className={`flex shrink-0 flex-col border-r border-neutral-800/60 bg-neutral-925 transition-[width] duration-150 ${
+        collapsed ? 'w-12' : 'w-56'
+      }`}
+    >
+      {/* Workspace (room) dot switcher — Zen'in workspace şeridi */}
+      <div
+        className={`flex items-center gap-1.5 border-b border-neutral-800/60 px-3 py-2.5 ${
+          collapsed ? 'flex-col px-0' : 'flex-wrap'
+        }`}
+      >
+        {rooms.map((r) => (
+          <button
+            key={r.id}
+            onClick={() => void switchRoom(r.id)}
+            title={r.name}
+            className={`flex h-5 w-5 items-center justify-center rounded-full transition-transform hover:scale-110 ${
+              r.id === activeRoomId ? 'ring-2 ring-white/70 ring-offset-1 ring-offset-neutral-925' : ''
+            }`}
+            style={{ background: r.color }}
+          />
+        ))}
         <button
-          className="flex h-5 w-5 items-center justify-center rounded text-neutral-500 hover:bg-neutral-800 hover:text-neutral-200"
+          onClick={() => {
+            setCollapsed(false)
+            setCreating(true)
+          }}
           title="Yeni oda"
-          onClick={() => setCreating(true)}
+          className="flex h-5 w-5 items-center justify-center rounded-full border border-dashed border-neutral-600 text-[11px] text-neutral-500 hover:border-neutral-400 hover:text-neutral-300"
         >
           +
         </button>
       </div>
 
-      <div className="flex-1 space-y-0.5 overflow-y-auto px-2 py-1">
-        {rooms.map((room) => (
-          <div key={room.id} className="relative">
-            {renaming === room.id ? (
-              <input
-                autoFocus
-                value={renameValue}
-                onChange={(e) => setRenameValue(e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter' && renameValue.trim()) {
-                    void renameRoom(room.id, renameValue.trim())
-                    setRenaming(null)
-                  }
-                  if (e.key === 'Escape') setRenaming(null)
-                }}
-                onBlur={() => setRenaming(null)}
-                className="w-full rounded-md border border-accent/50 bg-neutral-900 px-2 py-1.5 text-xs text-neutral-100 outline-none"
+      {/* Aktif oda adı + oda menüsü */}
+      {!collapsed && (
+        <div className="relative border-b border-neutral-800/60 px-3 py-2">
+          {creating ? (
+            <input
+              autoFocus
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              placeholder="Oda adı…"
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' && name.trim()) {
+                  void createRoom(name.trim())
+                  setName('')
+                  setCreating(false)
+                }
+                if (e.key === 'Escape') setCreating(false)
+              }}
+              onBlur={() => setCreating(false)}
+              className="w-full rounded-md border border-accent/50 bg-neutral-900 px-2 py-1 text-xs text-neutral-100 outline-none placeholder:text-neutral-600"
+            />
+          ) : renaming ? (
+            <input
+              autoFocus
+              value={renameValue}
+              onChange={(e) => setRenameValue(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' && renameValue.trim() && room) {
+                  void renameRoom(room.id, renameValue.trim())
+                  setRenaming(false)
+                }
+                if (e.key === 'Escape') setRenaming(false)
+              }}
+              onBlur={() => setRenaming(false)}
+              className="w-full rounded-md border border-accent/50 bg-neutral-900 px-2 py-1 text-xs text-neutral-100 outline-none"
+            />
+          ) : (
+            <button
+              className="group flex w-full items-center gap-2 text-left"
+              onClick={() => setMenuOpen((v) => !v)}
+              title="Oda menüsü"
+            >
+              <span
+                className="inline-block h-2 w-2 shrink-0 rounded-full"
+                style={{ background: room?.color ?? '#666' }}
               />
-            ) : (
+              <span className="min-w-0 flex-1 truncate text-xs font-medium text-neutral-200">
+                {room?.name ?? 'Wisp'}
+              </span>
+              <span className="text-neutral-600 group-hover:text-neutral-300">⌄</span>
+            </button>
+          )}
+          {menuOpen && room && (
+            <div className="absolute left-3 z-30 mt-1 w-40 rounded-md border border-neutral-700 bg-neutral-900 py-1 text-xs shadow-xl">
               <button
-                className={`group flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-left text-xs ${
-                  room.id === activeRoomId
-                    ? 'bg-neutral-800 text-neutral-100'
-                    : 'text-neutral-400 hover:bg-neutral-850 hover:text-neutral-200'
-                }`}
-                onClick={() => void switchRoom(room.id)}
-                onContextMenu={(e) => {
-                  e.preventDefault()
-                  setMenuRoom(menuRoom === room.id ? null : room.id)
+                className="block w-full px-3 py-1.5 text-left text-neutral-300 hover:bg-neutral-800"
+                onClick={() => {
+                  setRenameValue(room.name)
+                  setRenaming(true)
+                  setMenuOpen(false)
                 }}
               >
-                <span
-                  className="inline-block h-2 w-2 shrink-0 rounded-full"
-                  style={{ background: room.color }}
-                />
-                <span className="min-w-0 flex-1 truncate">{room.name}</span>
-                <span
-                  className="hidden text-neutral-600 group-hover:inline hover:text-neutral-300"
-                  onClick={(e) => {
-                    e.stopPropagation()
-                    setMenuRoom(menuRoom === room.id ? null : room.id)
-                  }}
-                >
-                  ⋯
-                </span>
+                Yeniden adlandır
               </button>
-            )}
-            {menuRoom === room.id && (
-              <div className="absolute right-0 z-20 mt-1 w-36 rounded-md border border-neutral-700 bg-neutral-900 py-1 text-xs shadow-xl">
-                <button
-                  className="block w-full px-3 py-1.5 text-left text-neutral-300 hover:bg-neutral-800"
-                  onClick={() => {
-                    setRenameValue(room.name)
-                    setRenaming(room.id)
-                    setMenuRoom(null)
-                  }}
-                >
-                  Yeniden adlandır
-                </button>
-                <button
-                  className="block w-full px-3 py-1.5 text-left text-red-400 hover:bg-neutral-800"
-                  onClick={() => {
-                    setMenuRoom(null)
-                    void deleteRoom(room.id)
-                  }}
-                >
-                  Odayı sil
-                </button>
-              </div>
-            )}
-          </div>
-        ))}
+              <button
+                className="block w-full px-3 py-1.5 text-left text-red-400 hover:bg-neutral-800"
+                onClick={() => {
+                  setMenuOpen(false)
+                  void deleteRoom(room.id)
+                }}
+              >
+                Odayı sil
+              </button>
+            </div>
+          )}
+        </div>
+      )}
 
-        {creating && (
-          <input
-            autoFocus
-            value={name}
-            onChange={(e) => setName(e.target.value)}
-            placeholder="Oda adı…"
-            onKeyDown={(e) => {
-              if (e.key === 'Enter' && name.trim()) {
-                void createRoom(name.trim())
-                setName('')
-                setCreating(false)
-              }
-              if (e.key === 'Escape') setCreating(false)
-            }}
-            onBlur={() => setCreating(false)}
-            className="w-full rounded-md border border-accent/50 bg-neutral-900 px-2 py-1.5 text-xs text-neutral-100 outline-none placeholder:text-neutral-600"
-          />
-        )}
-      </div>
+      {/* Dikey sekmeler */}
+      <VerticalTabs collapsed={collapsed} />
 
-      <div className="flex items-center justify-around border-t border-neutral-800 px-2 py-2">
+      {/* Panel rayı + daraltma */}
+      <div
+        className={`flex items-center border-t border-neutral-800/60 py-1.5 ${
+          collapsed ? 'flex-col gap-1' : 'justify-around px-1'
+        }`}
+      >
         <RailButton title="Arama (odaya kaydedilir)" active={overlay === 'search'} onClick={() => toggle('search')}>
           ⌕
         </RailButton>
@@ -162,6 +181,12 @@ export default function RoomSidebar(): React.JSX.Element {
         </RailButton>
         <RailButton title="Ayarlar" active={overlay === 'settings'} onClick={() => toggle('settings')}>
           ⚙
+        </RailButton>
+        <RailButton
+          title={collapsed ? 'Kenar çubuğunu genişlet' : 'Kenar çubuğunu daralt'}
+          onClick={() => setCollapsed((v) => !v)}
+        >
+          {collapsed ? '»' : '«'}
         </RailButton>
       </div>
     </div>

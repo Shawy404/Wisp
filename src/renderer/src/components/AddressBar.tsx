@@ -11,7 +11,7 @@ function NavButton(props: {
 }): React.JSX.Element {
   return (
     <button
-      className="flex h-7 w-7 items-center justify-center rounded-md text-neutral-400 hover:bg-neutral-800 hover:text-neutral-100 disabled:opacity-30 disabled:hover:bg-transparent"
+      className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-neutral-400 hover:bg-neutral-800 hover:text-neutral-100 disabled:opacity-30 disabled:hover:bg-transparent"
       onClick={props.onClick}
       disabled={props.disabled}
       title={props.title}
@@ -71,7 +71,7 @@ export default function AddressBar(): React.JSX.Element {
   }
 
   return (
-    <div className="flex h-11 items-center gap-1.5 border-b border-neutral-800 bg-neutral-925 px-2">
+    <div className="no-drag mx-auto flex h-8 min-w-0 flex-1 max-w-2xl items-center gap-1 rounded-full border border-neutral-800 bg-neutral-900/70 px-1.5 focus-within:border-accent/50">
       <NavButton
         title="Geri"
         disabled={!activeTab?.canGoBack}
@@ -142,7 +142,7 @@ export default function AddressBar(): React.JSX.Element {
         onBlur={() => setFocused(false)}
         onKeyDown={(e) => e.key === 'Enter' && submit()}
         placeholder="URL yaz ya da ara — aramalar odaya kaydedilir"
-        className="h-7 min-w-0 flex-1 rounded-md border border-neutral-800 bg-neutral-900 px-3 text-xs text-neutral-200 outline-none placeholder:text-neutral-600 focus:border-accent/60"
+        className="h-7 min-w-0 flex-1 bg-transparent px-2 text-center text-xs text-neutral-200 outline-none placeholder:text-neutral-600 focus:text-left"
         spellCheck={false}
       />
     </div>

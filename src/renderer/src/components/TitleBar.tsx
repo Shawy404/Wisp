@@ -1,29 +1,22 @@
 // Wisp — © Shawy404. All rights reserved.
-import { invoke, useApp } from '@/store'
-import TabStrip from './TabStrip'
+import { invoke } from '@/store'
+import AddressBar from './AddressBar'
 import FocusTimer from './FocusTimer'
 
+/**
+ * Zen-style single toolbar: one slim draggable row holding the floating
+ * address pill, the focus timer and the window controls. Tabs live in the
+ * sidebar, so the top chrome stays minimal.
+ */
 export default function TitleBar(): React.JSX.Element {
-  const rooms = useApp((s) => s.rooms)
-  const activeRoomId = useApp((s) => s.activeRoomId)
-  const room = rooms.find((r) => r.id === activeRoomId)
-
   return (
-    <div className="drag-region flex h-10 items-stretch gap-1 border-b border-neutral-800 bg-neutral-925 pl-2">
-      <div className="flex items-center gap-2 pr-2">
-        <span
-          className="inline-block h-2.5 w-2.5 rounded-full"
-          style={{ background: room?.color ?? '#666' }}
-        />
-        <span className="max-w-40 truncate text-xs font-medium text-neutral-400">
-          {room?.name ?? 'Wisp'}
-        </span>
-      </div>
-      <TabStrip />
-      <div className="no-drag ml-auto flex items-center">
+    <div className="drag-region flex h-11 items-center gap-2 border-b border-neutral-800/60 bg-neutral-925 pr-1 pl-3">
+      <span className="text-xs font-semibold tracking-tight text-accent select-none">Wisp</span>
+      <AddressBar />
+      <div className="no-drag flex items-center">
         <FocusTimer />
         <button
-          className="flex h-10 w-11 items-center justify-center text-neutral-500 hover:bg-neutral-800 hover:text-neutral-200"
+          className="flex h-8 w-10 items-center justify-center rounded-md text-neutral-500 hover:bg-neutral-800 hover:text-neutral-200"
           onClick={() => invoke('window:minimize')}
           title="Küçült"
         >
@@ -32,7 +25,7 @@ export default function TitleBar(): React.JSX.Element {
           </svg>
         </button>
         <button
-          className="flex h-10 w-11 items-center justify-center text-neutral-500 hover:bg-neutral-800 hover:text-neutral-200"
+          className="flex h-8 w-10 items-center justify-center rounded-md text-neutral-500 hover:bg-neutral-800 hover:text-neutral-200"
           onClick={() => invoke('window:maximize')}
           title="Büyüt"
         >
@@ -41,7 +34,7 @@ export default function TitleBar(): React.JSX.Element {
           </svg>
         </button>
         <button
-          className="flex h-10 w-11 items-center justify-center text-neutral-500 hover:bg-red-600 hover:text-white"
+          className="flex h-8 w-10 items-center justify-center rounded-md text-neutral-500 hover:bg-red-600 hover:text-white"
           onClick={() => invoke('window:close')}
           title="Kapat"
         >
