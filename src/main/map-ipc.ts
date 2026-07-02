@@ -59,13 +59,28 @@ export function registerMapIpc(ctx: WispContext): void {
   })
 
   // Place a source on the map (drag from the library panel / its ＋ button).
-  ipcMain.handle('map:includeNode', (_e, roomId: string, sourceId: string) => {
+  // A drop carries the exact canvas position so the node lands under the cursor.
+  ipcMain.handle(
+    'map:includeNode',
+    (_e, roomId: string, sourceId: string, pos?: { x: number; y: number }) => {
+      const map = store.loadMap(roomId)
+      const included = new Set(map.included ?? [])
+      included.add(sourceId)
+      map.included = [...included]
+      if (pos) map.positions = { ...(map.positions ?? {}), [sourceId]: pos }
+      store.saveMap(roomId, map)
+      notify(roomId)
+      return map
+    }
+  )
+
+  // Persist a hand-dragged node position. Deliberately does NOT notify: the
+  // canvas already shows the node where the user left it, and a broadcast
+  // would re-run layout mid-interaction.
+  ipcMain.handle('map:setPosition', (_e, roomId: string, nodeId: string, x: number, y: number) => {
     const map = store.loadMap(roomId)
-    const included = new Set(map.included ?? [])
-    included.add(sourceId)
-    map.included = [...included]
+    map.positions = { ...(map.positions ?? {}), [nodeId]: { x, y } }
     store.saveMap(roomId, map)
-    notify(roomId)
     return map
   })
 
@@ -102,6 +117,7 @@ export function registerMapIpc(ctx: WispContext): void {
     map.concepts = map.concepts.filter((c) => c.id !== conceptId)
     const nodeId = `concept:${conceptId}`
     map.edges = map.edges.filter((edge) => edge.from !== nodeId && edge.to !== nodeId)
+    if (map.positions) delete map.positions[nodeId]
     store.saveMap(roomId, map)
     notify(roomId)
     return map

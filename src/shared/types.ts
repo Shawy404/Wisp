@@ -59,6 +59,15 @@ export interface SourceItem {
   origin: 'search' | 'clip' | 'reader' | 'manual'
 }
 
+/** One visited page in a room's browsing history (rooms/<slug>/history.json). */
+export interface HistoryEntry {
+  url: string
+  title: string
+  favicon?: string
+  /** Visit time, ISO — also the entry's id for deletion. */
+  at: string
+}
+
 /** A note on disk (rooms/<slug>/notes/<name>.md). Also a node in the graph. */
 export interface NoteInfo {
   /** Note id == filename without .md */
@@ -97,6 +106,12 @@ export interface MapData {
    * so the map stays a deliberate canvas instead of a dump of every source.
    */
   included?: string[]
+  /**
+   * Hand-placed node coordinates (model space). A node the user dragged — or
+   * dropped from the library — stays exactly where it was left; auto-layout
+   * only ever touches nodes without a saved position.
+   */
+  positions?: Record<string, { x: number; y: number }>
 }
 
 /** Everything the renderer needs about one room's knowledge base. */

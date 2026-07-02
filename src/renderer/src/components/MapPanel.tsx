@@ -120,38 +120,41 @@ const COSE_LAYOUT = {
   randomize: true
 } as const
 
-/**
- * Lays out the graph so it stays readable no matter how sparse it is: linked
- * nodes get a force-directed cluster up top, and the (usually many) unlinked
- * singletons are packed into a neat grid band below instead of collapsing into
- * an overlapping column.
- */
-function runLayout(c: Core): void {
-  const linked = c.nodes().filter((n) => n.degree(false) > 0)
-  const singletons = c.nodes().filter((n) => n.degree(false) === 0)
+type NodePositions = Record<string, { x: number; y: number }>
 
-  if (linked.length > 0) {
-    linked.layout({ ...COSE_LAYOUT }).run()
+/**
+ * Lays out the graph so it stays readable no matter how sparse it is — while
+ * never touching a node the user has placed by hand (`pinned`). Free linked
+ * nodes get a force-directed cluster, and free unlinked singletons are packed
+ * into a neat grid band below instead of collapsing into an overlapping column.
+ */
+function runLayout(c: Core, pinned: Set<string>): void {
+  const freeLinked = c.nodes().filter((n) => !pinned.has(n.id()) && n.degree(false) > 0)
+  const freeSingletons = c.nodes().filter((n) => !pinned.has(n.id()) && n.degree(false) === 0)
+
+  if (freeLinked.length > 0) {
+    freeLinked.layout({ ...COSE_LAYOUT }).run()
   }
 
-  const box = linked.length > 0 ? linked.boundingBox() : { x1: 0, x2: 0, y1: 0, y2: 0 }
-  const clusterWidth = Math.max(box.x2 - box.x1, 600)
-  const cols = Math.max(4, Math.round(Math.sqrt(singletons.length) * 1.6))
+  // The grid band starts below everything that already has a place: pinned
+  // nodes and the laid-out cluster.
+  const anchored = c.nodes().filter((n) => pinned.has(n.id()) || n.degree(false) > 0)
+  const box = anchored.length > 0 ? anchored.boundingBox() : { x1: 0, x2: 0, y1: 0, y2: 0 }
+  const cols = Math.max(4, Math.round(Math.sqrt(freeSingletons.length) * 1.6))
   const gap = 150
   const startX = box.x1
-  const startY = (linked.length > 0 ? box.y2 : 0) + (linked.length > 0 ? 120 : 0)
+  const startY = anchored.length > 0 ? box.y2 + 120 : 0
 
-  singletons.forEach((n, i) => {
+  freeSingletons.forEach((n, i) => {
     const col = i % cols
     const row = Math.floor(i / cols)
     n.position({ x: startX + col * gap, y: startY + row * gap })
   })
-  void clusterWidth
 
   c.fit(undefined, 50)
 }
 
-function toElements(graph: Graph): ElementDefinition[] {
+function toElements(graph: Graph, positions: NodePositions): ElementDefinition[] {
   const nodes = graph.nodes.map((n) => ({
     data: {
       id: n.id,
@@ -160,6 +163,7 @@ function toElements(graph: Graph): ElementDefinition[] {
       fullLabel: n.label,
       type: n.type
     },
+    position: positions[n.id] ? { ...positions[n.id] } : undefined,
     classes: n.type
   }))
   const edges = graph.edges.map((e) => ({
@@ -206,6 +210,13 @@ export default function MapPanel(): React.JSX.Element {
   })
   const [showTagLinks, setShowTagLinks] = useState(false)
   const [ctx, setCtx] = useState<CtxMenu | null>(null)
+  const [dropActive, setDropActive] = useState(false)
+  const dragDepth = useRef(0)
+
+  // Hand-placed coordinates, kept in a ref so the long-lived cytoscape event
+  // handlers always see the latest set (drags update it without a re-render).
+  const positionsRef = useRef<NodePositions>({})
+  positionsRef.current = { ...(map.positions ?? {}), ...positionsRef.current }
 
   const hiddenCount = map.hidden?.length ?? 0
 
@@ -238,9 +249,10 @@ export default function MapPanel(): React.JSX.Element {
     [sources, onMapIds]
   )
 
-  const placeOnMap = async (sourceId: string): Promise<void> => {
+  const placeOnMap = async (sourceId: string, pos?: { x: number; y: number }): Promise<void> => {
     if (!activeRoomId) return
-    await invoke('map:includeNode', activeRoomId, sourceId)
+    if (pos) positionsRef.current[sourceId] = pos
+    await invoke('map:includeNode', activeRoomId, sourceId, pos)
     await useApp.getState().refreshRoomData()
   }
   const removeFromMap = async (sourceId: string): Promise<void> => {
@@ -256,12 +268,21 @@ export default function MapPanel(): React.JSX.Element {
     if (!host.current) return
     cy.current = cytoscape({
       container: host.current,
-      elements: toElements(graph),
+      elements: toElements(graph, positionsRef.current),
       style: cyStyle(mapColors(useApp.getState().config?.theme ?? 'dark')),
       layout: { name: 'preset' },
       wheelSensitivity: 0.2
     })
-    runLayout(cy.current)
+    runLayout(cy.current, new Set(Object.keys(positionsRef.current)))
+
+    // A node stays exactly where the user drops it — persisted quietly so the
+    // canvas doesn't re-layout mid-interaction.
+    cy.current.on('dragfree', 'node', (evt) => {
+      const id = evt.target.id()
+      const p = evt.target.position()
+      positionsRef.current[id] = { x: p.x, y: p.y }
+      if (activeRoomId) void invoke('map:setPosition', activeRoomId, id, p.x, p.y)
+    })
 
     const focusNode = (target: cytoscape.NodeSingular): void => {
       const c = cy.current
@@ -347,9 +368,9 @@ export default function MapPanel(): React.JSX.Element {
     const c = cy.current
     c.batch(() => {
       c.elements().remove()
-      c.add(toElements(graph))
+      c.add(toElements(graph, positionsRef.current))
     })
-    runLayout(c)
+    runLayout(c, new Set(Object.keys(positionsRef.current)))
   }, [graph])
 
   // Follow theme switches live — cytoscape can't read CSS variables itself.
@@ -437,18 +458,50 @@ export default function MapPanel(): React.JSX.Element {
       <div
         className="relative min-w-0 flex-1"
         onClick={() => setCtx(null)}
+        onDragEnter={(e) => {
+          if (!e.dataTransfer.types.includes('wisp/source-id')) return
+          dragDepth.current++
+          setDropActive(true)
+        }}
+        onDragLeave={() => {
+          dragDepth.current = Math.max(0, dragDepth.current - 1)
+          if (dragDepth.current === 0) setDropActive(false)
+        }}
         onDragOver={(e) => {
           if (e.dataTransfer.types.includes('wisp/source-id')) e.preventDefault()
         }}
         onDrop={(e) => {
+          dragDepth.current = 0
+          setDropActive(false)
           const id = e.dataTransfer.getData('wisp/source-id')
-          if (id) {
-            e.preventDefault()
-            void placeOnMap(id)
+          if (!id) return
+          e.preventDefault()
+          // Convert the drop point to model coordinates so the node lands
+          // exactly under the cursor, at any pan/zoom.
+          let pos: { x: number; y: number } | undefined
+          const rect = host.current?.getBoundingClientRect()
+          const c = cy.current
+          if (rect && c) {
+            const pan = c.pan()
+            const zoom = c.zoom()
+            pos = {
+              x: (e.clientX - rect.left - pan.x) / zoom,
+              y: (e.clientY - rect.top - pan.y) / zoom
+            }
           }
+          void placeOnMap(id, pos)
         }}
       >
         <div ref={host} className="h-full w-full" />
+
+        {/* Drop-target glow while a library source is being dragged over. */}
+        {dropActive && (
+          <div className="pointer-events-none absolute inset-3 z-40 flex items-center justify-center rounded-2xl border-2 border-dashed border-accent/60 bg-accent/5">
+            <span className="rounded-full border border-accent/30 bg-neutral-900/90 px-4 py-1.5 text-xs font-medium text-accent shadow-lg shadow-black/30">
+              {t('map.dropHint')}
+            </span>
+          </div>
+        )}
 
         {/* Filter bar: what shows on the map. Tag links are off by default. */}
         <div className="pointer-events-auto absolute top-3 left-3 flex flex-wrap items-center gap-1.5">
@@ -581,6 +634,22 @@ export default function MapPanel(): React.JSX.Element {
                       onDragStart={(e) => {
                         e.dataTransfer.setData('wisp/source-id', s.id)
                         e.dataTransfer.effectAllowed = 'copy'
+                        // A styled chip as the drag ghost, instead of a
+                        // screenshot of the cramped list row.
+                        const ghost = document.createElement('div')
+                        ghost.textContent =
+                          s.title.length > 42 ? s.title.slice(0, 41) + '…' : s.title
+                        ghost.style.cssText =
+                          'position:fixed;top:-200px;left:-200px;max-width:260px;' +
+                          'padding:7px 14px;border-radius:999px;' +
+                          'background:rgba(23,23,27,0.95);color:#e5e5e5;' +
+                          'font:500 12px system-ui,sans-serif;white-space:nowrap;' +
+                          'overflow:hidden;text-overflow:ellipsis;' +
+                          `border:1.5px solid ${TYPE_COLOR.source};` +
+                          'box-shadow:0 8px 24px rgba(0,0,0,0.45)'
+                        document.body.appendChild(ghost)
+                        e.dataTransfer.setDragImage(ghost, 18, 16)
+                        setTimeout(() => ghost.remove(), 0)
                       }}
                       className="group flex cursor-grab items-center gap-1.5 rounded px-1.5 py-1 text-[11px] text-neutral-400 hover:bg-neutral-850 active:cursor-grabbing"
                       title={s.title}
