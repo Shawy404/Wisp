@@ -24,6 +24,7 @@ function NavButton(props: {
 export default function AddressBar(): React.JSX.Element {
   const tabs = useApp((s) => s.tabs)
   const activeTabId = useApp((s) => s.activeTabId)
+  const devMode = useApp((s) => s.config?.devMode ?? false)
   const activeTab = tabs.find((t) => t.id === activeTabId)
   const [value, setValue] = useState('')
   const [focused, setFocused] = useState(false)
@@ -99,6 +100,23 @@ export default function AddressBar(): React.JSX.Element {
           />
         </svg>
       </NavButton>
+      {devMode && (
+        <NavButton
+          title="DevTools (web dev modu)"
+          disabled={!activeTab}
+          onClick={() => invoke('tabs:devtools')}
+        >
+          <svg width="12" height="12" viewBox="0 0 12 12">
+            <path
+              d="M4.5 3 L2 6 L4.5 9 M7.5 3 L10 6 L7.5 9"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="1.3"
+              strokeLinecap="round"
+            />
+          </svg>
+        </NavButton>
+      )}
       <NavButton
         title="Reader modu"
         disabled={!activeTab || activeTab.url === 'about:blank'}

@@ -15,10 +15,12 @@ const TAB_LABEL: Record<ResultTab, string> = {
 
 export default function SearchPanel(): React.JSX.Element {
   const activeRoomId = useApp((s) => s.activeRoomId)
+  const devMode = useApp((s) => s.config?.devMode ?? false)
   const [query, setQuery] = useState('')
   const [results, setResults] = useState<SearchResults | null>(null)
   const [loading, setLoading] = useState(false)
   const [tab, setTab] = useState<ResultTab>('academic')
+  const [showJson, setShowJson] = useState(false)
   const inputRef = useRef<HTMLInputElement>(null)
 
   const run = async (q: string): Promise<void> => {
@@ -99,16 +101,32 @@ export default function SearchPanel(): React.JSX.Element {
                 <span className="ml-1.5 text-[10px] text-neutral-600">{results[t].length}</span>
               </button>
             ))}
-            {results.classification === 'academic' && (
-              <span className="ml-auto text-[10px] text-neutral-600">
-                akademik sorgu algılandı
-              </span>
-            )}
+            <span className="ml-auto flex items-center gap-2">
+              {results.classification === 'academic' && (
+                <span className="text-[10px] text-neutral-600">akademik sorgu algılandı</span>
+              )}
+              {devMode && (
+                <button
+                  onClick={() => setShowJson((v) => !v)}
+                  className={`rounded px-2 py-0.5 text-[10px] ${
+                    showJson ? 'bg-neutral-800 text-accent' : 'text-neutral-600 hover:text-neutral-400'
+                  }`}
+                  title="Ham API sonuçlarını JSON olarak göster (web dev modu)"
+                >
+                  {'{ } JSON'}
+                </button>
+              )}
+            </span>
           </div>
         )}
       </div>
 
       <div className="mx-auto w-full max-w-3xl flex-1 space-y-2 overflow-y-auto px-6 pb-6">
+        {showJson && results && (
+          <pre className="rounded-lg border border-neutral-800 bg-neutral-900/70 p-3 text-[10px] leading-relaxed text-neutral-400 select-text">
+            {JSON.stringify(results, null, 2)}
+          </pre>
+        )}
         {loading && (
           <div className="flex items-center gap-2 pt-8 text-sm text-neutral-500">
             <span className="h-4 w-4 animate-spin rounded-full border border-neutral-600 border-t-accent" />

@@ -93,6 +93,11 @@ export function registerCoreIpc(ctx: WispContext): void {
   })
   ipcMain.handle('viewport:visible', (_e, visible: boolean) => tabs.setVisible(visible))
 
+  // Web-dev mode: open DevTools for the active tab's page (detached window).
+  ipcMain.handle('tabs:devtools', () => {
+    ctx.tabs.activeView()?.webContents.openDevTools({ mode: 'detach' })
+  })
+
   ipcMain.handle('window:minimize', () => win.minimize())
   ipcMain.handle('window:maximize', () => (win.isMaximized() ? win.unmaximize() : win.maximize()))
   ipcMain.handle('window:close', () => win.close())

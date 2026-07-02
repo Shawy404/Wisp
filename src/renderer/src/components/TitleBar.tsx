@@ -1,6 +1,7 @@
 // Wisp — © Shawy404. All rights reserved.
 import { invoke, useApp } from '@/store'
 import TabStrip from './TabStrip'
+import FocusTimer from './FocusTimer'
 
 export default function TitleBar(): React.JSX.Element {
   const rooms = useApp((s) => s.rooms)
@@ -20,6 +21,7 @@ export default function TitleBar(): React.JSX.Element {
       </div>
       <TabStrip />
       <div className="no-drag ml-auto flex items-center">
+        <FocusTimer />
         <button
           className="flex h-10 w-11 items-center justify-center text-neutral-500 hover:bg-neutral-800 hover:text-neutral-200"
           onClick={() => invoke('window:minimize')}

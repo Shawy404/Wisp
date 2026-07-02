@@ -12,6 +12,7 @@ import NotesPanel from './components/NotesPanel'
 import MapPanel from './components/MapPanel'
 import SplitView from './components/SplitView'
 import CommandPalette from './components/CommandPalette'
+import SettingsPanel from './components/SettingsPanel'
 import Toast from './components/Toast'
 
 function OverlayPlaceholder({ label }: { label: string }): React.JSX.Element {
@@ -25,10 +26,19 @@ function OverlayPlaceholder({ label }: { label: string }): React.JSX.Element {
 export default function App(): React.JSX.Element {
   const ready = useApp((s) => s.ready)
   const overlay = useApp((s) => s.overlay)
+  const config = useApp((s) => s.config)
 
   useEffect(() => {
     void useApp.getState().init()
   }, [])
+
+  // Live theme: accent drives every `text-accent`/`bg-accent` via the CSS var,
+  // and the light/dark class flips the shell palette.
+  useEffect(() => {
+    if (!config) return
+    document.documentElement.style.setProperty('--wisp-accent', config.accent)
+    document.documentElement.classList.toggle('wisp-light', config.theme === 'light')
+  }, [config?.accent, config?.theme])
 
   if (!ready) {
     return (
@@ -51,7 +61,7 @@ export default function App(): React.JSX.Element {
           {overlay === 'notes' && <NotesPanel />}
           {overlay === 'map' && <MapPanel />}
           {overlay === 'split' && <SplitView />}
-          {overlay === 'settings' && <OverlayPlaceholder label="Ayarlar — Faz 7" />}
+          {overlay === 'settings' && <SettingsPanel />}
           <CommandPalette />
           <Toast />
         </Viewport>

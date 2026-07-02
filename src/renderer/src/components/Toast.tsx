@@ -5,11 +5,20 @@ export default function Toast(): React.JSX.Element | null {
   const [msg, setMsg] = useState<string | null>(null)
 
   useEffect(() => {
-    return window.wisp.on('toast', (text) => {
-      setMsg(text as string)
-      const t = setTimeout(() => setMsg(null), 2200)
-      return () => clearTimeout(t)
-    })
+    let timer: ReturnType<typeof setTimeout>
+    const show = (text: string): void => {
+      setMsg(text)
+      clearTimeout(timer)
+      timer = setTimeout(() => setMsg(null), 2200)
+    }
+    const off = window.wisp.on('toast', (text) => show(text as string))
+    const local = (e: Event): void => show((e as CustomEvent<string>).detail)
+    window.addEventListener('wisp:toast-local', local as EventListener)
+    return () => {
+      off()
+      window.removeEventListener('wisp:toast-local', local as EventListener)
+      clearTimeout(timer)
+    }
   }, [])
 
   if (!msg) return null

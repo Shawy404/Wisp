@@ -11,6 +11,25 @@
   --wisp-accent: #7dd3a8;
 }
 
+/* Light theme: remap the neutral shell palette used across the UI. */
+html.wisp-light {
+  --color-neutral-950: #faf9f6;
+  --color-neutral-925: #f2f0ea;
+  --color-neutral-900: #ecebe5;
+  --color-neutral-850: #e4e2da;
+  --color-neutral-800: #d8d5cc;
+  --color-neutral-700: #b8b4a8;
+  --color-neutral-500: #6b6860;
+  --color-neutral-400: #57544d;
+  --color-neutral-300: #3f3d38;
+  --color-neutral-200: #2a2823;
+  --color-neutral-100: #1a1815;
+}
+html.wisp-light body {
+  background: #faf9f6;
+  color: #1a1815;
+}
+
 html,
 body,
 #root {

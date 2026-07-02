@@ -1,0 +1,24 @@
+# Wisp — © Shawy404. All rights reserved.
+appId: dev.shawy404.wisp
+productName: Wisp
+copyright: © Shawy404. All rights reserved.
+directories:
+  output: dist
+  buildResources: build
+files:
+  - out/**
+  - package.json
+asarUnpack:
+  - node_modules/@mozilla/readability/**
+linux:
+  target:
+    - AppImage
+  category: Network
+  synopsis: Araştırma için doğmuş tarayıcı
+  desktop:
+    entry:
+      StartupWMClass: wisp
+electronLanguages:
+  - en-US
+  - tr
+npmRebuild: false

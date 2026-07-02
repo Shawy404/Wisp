@@ -37,7 +37,9 @@ const defaultConfig: WispConfig = {
   accent: '#7dd3a8',
   adblock: true,
   adblockAllowlist: [],
-  profile: 'default'
+  profile: 'default',
+  devMode: false,
+  focusMinutes: 25
 }
 
 export function loadConfig(): WispConfig {

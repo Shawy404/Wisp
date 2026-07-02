@@ -99,6 +99,10 @@ export interface WispConfig {
   anthropicApiKey?: string
   lastRoomId?: string
   profile: string
+  /** Web-dev mode: DevTools + the search JSON viewer. */
+  devMode?: boolean
+  /** Per-room pomodoro focus session length in minutes. */
+  focusMinutes?: number
 }
 
 /** Search results returned by the main-process search aggregator. */
