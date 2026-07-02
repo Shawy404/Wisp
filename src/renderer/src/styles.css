@@ -37,3 +37,41 @@ body,
 ::-webkit-scrollbar-track {
   background: transparent;
 }
+
+.wisp-reader p {
+  margin: 0 0 1rem;
+}
+.wisp-reader h2,
+.wisp-reader h3 {
+  margin: 1.5rem 0 0.5rem;
+  font-weight: 600;
+  color: rgb(229 229 229);
+}
+.wisp-reader a {
+  color: var(--wisp-accent);
+  text-decoration: underline;
+}
+.wisp-reader img {
+  max-width: 100%;
+  height: auto;
+  border-radius: 0.5rem;
+  margin: 1rem 0;
+}
+.wisp-reader ul,
+.wisp-reader ol {
+  margin: 0 0 1rem 1.25rem;
+  list-style: revert;
+}
+.wisp-reader blockquote {
+  border-left: 2px solid var(--wisp-accent);
+  padding-left: 1rem;
+  color: rgb(163 163 163);
+  margin: 0 0 1rem;
+}
+.wisp-reader pre {
+  background: rgb(23 23 23);
+  padding: 0.75rem;
+  border-radius: 0.5rem;
+  overflow-x: auto;
+  margin: 0 0 1rem;
+}

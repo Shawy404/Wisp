@@ -3,6 +3,7 @@ import { BrowserWindow, ipcMain } from 'electron'
 import type { RoomMeta, WispConfig } from '@shared/types'
 import * as store from './storage'
 import { TabManager } from './tabs'
+import { setAdblock } from './adblock'
 
 export interface WispContext {
   win: BrowserWindow
@@ -45,6 +46,7 @@ export function registerCoreIpc(ctx: WispContext): void {
   ipcMain.handle('config:set', (_e, patch: Partial<WispConfig>) => {
     ctx.config = { ...ctx.config, ...patch }
     store.saveConfig(ctx.config)
+    if ('adblock' in patch || 'adblockAllowlist' in patch) setAdblock(ctx.config)
     return ctx.config
   })
 

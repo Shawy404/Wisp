@@ -99,6 +99,20 @@ export default function AddressBar(): React.JSX.Element {
           />
         </svg>
       </NavButton>
+      <NavButton
+        title="Reader modu"
+        disabled={!activeTab || activeTab.url === 'about:blank'}
+        onClick={() => useApp.getState().setOverlay('reader')}
+      >
+        <svg width="13" height="13" viewBox="0 0 14 14">
+          <path
+            d="M2 2.5 h10 M2 5 h10 M2 7.5 h7 M2 10 h9"
+            stroke="currentColor"
+            strokeWidth="1.1"
+            strokeLinecap="round"
+          />
+        </svg>
+      </NavButton>
       <input
         ref={inputRef}
         value={value}
