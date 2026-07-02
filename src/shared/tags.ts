@@ -11,8 +11,13 @@ const STOPWORDS = new Set(
     'we our you your they their he she his her not no but if then than so such via using used use into over ' +
     'under between among can could may might will would should has have had do does did done more most other ' +
     'which what when where who whom whose how why all any both each few some own same s t don also however ' +
+    // generic title/abstract filler — these made terrible tags and junk edges
+    'study studies review reviews analysis effect effects approach method methods model models based data ' +
+    'new role roles system systems research paper article introduction overview guide wikipedia wiki page ' +
+    'results result evidence recent current towards toward within without during through about after before ' +
     've bir bu şu o ve veya ile için gibi kadar sonra önce ancak ama fakat çünkü yani daha en çok az mi mı mu mü ' +
-    'da de ki ne nasıl neden niçin hangi her hiç bazı tüm bütün olan olarak üzerine üzerinden arasında göre'
+    'da de ki ne nasıl neden niçin hangi her hiç bazı tüm bütün olan olarak üzerine üzerinden arasında göre ' +
+    'araştırma inceleme derleme etki etkiler yöntem analiz giriş nedir hakkında üzerine ilgili yeni'
   ).split(/\s+/)
 )
 

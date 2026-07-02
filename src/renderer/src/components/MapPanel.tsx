@@ -3,6 +3,7 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import cytoscape, { type Core, type ElementDefinition } from 'cytoscape'
 import type { AiEdgeSuggestion, MapData } from '@shared/types'
 import { buildGraph, type Graph } from '@shared/graph'
+import { THEMES } from '@shared/themes'
 import { invoke, useApp, useT } from '@/store'
 
 const TYPE_COLOR: Record<string, string> = {
@@ -11,9 +12,152 @@ const TYPE_COLOR: Record<string, string> = {
   concept: '#c58af8'
 }
 
+/** Cytoscape can't use CSS vars, so mirror the shell palette per theme. */
+interface MapColors {
+  label: string
+  labelOutline: string
+  edge: string
+  edgeLabel: string
+}
+
+function mapColors(themeId: string): MapColors {
+  const light = THEMES.find((t) => t.id === themeId)?.light ?? false
+  return light
+    ? { label: '#3f3d38', labelOutline: 'rgba(250,249,246,0.85)', edge: '#c4bfb2', edgeLabel: '#8a8578' }
+    : { label: '#d4d4d4', labelOutline: 'rgba(14,14,18,0.85)', edge: '#3f3f46', edgeLabel: '#8b8b93' }
+}
+
+function cyStyle(c: MapColors): cytoscape.StylesheetJson {
+  return [
+    {
+      selector: 'node',
+      style: {
+        label: 'data(label)',
+        color: c.label,
+        'font-size': '10px',
+        'text-wrap': 'wrap',
+        'text-max-width': '110px',
+        'text-valign': 'bottom',
+        'text-margin-y': 5,
+        'text-outline-width': 2,
+        'text-outline-color': c.labelOutline,
+        // Well-connected nodes read as more important.
+        width: (el: cytoscape.NodeSingular) => 14 + Math.min(el.degree(false), 8) * 2,
+        height: (el: cytoscape.NodeSingular) => 14 + Math.min(el.degree(false), 8) * 2,
+        'background-color': (el: cytoscape.NodeSingular) => TYPE_COLOR[el.data('type')] ?? '#888',
+        'border-width': 0
+      }
+    },
+    { selector: 'node.concept', style: { shape: 'diamond' } },
+    { selector: 'node.source', style: { shape: 'round-rectangle' } },
+    {
+      selector: 'edge',
+      style: {
+        width: 1.4,
+        'line-color': c.edge,
+        'target-arrow-color': c.edge,
+        'curve-style': 'bezier',
+        label: 'data(label)',
+        'font-size': '8px',
+        color: c.edgeLabel,
+        'text-outline-width': 2,
+        'text-outline-color': c.labelOutline,
+        'text-rotation': 'autorotate'
+      }
+    },
+    { selector: 'edge.tag', style: { 'line-style': 'dashed', opacity: 0.45 } },
+    {
+      selector: 'edge.wikilink',
+      style: {
+        'line-color': '#7dd3a8',
+        'target-arrow-shape': 'triangle',
+        'target-arrow-color': '#7dd3a8',
+        width: 1.6
+      }
+    },
+    {
+      selector: 'edge.manual',
+      style: {
+        'line-color': '#a1a1aa',
+        width: 2,
+        'target-arrow-shape': 'triangle',
+        'target-arrow-color': '#a1a1aa'
+      }
+    },
+    {
+      selector: 'edge.ai-suggested',
+      style: {
+        'line-color': '#f8b48a',
+        'line-style': 'dotted',
+        width: 1.8,
+        'target-arrow-shape': 'triangle',
+        'target-arrow-color': '#f8b48a'
+      }
+    },
+    {
+      selector: 'node.hovered',
+      style: { 'z-index': 99, 'font-size': '12px', 'text-outline-width': 3, color: c.label }
+    },
+    { selector: '.link-source', style: { 'border-width': 3, 'border-color': '#f8b48a' } }
+  ]
+}
+
+// A research room is mostly disconnected nodes with a few linked clusters.
+// Plain cose stacks the loose nodes into an unreadable column, so connected
+// components get laid out with cose and the leftover singletons are arranged
+// in a tidy grid band underneath — nothing overlaps and clusters stay legible.
+const COSE_LAYOUT = {
+  name: 'cose',
+  animate: false,
+  nodeRepulsion: 20000,
+  idealEdgeLength: 120,
+  nodeOverlap: 24,
+  componentSpacing: 140,
+  gravity: 0.15,
+  padding: 50,
+  randomize: true
+} as const
+
+/**
+ * Lays out the graph so it stays readable no matter how sparse it is: linked
+ * nodes get a force-directed cluster up top, and the (usually many) unlinked
+ * singletons are packed into a neat grid band below instead of collapsing into
+ * an overlapping column.
+ */
+function runLayout(c: Core): void {
+  const linked = c.nodes().filter((n) => n.degree(false) > 0)
+  const singletons = c.nodes().filter((n) => n.degree(false) === 0)
+
+  if (linked.length > 0) {
+    linked.layout({ ...COSE_LAYOUT }).run()
+  }
+
+  const box = linked.length > 0 ? linked.boundingBox() : { x1: 0, x2: 0, y1: 0, y2: 0 }
+  const clusterWidth = Math.max(box.x2 - box.x1, 600)
+  const cols = Math.max(4, Math.round(Math.sqrt(singletons.length) * 1.6))
+  const gap = 150
+  const startX = box.x1
+  const startY = (linked.length > 0 ? box.y2 : 0) + (linked.length > 0 ? 120 : 0)
+
+  singletons.forEach((n, i) => {
+    const col = i % cols
+    const row = Math.floor(i / cols)
+    n.position({ x: startX + col * gap, y: startY + row * gap })
+  })
+  void clusterWidth
+
+  c.fit(undefined, 50)
+}
+
 function toElements(graph: Graph): ElementDefinition[] {
   const nodes = graph.nodes.map((n) => ({
-    data: { id: n.id, label: n.label, type: n.type },
+    data: {
+      id: n.id,
+      // Keep labels short so they don't overlap; the full title shows on hover.
+      label: n.label.length > 28 ? n.label.slice(0, 27) + '…' : n.label,
+      fullLabel: n.label,
+      type: n.type
+    },
     classes: n.type
   }))
   const edges = graph.edges.map((e) => ({
@@ -28,6 +172,7 @@ export default function MapPanel(): React.JSX.Element {
   const notes = useApp((s) => s.notes)
   const map = useApp((s) => s.map)
   const activeRoomId = useApp((s) => s.activeRoomId)
+  const themeId = useApp((s) => s.config?.theme ?? 'dark')
   const t = useT()
   const host = useRef<HTMLDivElement>(null)
   const cy = useRef<Core | null>(null)
@@ -50,59 +195,11 @@ export default function MapPanel(): React.JSX.Element {
     cy.current = cytoscape({
       container: host.current,
       elements: toElements(graph),
-      style: [
-        {
-          selector: 'node',
-          style: {
-            label: 'data(label)',
-            color: '#d4d4d4',
-            'font-size': '9px',
-            'text-wrap': 'wrap',
-            'text-max-width': '90px',
-            'text-valign': 'bottom',
-            'text-margin-y': 4,
-            width: 16,
-            height: 16,
-            'background-color': (el: cytoscape.NodeSingular) => TYPE_COLOR[el.data('type')] ?? '#888',
-            'border-width': 0
-          }
-        },
-        { selector: 'node.concept', style: { shape: 'diamond', width: 18, height: 18 } },
-        { selector: 'node.source', style: { shape: 'round-rectangle' } },
-        {
-          selector: 'edge',
-          style: {
-            width: 1.4,
-            'line-color': '#3f3f46',
-            'target-arrow-color': '#3f3f46',
-            'curve-style': 'bezier',
-            label: 'data(label)',
-            'font-size': '7px',
-            color: '#71717a',
-            'text-rotation': 'autorotate'
-          }
-        },
-        {
-          selector: 'edge.tag',
-          style: { 'line-style': 'dashed', 'line-color': '#3f3f46', opacity: 0.55 }
-        },
-        {
-          selector: 'edge.wikilink',
-          style: { 'line-color': '#7dd3a8', 'target-arrow-shape': 'triangle', 'target-arrow-color': '#7dd3a8', width: 1.6 }
-        },
-        {
-          selector: 'edge.manual',
-          style: { 'line-color': '#a1a1aa', width: 2, 'target-arrow-shape': 'triangle', 'target-arrow-color': '#a1a1aa' }
-        },
-        {
-          selector: 'edge.ai-suggested',
-          style: { 'line-color': '#f8b48a', 'line-style': 'dotted', width: 1.8, 'target-arrow-shape': 'triangle', 'target-arrow-color': '#f8b48a' }
-        },
-        { selector: '.link-source', style: { 'border-width': 3, 'border-color': '#f8b48a' } }
-      ],
-      layout: { name: 'cose', animate: false, nodeRepulsion: 6000, idealEdgeLength: 90 },
+      style: cyStyle(mapColors(useApp.getState().config?.theme ?? 'dark')),
+      layout: { name: 'preset' },
       wheelSensitivity: 0.2
     })
+    runLayout(cy.current)
 
     // Shift-click two nodes to create a manual edge between them.
     cy.current.on('tap', 'node', (evt) => {
@@ -124,6 +221,17 @@ export default function MapPanel(): React.JSX.Element {
         cy.current?.nodes().removeClass('link-source')
         setHint('')
       }
+    })
+
+    // Hover: show the full title and dim everything else so the node stands out.
+    cy.current.on('mouseover', 'node', (evt) => {
+      evt.target.data('label', evt.target.data('fullLabel'))
+      evt.target.addClass('hovered')
+    })
+    cy.current.on('mouseout', 'node', (evt) => {
+      const full = evt.target.data('fullLabel') as string
+      evt.target.data('label', full.length > 28 ? full.slice(0, 27) + '…' : full)
+      evt.target.removeClass('hovered')
     })
 
     cy.current.on('tap', 'edge', (evt) => {
@@ -151,9 +259,13 @@ export default function MapPanel(): React.JSX.Element {
       c.elements().remove()
       c.add(toElements(graph))
     })
-    c.layout({ name: 'cose', animate: false, nodeRepulsion: 6000, idealEdgeLength: 90 }).run()
-    c.fit(undefined, 40)
+    runLayout(c)
   }, [graph])
+
+  // Follow theme switches live — cytoscape can't read CSS variables itself.
+  useEffect(() => {
+    cy.current?.style(cyStyle(mapColors(themeId)))
+  }, [themeId])
 
   const runSuggest = async (): Promise<void> => {
     if (!activeRoomId) return
@@ -244,7 +356,7 @@ export default function MapPanel(): React.JSX.Element {
                       className="mt-1 rounded bg-neutral-800 px-2 py-0.5 text-[10px] text-neutral-300 hover:bg-neutral-700"
                       onClick={() => void acceptSuggestion(s)}
                     >
-                      {t('map.makePermantent')}
+                      {t('map.makePermanent')}
                     </button>
                   </div>
                 ))}
