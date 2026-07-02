@@ -2,7 +2,15 @@
 import { create } from 'zustand'
 import type { MapData, NoteInfo, RoomData, RoomMeta, SourceItem, TabInfo, WispConfig } from '@shared/types'
 
-export type Overlay = 'none' | 'search' | 'sources' | 'notes' | 'map' | 'settings' | 'reader'
+export type Overlay =
+  | 'none'
+  | 'search'
+  | 'sources'
+  | 'notes'
+  | 'map'
+  | 'settings'
+  | 'reader'
+  | 'split'
 
 interface TabsState {
   roomId: string | null

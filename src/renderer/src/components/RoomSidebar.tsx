@@ -157,6 +157,9 @@ export default function RoomSidebar(): React.JSX.Element {
         <RailButton title="Kavram haritası" active={overlay === 'map'} onClick={() => toggle('map')}>
           ❋
         </RailButton>
+        <RailButton title="Split view (kaynak | not)" active={overlay === 'split'} onClick={() => toggle('split')}>
+          ◫
+        </RailButton>
         <RailButton title="Ayarlar" active={overlay === 'settings'} onClick={() => toggle('settings')}>
           ⚙
         </RailButton>

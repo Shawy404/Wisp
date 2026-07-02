@@ -10,6 +10,8 @@ import SourcesPanel from './components/SourcesPanel'
 import ReaderPanel from './components/ReaderPanel'
 import NotesPanel from './components/NotesPanel'
 import MapPanel from './components/MapPanel'
+import SplitView from './components/SplitView'
+import CommandPalette from './components/CommandPalette'
 import Toast from './components/Toast'
 
 function OverlayPlaceholder({ label }: { label: string }): React.JSX.Element {
@@ -48,7 +50,9 @@ export default function App(): React.JSX.Element {
           {overlay === 'reader' && <ReaderPanel />}
           {overlay === 'notes' && <NotesPanel />}
           {overlay === 'map' && <MapPanel />}
+          {overlay === 'split' && <SplitView />}
           {overlay === 'settings' && <OverlayPlaceholder label="Ayarlar — Faz 7" />}
+          <CommandPalette />
           <Toast />
         </Viewport>
       </div>
