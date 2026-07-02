@@ -1,37 +1,45 @@
 <svg width="512" height="512" viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg">
+  <!-- Wisp — © Shawy404. All rights reserved. -->
   <defs>
-    <linearGradient id="bgb" x1="0" y1="0" x2="1" y2="1">
-      <stop offset="0" stop-color="#2a4a3c"/>
-      <stop offset="0.5" stop-color="#15251e"/>
-      <stop offset="1" stop-color="#0a0f0d"/>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#191922"/>
+      <stop offset="1" stop-color="#0a0a0e"/>
     </linearGradient>
-    <linearGradient id="stroke" x1="0" y1="1" x2="1" y2="0">
-      <stop offset="0" stop-color="#4da583"/>
-      <stop offset="0.6" stop-color="#7dd3a8"/>
-      <stop offset="1" stop-color="#d7fae8"/>
-    </linearGradient>
-    <radialGradient id="glow" cx="0.5" cy="0.5" r="0.5">
-      <stop offset="0" stop-color="#7dd3a8" stop-opacity="0.35"/>
+    <radialGradient id="halo" cx="0.5" cy="0.44" r="0.5">
+      <stop offset="0" stop-color="#7dd3a8" stop-opacity="0.55"/>
+      <stop offset="0.55" stop-color="#7dd3a8" stop-opacity="0.16"/>
       <stop offset="1" stop-color="#7dd3a8" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="flame" x1="0.5" y1="0" x2="0.5" y2="1">
+      <stop offset="0" stop-color="#a8ecc9"/>
+      <stop offset="0.55" stop-color="#7dd3a8"/>
+      <stop offset="1" stop-color="#4da583"/>
+    </linearGradient>
+    <radialGradient id="core" cx="0.5" cy="0.62" r="0.55">
+      <stop offset="0" stop-color="#f2fff8"/>
+      <stop offset="0.6" stop-color="#d2f5e2"/>
+      <stop offset="1" stop-color="#d2f5e2" stop-opacity="0"/>
     </radialGradient>
   </defs>
 
-  <rect width="512" height="512" rx="115" fill="url(#bgb)"/>
-  <circle cx="322" cy="222" r="160" fill="url(#glow)"/>
+  <rect width="512" height="512" rx="115" fill="url(#bg)"/>
+  <circle cx="256" cy="264" r="200" fill="url(#halo)"/>
 
-  <!-- single flowing wisp line: an S-curve rising into a spiral, like a
-       ghost light drifting; reads as a lowercase abstract "w" motion -->
-  <path fill="none" stroke="url(#stroke)" stroke-width="34" stroke-linecap="round" d="
-    M 128 396
-    C 176 388, 208 344, 220 296
-    C 232 248, 240 214, 268 190
-    C 300 163, 348 170, 362 204
-    C 374 233, 356 264, 326 264
-    C 302 264, 288 246, 294 226"/>
+  <!-- wisp flame: tip curls right, like a ghost light drifting -->
+  <path fill="url(#flame)" d="
+    M 298 104
+    C 308 152, 284 182, 264 208
+    C 254 190, 240 182, 232 166
+    C 202 194, 178 234, 176 282
+    C 174 342, 210 390, 256 390
+    C 302 390, 340 344, 338 282
+    C 336 222, 314 168, 298 104
+    Z"/>
+  <!-- hot core -->
+  <ellipse cx="256" cy="312" rx="52" ry="60" fill="url(#core)"/>
 
-  <!-- orb at the spiral's heart -->
-  <circle cx="322" cy="222" r="14" fill="#eafff4"/>
-  <!-- spark -->
-  <circle cx="404" cy="132" r="10" fill="#a8ecc9" opacity="0.9"/>
-  <circle cx="372" cy="96" r="6" fill="#7dd3a8" opacity="0.55"/>
+  <!-- trailing sparks -->
+  <circle cx="348" cy="128" r="10" fill="#8fe0b8" opacity="0.9"/>
+  <circle cx="372" cy="180" r="6" fill="#7dd3a8" opacity="0.5"/>
+  <circle cx="162" cy="150" r="7" fill="#7dd3a8" opacity="0.55"/>
 </svg>

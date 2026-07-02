@@ -2,7 +2,7 @@
 
 # Wisp
 
-**v0.1.0-pre-alpha.** Early days, things will break, expect rough edges.
+**v0.1.1-pre-alpha.** Early days, things will break, expect rough edges.
 
 Wisp is a desktop browser for people who do research and are sick of it
 living in fifty tabs, a separate notes app, and a citation manager that
