@@ -18,6 +18,13 @@ linux:
   desktop:
     entry:
       StartupWMClass: wisp
+win:
+  target:
+    - nsis
+    - portable
+nsis:
+  oneClick: false
+  allowToChangeInstallationDirectory: true
 electronLanguages:
   - en-US
   - tr
