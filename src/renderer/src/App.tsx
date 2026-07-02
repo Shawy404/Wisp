@@ -14,14 +14,6 @@ import CommandPalette from './components/CommandPalette'
 import SettingsPanel from './components/SettingsPanel'
 import Toast from './components/Toast'
 
-function OverlayPlaceholder({ label }: { label: string }): React.JSX.Element {
-  return (
-    <div className="absolute inset-0 flex items-center justify-center bg-neutral-950">
-      <div className="text-sm text-neutral-500">{label}</div>
-    </div>
-  )
-}
-
 export default function App(): React.JSX.Element {
   const ready = useApp((s) => s.ready)
   const overlay = useApp((s) => s.overlay)

@@ -29,9 +29,8 @@ async function saveImageClip(roomId: string, imageUrl: string): Promise<string |
 }
 
 /**
- * Wires a right-click context menu onto every tab. Each item is a one-tap
- * "capture point": clip the whole page (reader-cleaned), a text selection,
- * or an image — always to the current room.
+ * Wires a right-click context menu onto every tab: clip the whole page
+ * (reader-cleaned), a text selection, or an image into the current room.
  */
 export function registerClip(ctx: WispContext): void {
   const notify = (roomId: string): void => {

@@ -37,7 +37,7 @@ export class TabManager {
   private visible = true
   /** Called whenever a room's tab set changes, for persistence. */
   onPersist: (roomId: string, urls: string[], activeIndex: number) => void = () => {}
-  /** Lets phase 3 wire context menus etc. onto every new tab. */
+  /** Hook for attaching per-tab behaviour (e.g. context menus) to new views. */
   onViewCreated: (view: WebContentsView, tabId: string) => void = () => {}
 
   constructor(win: BrowserWindow) {
@@ -76,7 +76,7 @@ export class TabManager {
       webPreferences: { contextIsolation: true, nodeIntegration: false, sandbox: true }
     })
     const entry: TabEntry = { id, roomId, url, title: url, view }
-    // Zen-style floating page: match the renderer's rounded viewport card.
+    // Match the rounded corners of the renderer's viewport card.
     if (typeof view.setBorderRadius === 'function') view.setBorderRadius(12)
     this.tabs.set(id, entry)
     if (!this.order.has(roomId)) {

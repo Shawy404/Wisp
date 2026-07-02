@@ -1,6 +1,6 @@
 // Wisp — © Shawy404. All rights reserved.
 import { BrowserWindow, ipcMain } from 'electron'
-import type { RoomMeta, WispConfig } from '@shared/types'
+import type { PinnedTab, RoomMeta, WispConfig } from '@shared/types'
 import * as store from './storage'
 import { TabManager } from './tabs'
 import { setAdblock } from './adblock'
@@ -11,7 +11,7 @@ export interface WispContext {
   config: WispConfig
 }
 
-/** Registers every phase-1 IPC channel: app boot, config, rooms, tabs, window. */
+/** Core IPC channels: app boot, config, rooms, tabs, viewport, window. */
 export function registerCoreIpc(ctx: WispContext): void {
   const { win, tabs } = ctx
 
@@ -65,6 +65,22 @@ export function registerCoreIpc(ctx: WispContext): void {
     return { rooms, activeRoomId: next }
   })
   ipcMain.handle('rooms:rename', (_e, id: string, name: string) => store.renameRoom(id, name))
+  ipcMain.handle('rooms:pin', (_e, id: string, pin: PinnedTab) => {
+    const meta = store.loadRoomMeta(id)
+    if (!meta || !pin.url) return null
+    if (!meta.pinned.some((p) => p.url === pin.url)) {
+      meta.pinned.push(pin)
+      store.saveRoomMeta(meta)
+    }
+    return meta
+  })
+  ipcMain.handle('rooms:unpin', (_e, id: string, url: string) => {
+    const meta = store.loadRoomMeta(id)
+    if (!meta) return null
+    meta.pinned = meta.pinned.filter((p) => p.url !== url)
+    store.saveRoomMeta(meta)
+    return meta
+  })
   ipcMain.handle('rooms:switch', (_e, id: string) => switchRoom(id))
   ipcMain.handle('rooms:data', (_e, id: string) => store.loadRoomData(id))
 

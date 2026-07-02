@@ -43,8 +43,8 @@ export default function AddressBar(): React.JSX.Element {
       }
       if (e.ctrlKey && e.key.toLowerCase() === 't') {
         e.preventDefault()
-        useApp.getState().newTab()
-        inputRef.current?.focus()
+        // Yeni sekme akışı komut çubuğundan: yaz, Enter'la aç ya da ara.
+        window.dispatchEvent(new CustomEvent('wisp:open-palette'))
       }
       if (e.ctrlKey && e.key.toLowerCase() === 'w') {
         e.preventDefault()
@@ -63,7 +63,7 @@ export default function AddressBar(): React.JSX.Element {
       if (activeTabId) navigate(activeTabId, resolved.url)
       else newTab(resolved.url)
     } else if (resolved.query) {
-      // Route queries into the room's search strip — searching *is* collecting.
+      // Non-URL input opens the room's search panel with the query.
       window.dispatchEvent(new CustomEvent('wisp:search', { detail: resolved.query }))
       setOverlay('search')
     }

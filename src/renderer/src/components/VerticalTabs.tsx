@@ -3,14 +3,26 @@ import { useRef } from 'react'
 import { useApp } from '@/store'
 
 /**
- * Zen-style vertical tab list: tabs live in the sidebar, not a top strip.
- * Favicon + title, close on hover, drag to reorder, middle-click to close.
+ * Sidebar tab area: a pinned-tabs grid on top (saved places that survive
+ * closing the tab) and the vertical tab list below. Tabs: favicon + title,
+ * close on hover, drag to reorder, middle-click to close, pin on hover.
+ * The + button opens the command bar (Ctrl+T) instead of a blank tab.
  */
 export default function VerticalTabs({ collapsed }: { collapsed: boolean }): React.JSX.Element {
   const tabs = useApp((s) => s.tabs)
   const activeTabId = useApp((s) => s.activeTabId)
-  const { activateTab, closeTab, newTab, reorderTabs } = useApp.getState()
+  const rooms = useApp((s) => s.rooms)
+  const activeRoomId = useApp((s) => s.activeRoomId)
+  const { activateTab, closeTab, newTab, reorderTabs, pinTab, unpinTab } = useApp.getState()
   const dragId = useRef<string | null>(null)
+
+  const pinned = rooms.find((r) => r.id === activeRoomId)?.pinned ?? []
+
+  const openPinned = (url: string): void => {
+    const existing = tabs.find((t) => t.url === url)
+    if (existing) activateTab(existing.id)
+    else newTab(url)
+  }
 
   const handleDrop = (targetId: string): void => {
     const from = dragId.current
@@ -26,6 +38,39 @@ export default function VerticalTabs({ collapsed }: { collapsed: boolean }): Rea
 
   return (
     <div className="flex min-h-0 flex-1 flex-col">
+      {pinned.length > 0 && (
+        <div
+          className={`grid gap-1.5 border-b border-neutral-800/60 p-2 ${
+            collapsed ? 'grid-cols-1 justify-items-center' : 'grid-cols-4'
+          }`}
+        >
+          {pinned.map((p) => (
+            <div key={p.url} className="group relative">
+              <button
+                onClick={() => openPinned(p.url)}
+                title={p.title}
+                className="flex h-9 w-9 items-center justify-center rounded-lg border border-neutral-800 bg-neutral-900 hover:border-neutral-600"
+              >
+                {p.favicon ? (
+                  <img src={p.favicon} className="h-4 w-4 rounded-sm" alt="" />
+                ) : (
+                  <span className="text-[10px] text-neutral-400">
+                    {p.title.slice(0, 2).toUpperCase()}
+                  </span>
+                )}
+              </button>
+              <button
+                className="absolute -top-1 -right-1 hidden h-3.5 w-3.5 items-center justify-center rounded-full bg-neutral-700 text-[8px] text-neutral-200 group-hover:flex hover:bg-red-500"
+                onClick={() => void unpinTab(p.url)}
+                title="Sabiti kaldır"
+              >
+                ×
+              </button>
+            </div>
+          ))}
+        </div>
+      )}
+
       <div className={`flex items-center px-3 pt-3 pb-1 ${collapsed ? 'justify-center px-0' : 'justify-between'}`}>
         {!collapsed && (
           <span className="text-[11px] font-semibold tracking-wider text-neutral-500 uppercase">
@@ -34,8 +79,8 @@ export default function VerticalTabs({ collapsed }: { collapsed: boolean }): Rea
         )}
         <button
           className="flex h-5 w-5 items-center justify-center rounded text-neutral-500 hover:bg-neutral-800 hover:text-neutral-200"
-          onClick={() => newTab()}
-          title="Yeni sekme (Ctrl+T)"
+          onClick={() => window.dispatchEvent(new CustomEvent('wisp:open-palette'))}
+          title="Yeni sekme — komut çubuğu (Ctrl+T)"
         >
           +
         </button>
@@ -69,6 +114,23 @@ export default function VerticalTabs({ collapsed }: { collapsed: boolean }): Rea
             {!collapsed && (
               <>
                 <span className="min-w-0 flex-1 truncate">{tab.title || 'Yeni sekme'}</span>
+                <button
+                  className="hidden h-4 w-4 shrink-0 items-center justify-center rounded text-neutral-500 group-hover:flex hover:bg-neutral-700 hover:text-accent"
+                  title="Sabitle"
+                  onClick={(e) => {
+                    e.stopPropagation()
+                    void pinTab(tab.url, tab.title || tab.url, tab.favicon)
+                  }}
+                >
+                  <svg width="9" height="9" viewBox="0 0 12 12">
+                    <path
+                      d="M6 1 v6 M3.5 3.5 h5 M6 7 v4"
+                      stroke="currentColor"
+                      strokeWidth="1.4"
+                      strokeLinecap="round"
+                    />
+                  </svg>
+                </button>
                 <button
                   className="hidden h-4 w-4 shrink-0 items-center justify-center rounded text-neutral-500 group-hover:flex hover:bg-neutral-700 hover:text-neutral-200"
                   onClick={(e) => {

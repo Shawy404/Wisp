@@ -2,8 +2,8 @@
 import { contextBridge, ipcRenderer } from 'electron'
 
 /**
- * The single, typed bridge between the sandboxed UI and the main process.
- * Grows with each phase; every call is a plain invoke/on pair.
+ * The single, typed bridge between the sandboxed UI and the main process:
+ * a plain invoke/on pair over IPC channels.
  */
 const api = {
   invoke: (channel: string, ...args: unknown[]): Promise<unknown> =>

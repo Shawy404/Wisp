@@ -1,5 +1,6 @@
 // Wisp — © Shawy404. All rights reserved.
 import { useEffect, useMemo, useRef, useState } from 'react'
+import { resolveAddress } from '@shared/address'
 import { invoke, useApp, type Overlay } from '@/store'
 
 interface Command {
@@ -27,8 +28,18 @@ export default function CommandPalette(): React.JSX.Element | null {
       }
       if (e.key === 'Escape') setOpen(false)
     }
+    // Sidebar "+" ve Ctrl+T buraya düşer: yeni sekme akışı komut çubuğundan.
+    const openBar = (): void => {
+      setOpen(true)
+      setQuery('')
+      setIndex(0)
+    }
     window.addEventListener('keydown', handler)
-    return () => window.removeEventListener('keydown', handler)
+    window.addEventListener('wisp:open-palette', openBar)
+    return () => {
+      window.removeEventListener('keydown', handler)
+      window.removeEventListener('wisp:open-palette', openBar)
+    }
   }, [])
 
   useEffect(() => {
@@ -83,24 +94,35 @@ export default function CommandPalette(): React.JSX.Element | null {
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase()
     if (!q) return commands.slice(0, 12)
-    // Free-text starting with "?" becomes a quick search command.
-    if (q.startsWith('?')) {
-      const term = query.trim().slice(1).trim()
-      return [
-        {
-          id: 'quick-search',
-          label: `Ara: "${term}"`,
-          hint: 'arama',
-          run: () => {
-            window.dispatchEvent(new CustomEvent('wisp:search', { detail: term }))
-            useApp.getState().setOverlay('search')
-            setOpen(false)
+
+    // Serbest metin bir komut çubuğu girdisidir: URL ise aç, değilse ara.
+    const resolved = resolveAddress(query.trim().replace(/^\?/, ''))
+    const goCommand: Command =
+      resolved.type === 'url'
+        ? {
+            id: 'go-url',
+            label: `Aç: ${resolved.url}`,
+            hint: 'yeni sekme',
+            run: () => {
+              useApp.getState().newTab(resolved.url)
+              useApp.getState().setOverlay('none')
+              setOpen(false)
+            }
           }
-        },
-        ...commands.filter((c) => c.label.toLowerCase().includes(q))
-      ]
-    }
-    return commands.filter((c) => c.label.toLowerCase().includes(q)).slice(0, 12)
+        : {
+            id: 'quick-search',
+            label: `Ara: "${resolved.query}"`,
+            hint: 'arama',
+            run: () => {
+              window.dispatchEvent(new CustomEvent('wisp:search', { detail: resolved.query }))
+              useApp.getState().setOverlay('search')
+              setOpen(false)
+            }
+          }
+
+    const term = q.startsWith('?') ? q.slice(1).trim() : q
+    const matches = commands.filter((c) => c.label.toLowerCase().includes(term)).slice(0, 10)
+    return [goCommand, ...matches]
   }, [query, commands])
 
   useEffect(() => {
@@ -133,7 +155,7 @@ export default function CommandPalette(): React.JSX.Element | null {
               filtered[index]?.run()
             }
           }}
-          placeholder="Komut ara… (?ile hızlı arama, oda/not/panel adları)"
+          placeholder="URL yaz, ara ya da komut seç — oda/not/panel adları"
           className="w-full border-b border-neutral-800 bg-transparent px-4 py-3 text-sm text-neutral-100 outline-none placeholder:text-neutral-600"
         />
         <div className="max-h-80 overflow-y-auto py-1">

@@ -25,8 +25,8 @@ function RailButton(props: {
 }
 
 /**
- * Zen-style sidebar: workspaces (rooms) as a dot row up top, vertical tabs in
- * the middle, panel rail at the bottom. Collapsible to an icon-only rail.
+ * Sidebar: rooms as a dot row up top, pinned tabs and the vertical tab list
+ * in the middle, panel rail at the bottom. Collapsible to an icon-only rail.
  */
 export default function RoomSidebar(): React.JSX.Element {
   const rooms = useApp((s) => s.rooms)
@@ -49,7 +49,7 @@ export default function RoomSidebar(): React.JSX.Element {
         collapsed ? 'w-12' : 'w-56'
       }`}
     >
-      {/* Workspace (room) dot switcher — Zen'in workspace şeridi */}
+      {/* Oda değiştirici: her oda bir renk noktası */}
       <div
         className={`flex items-center gap-1.5 border-b border-neutral-800/60 px-3 py-2.5 ${
           collapsed ? 'flex-col px-0' : 'flex-wrap'

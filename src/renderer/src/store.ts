@@ -39,6 +39,8 @@ interface AppState {
   deleteRoom: (id: string) => Promise<void>
   renameRoom: (id: string, name: string) => Promise<void>
   switchRoom: (id: string) => Promise<void>
+  pinTab: (url: string, title: string, favicon?: string) => Promise<void>
+  unpinTab: (url: string) => Promise<void>
 
   newTab: (url?: string) => void
   closeTab: (id: string) => void
@@ -122,6 +124,20 @@ export const useApp = create<AppState>((set, get) => ({
     set({ activeRoomId: id, overlay: 'none' })
     void invoke('viewport:visible', true)
     await get().refreshRoomData(id)
+  },
+
+  pinTab: async (url, title, favicon) => {
+    const roomId = get().activeRoomId
+    if (!roomId) return
+    await invoke('rooms:pin', roomId, { url, title, favicon })
+    set({ rooms: await invoke<RoomMeta[]>('rooms:list') })
+  },
+
+  unpinTab: async (url) => {
+    const roomId = get().activeRoomId
+    if (!roomId) return
+    await invoke('rooms:unpin', roomId, url)
+    set({ rooms: await invoke<RoomMeta[]>('rooms:list') })
   },
 
   newTab: (url) => void invoke('tabs:new', url ?? 'about:blank'),

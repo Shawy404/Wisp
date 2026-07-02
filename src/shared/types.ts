@@ -12,6 +12,13 @@ export interface TabInfo {
   isLoading: boolean
 }
 
+/** A pinned tab: a saved place that survives closing the tab itself. */
+export interface PinnedTab {
+  url: string
+  title: string
+  favicon?: string
+}
+
 /** Persisted per-room metadata (rooms/<slug>/room.json). */
 export interface RoomMeta {
   id: string
@@ -21,6 +28,8 @@ export interface RoomMeta {
   /** URLs of open tabs, restored on room switch / app start. */
   tabs: string[]
   activeTabIndex: number
+  /** Pinned tabs shown above the tab list; clicking opens/activates the URL. */
+  pinned: PinnedTab[]
   settings: {
     devMode: boolean
   }

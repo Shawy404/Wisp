@@ -3,11 +3,11 @@ import { useEffect, useRef } from 'react'
 import { invoke, useApp } from '@/store'
 
 /**
- * The browsing area, Zen-style: the page floats as a rounded card with a thin
- * gutter around it. The actual page is a native WebContentsView drawn by the
- * main process — we measure the inner card and report its rect; the view gets
- * matching rounded corners via setBorderRadius. Overlays render on top by
- * hiding the native view.
+ * The browsing area. The page renders as a rounded card with a thin gutter
+ * around it: the actual page is a native WebContentsView drawn by the main
+ * process, so this component measures the inner card and reports its rect;
+ * the view gets matching rounded corners via setBorderRadius. Overlays render
+ * on top by hiding the native view.
  */
 export default function Viewport({ children }: { children?: React.ReactNode }): React.JSX.Element {
   const inner = useRef<HTMLDivElement>(null)

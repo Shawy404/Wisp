@@ -25,7 +25,7 @@ export function registerNotesIpc(ctx: WispContext): void {
     return note
   })
 
-  // Debounced-on-the-renderer write; here we just persist and re-derive tags.
+  // Renderer debounces saves; this writes to disk and re-derives tags.
   ipcMain.handle('notes:save', (_e, roomId: string, noteId: string, body: string) => {
     const note = store.writeNote(roomId, noteId, body)
     notify(roomId)

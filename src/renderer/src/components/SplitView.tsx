@@ -15,8 +15,8 @@ interface ReaderArticle {
 }
 
 /**
- * Split view: read a source (reader-cleaned page, or the source list) on the
- * left while taking notes on the right — the classic research posture.
+ * Split view: reader-cleaned page or the source list on the left, note
+ * editor on the right.
  */
 export default function SplitView(): React.JSX.Element {
   const sources = useApp((s) => s.sources)

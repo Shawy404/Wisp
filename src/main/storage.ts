@@ -84,6 +84,7 @@ export function loadRoomMeta(id: string): RoomMeta | null {
     createdAt: new Date().toISOString(),
     tabs: [],
     activeTabIndex: 0,
+    pinned: [],
     settings: { devMode: false }
   })
 }
@@ -101,6 +102,7 @@ export function createRoom(name: string): RoomMeta {
     createdAt: new Date().toISOString(),
     tabs: [],
     activeTabIndex: 0,
+    pinned: [],
     settings: { devMode: false }
   }
   fs.mkdirSync(notesDir(id), { recursive: true })

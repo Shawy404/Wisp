@@ -141,8 +141,8 @@ export default function MapPanel(): React.JSX.Element {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
-  // Rebuild elements in place when the underlying room data changes (tek graph,
-  // üç görünüm: bir kaynağı/notu düzenle → harita güncellenir).
+  // Rebuild elements when the underlying room data changes, so edits made in
+  // the sources list or the note editor show up here immediately.
   useEffect(() => {
     if (!cy.current) return
     const c = cy.current

@@ -4,9 +4,8 @@ import AddressBar from './AddressBar'
 import FocusTimer from './FocusTimer'
 
 /**
- * Zen-style single toolbar: one slim draggable row holding the floating
- * address pill, the focus timer and the window controls. Tabs live in the
- * sidebar, so the top chrome stays minimal.
+ * Single slim toolbar: draggable row holding the address pill, the focus
+ * timer and the window controls. Tabs live in the sidebar.
  */
 export default function TitleBar(): React.JSX.Element {
   return (
