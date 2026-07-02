@@ -29,8 +29,16 @@ time, and figures out on its own whether you're asking something academic
 or general. Academic, wiki and image hits get saved into the room's
 sources automatically, so you're not copy-pasting citations by hand.
 
-**Adblock.** EasyList + EasyPrivacy, with a toggle and per-site exceptions
-in settings.
+**Adblock.** The full filter set — ads, trackers, annoyances and cookie
+banners — with a toggle, per-site exceptions in settings, a blocked-request
+counter in the address bar, and the compiled engine cached on disk so
+launches (even offline ones) don't wait on a download.
+
+**Privacy & security.** Web pages run in their own sandboxed, isolated
+session — their cookies and storage never touch the app shell. Permission
+prompts (camera, microphone, location, notifications) are denied outright,
+only http/https ever loads in a tab, and anything else gets handed to the
+OS only if it's a scheme worth trusting.
 
 **Reader mode.** Strips a page down to just the article, Readability-style.
 One click saves it to the room.
@@ -52,9 +60,9 @@ connections (needs your own API key, only runs when you ask for it).
 reading a source next to your notes, and a command palette (ctrl-K,
 prefix with `?` to search).
 
-**Everything else.** Dark/light theme with a custom accent, a web-dev mode
-(DevTools plus a JSON viewer for search responses), a focus timer, and
-profile labels.
+**Everything else.** Six themes (Dark, Midnight, Forest, Plum, Light,
+Sepia) with a custom accent color on top, a web-dev mode (DevTools plus a
+JSON viewer for search responses), a focus timer, and profile labels.
 
 ## Shortcuts
 
