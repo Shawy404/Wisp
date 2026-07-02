@@ -24,11 +24,13 @@ export default function App(): React.JSX.Element {
   }, [])
 
   // Live theme: accent drives every `text-accent`/`bg-accent` via the CSS var,
-  // and the light/dark class flips the shell palette.
+  // and a `wisp-<theme>` class swaps the whole shell palette (dark = default).
   useEffect(() => {
     if (!config) return
-    document.documentElement.style.setProperty('--wisp-accent', config.accent)
-    document.documentElement.classList.toggle('wisp-light', config.theme === 'light')
+    const el = document.documentElement
+    el.style.setProperty('--wisp-accent', config.accent)
+    for (const cls of [...el.classList]) if (cls.startsWith('wisp-')) el.classList.remove(cls)
+    if (config.theme && config.theme !== 'dark') el.classList.add(`wisp-${config.theme}`)
   }, [config?.accent, config?.theme])
 
   if (!ready) {

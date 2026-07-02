@@ -1,5 +1,6 @@
 // Wisp — © Shawy404. All rights reserved.
 import { useState } from 'react'
+import { THEMES } from '@shared/themes'
 import { useApp, useT } from '@/store'
 
 const PRESET_ACCENTS = ['#7dd3a8', '#8ab4f8', '#f8b48a', '#c58af8', '#f87d9a', '#e8d47d']
@@ -52,18 +53,37 @@ export default function SettingsPanel(): React.JSX.Element {
         </Section>
 
         <Section title={t('settings.theme')}>
-          <div className="flex items-center gap-2">
-            {(['dark', 'light'] as const).map((tm) => (
+          <div className="grid grid-cols-3 gap-2">
+            {THEMES.map((theme) => (
               <button
-                key={tm}
-                onClick={() => void setConfig({ theme: tm })}
-                className={`rounded-md px-3 py-1.5 text-xs ${
-                  config.theme === tm
-                    ? 'bg-neutral-800 text-neutral-100'
-                    : 'text-neutral-500 hover:text-neutral-300'
+                key={theme.id}
+                onClick={() => void setConfig({ theme: theme.id })}
+                className={`overflow-hidden rounded-lg border text-left ${
+                  config.theme === theme.id
+                    ? 'border-accent'
+                    : 'border-neutral-800 hover:border-neutral-700'
                 }`}
               >
-                {tm === 'dark' ? t('settings.theme.dark') : t('settings.theme.light')}
+                <div
+                  className="flex h-12 items-end gap-1 p-2"
+                  style={{ background: theme.preview[0] }}
+                >
+                  <div
+                    className="h-4 flex-1 rounded-sm"
+                    style={{ background: theme.preview[1] }}
+                  />
+                  <div
+                    className="h-2 w-6 rounded-sm"
+                    style={{ background: theme.preview[2], opacity: 0.7 }}
+                  />
+                </div>
+                <div
+                  className={`px-2 py-1.5 text-[11px] ${
+                    config.theme === theme.id ? 'text-neutral-100' : 'text-neutral-500'
+                  }`}
+                >
+                  {t(theme.nameKey)}
+                </div>
               </button>
             ))}
           </div>

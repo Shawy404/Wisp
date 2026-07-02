@@ -11,7 +11,13 @@
   --wisp-accent: #7dd3a8;
 }
 
-/* Light theme: remap the neutral shell palette used across the UI. */
+/*
+ * Themes remap the neutral shell palette used across the UI. `dark` is the
+ * :root default; every other theme is a `wisp-<id>` class on <html>.
+ * The registry (names, previews) lives in src/shared/themes.ts.
+ */
+
+/* Light — warm paper. */
 html.wisp-light {
   --color-neutral-950: #faf9f6;
   --color-neutral-925: #f2f0ea;
@@ -28,6 +34,82 @@ html.wisp-light {
 html.wisp-light body {
   background: #faf9f6;
   color: #1a1815;
+}
+
+/* Midnight — deep desaturated navy. */
+html.wisp-midnight {
+  --color-neutral-950: #0d1220;
+  --color-neutral-925: #111828;
+  --color-neutral-900: #151d30;
+  --color-neutral-850: #1b2540;
+  --color-neutral-800: #232f50;
+  --color-neutral-700: #3a4a74;
+  --color-neutral-500: #7285ab;
+  --color-neutral-400: #8fa0c2;
+  --color-neutral-300: #b3c0d9;
+  --color-neutral-200: #d3dcec;
+  --color-neutral-100: #eaeff7;
+}
+html.wisp-midnight body {
+  background: #0d1220;
+  color: #eaeff7;
+}
+
+/* Forest — mossy dark green. */
+html.wisp-forest {
+  --color-neutral-950: #0d1410;
+  --color-neutral-925: #111a15;
+  --color-neutral-900: #16211b;
+  --color-neutral-850: #1c2a22;
+  --color-neutral-800: #26372d;
+  --color-neutral-700: #3e5647;
+  --color-neutral-500: #7a9686;
+  --color-neutral-400: #97ae9f;
+  --color-neutral-300: #b8c9bf;
+  --color-neutral-200: #d6e1da;
+  --color-neutral-100: #ecf2ee;
+}
+html.wisp-forest body {
+  background: #0d1410;
+  color: #ecf2ee;
+}
+
+/* Plum — muted dark violet. */
+html.wisp-plum {
+  --color-neutral-950: #131019;
+  --color-neutral-925: #181420;
+  --color-neutral-900: #1e1929;
+  --color-neutral-850: #262034;
+  --color-neutral-800: #322a45;
+  --color-neutral-700: #4d4268;
+  --color-neutral-500: #8b7fa8;
+  --color-neutral-400: #a89dc0;
+  --color-neutral-300: #c4bcd6;
+  --color-neutral-200: #ded9ea;
+  --color-neutral-100: #f0eef7;
+}
+html.wisp-plum body {
+  background: #131019;
+  color: #f0eef7;
+}
+
+/* Sepia — old paper, easy on long reading sessions. */
+html.wisp-sepia {
+  --color-neutral-950: #f6efe3;
+  --color-neutral-925: #efe6d5;
+  --color-neutral-900: #e8dcc8;
+  --color-neutral-850: #dfd1b9;
+  --color-neutral-800: #d1c0a3;
+  --color-neutral-700: #ab9678;
+  --color-neutral-500: #6d5c43;
+  --color-neutral-400: #59492f;
+  --color-neutral-300: #423826;
+  --color-neutral-200: #2d261a;
+  --color-neutral-100: #1c1710;
+}
+html.wisp-sepia body {
+  background: #f6efe3;
+  color: #1c1710;
 }
 
 html,

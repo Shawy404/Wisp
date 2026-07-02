@@ -99,9 +99,11 @@ export interface RoomData {
   map: MapData
 }
 
+export type ThemeId = 'dark' | 'midnight' | 'forest' | 'plum' | 'light' | 'sepia'
+
 /** Global settings (~/Wisp/config.json). */
 export interface WispConfig {
-  theme: 'dark' | 'light'
+  theme: ThemeId
   language: 'tr' | 'en'
   accent: string
   adblock: boolean
