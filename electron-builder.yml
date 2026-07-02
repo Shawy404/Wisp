@@ -8,6 +8,8 @@ directories:
 files:
   - out/**
   - package.json
+  # Runtime window icon (Linux/X11); packaged path stays ../../build/icon.png.
+  - build/icon.png
 asarUnpack:
   - node_modules/@mozilla/readability/**
 linux:
