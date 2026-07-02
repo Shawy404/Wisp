@@ -8,6 +8,7 @@ import { registerSearchIpc } from './search-ipc'
 import { registerReaderIpc } from './reader'
 import { registerClip } from './clip'
 import { registerNotesIpc } from './notes-ipc'
+import { registerMapIpc } from './map-ipc'
 import { initAdblock } from './adblock'
 
 // Wayland/Hyprland friendliness: let Chromium pick the native platform.
@@ -48,6 +49,7 @@ function createWindow(): void {
   registerReaderIpc(ctx)
   registerClip(ctx)
   registerNotesIpc(ctx)
+  registerMapIpc(ctx)
   void initAdblock(ctx.config)
 
   if (process.env.ELECTRON_RENDERER_URL) {

@@ -9,6 +9,7 @@ import SearchPanel from './components/SearchPanel'
 import SourcesPanel from './components/SourcesPanel'
 import ReaderPanel from './components/ReaderPanel'
 import NotesPanel from './components/NotesPanel'
+import MapPanel from './components/MapPanel'
 import Toast from './components/Toast'
 
 function OverlayPlaceholder({ label }: { label: string }): React.JSX.Element {
@@ -46,7 +47,7 @@ export default function App(): React.JSX.Element {
           {overlay === 'sources' && <SourcesPanel />}
           {overlay === 'reader' && <ReaderPanel />}
           {overlay === 'notes' && <NotesPanel />}
-          {overlay === 'map' && <OverlayPlaceholder label="Kavram haritası — Faz 5" />}
+          {overlay === 'map' && <MapPanel />}
           {overlay === 'settings' && <OverlayPlaceholder label="Ayarlar — Faz 7" />}
           <Toast />
         </Viewport>
