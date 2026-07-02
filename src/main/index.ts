@@ -4,6 +4,7 @@ import { join } from 'path'
 import { loadConfig } from './storage'
 import { TabManager } from './tabs'
 import { registerCoreIpc, type WispContext } from './ipc'
+import { registerSearchIpc } from './search-ipc'
 
 // Wayland/Hyprland friendliness: let Chromium pick the native platform.
 app.commandLine.appendSwitch('ozone-platform-hint', 'auto')
@@ -39,6 +40,7 @@ function createWindow(): void {
 
   ctx = { win, tabs: new TabManager(win), config: loadConfig() }
   registerCoreIpc(ctx)
+  registerSearchIpc(ctx)
 
   if (process.env.ELECTRON_RENDERER_URL) {
     win.loadURL(process.env.ELECTRON_RENDERER_URL)

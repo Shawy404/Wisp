@@ -1,0 +1,162 @@
+// Wisp — © Shawy404. All rights reserved.
+import { useEffect, useRef, useState } from 'react'
+import type { SearchResults, SourceItem } from '@shared/types'
+import { invoke, useApp } from '@/store'
+import SourceCard from './SourceCard'
+
+type ResultTab = 'academic' | 'wiki' | 'images' | 'web'
+
+const TAB_LABEL: Record<ResultTab, string> = {
+  academic: 'Akademik',
+  wiki: 'Genel Bakış',
+  images: 'Görsel',
+  web: 'Web'
+}
+
+export default function SearchPanel(): React.JSX.Element {
+  const activeRoomId = useApp((s) => s.activeRoomId)
+  const [query, setQuery] = useState('')
+  const [results, setResults] = useState<SearchResults | null>(null)
+  const [loading, setLoading] = useState(false)
+  const [tab, setTab] = useState<ResultTab>('academic')
+  const inputRef = useRef<HTMLInputElement>(null)
+
+  const run = async (q: string): Promise<void> => {
+    if (!q.trim()) return
+    setLoading(true)
+    try {
+      const res = await invoke<SearchResults>('search:run', q.trim())
+      setResults(res)
+      setTab(res.classification === 'academic' ? 'academic' : 'wiki')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  useEffect(() => {
+    // Address-bar searches land here.
+    const handler = (e: Event): void => {
+      const q = (e as CustomEvent<string>).detail
+      setQuery(q)
+      void run(q)
+    }
+    window.addEventListener('wisp:search', handler)
+    return () => window.removeEventListener('wisp:search', handler)
+  }, [])
+
+  useEffect(() => {
+    // Restore the room's last results when reopening the panel.
+    if (!results && activeRoomId) {
+      void invoke<SearchResults | null>('search:last', activeRoomId).then((last) => {
+        if (last) {
+          setResults(last)
+          setQuery(last.query)
+          setTab(last.classification === 'academic' ? 'academic' : 'wiki')
+        }
+      })
+    }
+    inputRef.current?.focus()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+
+  const items: SourceItem[] = results ? results[tab] : []
+
+  return (
+    <div className="absolute inset-0 flex flex-col overflow-hidden bg-neutral-950">
+      <div className="mx-auto flex w-full max-w-3xl flex-col gap-3 px-6 pt-6 pb-2">
+        <div className="flex items-center gap-2">
+          <input
+            ref={inputRef}
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            onKeyDown={(e) => e.key === 'Enter' && void run(query)}
+            placeholder="Ara — akademik + wiki + görsel sonuçlar bu odaya kaydedilir"
+            className="h-10 flex-1 rounded-lg border border-neutral-800 bg-neutral-900 px-4 text-sm text-neutral-100 outline-none placeholder:text-neutral-600 focus:border-accent/60"
+            spellCheck={false}
+          />
+          <button
+            className="h-10 rounded-lg bg-accent/15 px-4 text-sm font-medium text-accent hover:bg-accent/25 disabled:opacity-40"
+            onClick={() => void run(query)}
+            disabled={loading}
+          >
+            {loading ? 'Aranıyor…' : 'Ara'}
+          </button>
+        </div>
+
+        {results && (
+          <div className="flex items-center gap-1">
+            {(Object.keys(TAB_LABEL) as ResultTab[]).map((t) => (
+              <button
+                key={t}
+                onClick={() => setTab(t)}
+                className={`rounded-md px-3 py-1 text-xs ${
+                  tab === t
+                    ? 'bg-neutral-800 text-neutral-100'
+                    : 'text-neutral-500 hover:text-neutral-300'
+                }`}
+              >
+                {TAB_LABEL[t]}
+                <span className="ml-1.5 text-[10px] text-neutral-600">{results[t].length}</span>
+              </button>
+            ))}
+            {results.classification === 'academic' && (
+              <span className="ml-auto text-[10px] text-neutral-600">
+                akademik sorgu algılandı
+              </span>
+            )}
+          </div>
+        )}
+      </div>
+
+      <div className="mx-auto w-full max-w-3xl flex-1 space-y-2 overflow-y-auto px-6 pb-6">
+        {loading && (
+          <div className="flex items-center gap-2 pt-8 text-sm text-neutral-500">
+            <span className="h-4 w-4 animate-spin rounded-full border border-neutral-600 border-t-accent" />
+            Beş kaynak paralel aranıyor…
+          </div>
+        )}
+        {!loading && !results && (
+          <div className="pt-10 text-center text-sm text-neutral-600">
+            Arama yap — sonuçlar otomatik olarak odanın kaynaklarına eklenir.
+          </div>
+        )}
+        {!loading &&
+          results &&
+          (tab === 'images' ? (
+            <div className="grid grid-cols-3 gap-2 sm:grid-cols-4">
+              {items.map((s) => (
+                <button
+                  key={s.id}
+                  className="group relative aspect-square overflow-hidden rounded-lg border border-neutral-800 bg-neutral-900"
+                  title={s.title}
+                  onClick={() => {
+                    if (s.url) {
+                      useApp.getState().newTab(s.url)
+                      useApp.getState().setOverlay('none')
+                    }
+                  }}
+                >
+                  {s.imageUrl && (
+                    <img src={s.imageUrl} alt={s.title} className="h-full w-full object-cover" loading="lazy" />
+                  )}
+                  <span className="absolute inset-x-0 bottom-0 truncate bg-black/60 px-1.5 py-0.5 text-[10px] text-neutral-200 opacity-0 group-hover:opacity-100">
+                    {s.title}
+                  </span>
+                </button>
+              ))}
+            </div>
+          ) : (
+            items.map((s) => <SourceCard key={s.id} source={s} />)
+          ))}
+        {!loading && results && items.length === 0 && (
+          <div className="pt-8 text-center text-xs text-neutral-600">Bu sekmede sonuç yok.</div>
+        )}
+        {results && results.errors.length > 0 && (
+          <div className="pt-2 text-[10px] text-neutral-700">
+            ulaşılamayan kaynaklar: {results.errors.join(' · ')}
+          </div>
+        )}
+      </div>
+    </div>
+  )
+}

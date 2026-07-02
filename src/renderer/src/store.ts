@@ -1,6 +1,6 @@
 // Wisp — © Shawy404. All rights reserved.
 import { create } from 'zustand'
-import type { RoomMeta, TabInfo, WispConfig } from '@shared/types'
+import type { MapData, NoteInfo, RoomData, RoomMeta, SourceItem, TabInfo, WispConfig } from '@shared/types'
 
 export type Overlay = 'none' | 'search' | 'sources' | 'notes' | 'map' | 'settings' | 'reader'
 
@@ -18,8 +18,12 @@ interface AppState {
   tabs: TabInfo[]
   activeTabId: string | null
   overlay: Overlay
+  sources: SourceItem[]
+  notes: NoteInfo[]
+  map: MapData
 
   init: () => Promise<void>
+  refreshRoomData: (roomId?: string) => Promise<void>
   setOverlay: (overlay: Overlay) => void
   setConfig: (patch: Partial<WispConfig>) => Promise<void>
 
@@ -46,11 +50,17 @@ export const useApp = create<AppState>((set, get) => ({
   tabs: [],
   activeTabId: null,
   overlay: 'none',
+  sources: [],
+  notes: [],
+  map: { concepts: [], edges: [] },
 
   init: async () => {
     window.wisp.on('tabs:state', (state) => {
       const s = state as TabsState
       set({ tabs: s.tabs, activeTabId: s.activeTabId })
+    })
+    window.wisp.on('room:updated', (roomId) => {
+      if (roomId === get().activeRoomId) void get().refreshRoomData()
     })
     const boot = await invoke<{ config: WispConfig; rooms: RoomMeta[]; activeRoomId: string }>(
       'app:init'
@@ -58,6 +68,16 @@ export const useApp = create<AppState>((set, get) => ({
     set({ ready: true, config: boot.config, rooms: boot.rooms, activeRoomId: boot.activeRoomId })
     const state = await invoke<TabsState>('tabs:state')
     set({ tabs: state.tabs, activeTabId: state.activeTabId })
+    await get().refreshRoomData()
+  },
+
+  refreshRoomData: async (roomId) => {
+    const id = roomId ?? get().activeRoomId
+    if (!id) return
+    const data = await invoke<RoomData | null>('rooms:data', id)
+    if (data && get().activeRoomId === id) {
+      set({ sources: data.sources, notes: data.notes, map: data.map })
+    }
   },
 
   setOverlay: (overlay) => {
@@ -93,6 +113,7 @@ export const useApp = create<AppState>((set, get) => ({
     await invoke('rooms:switch', id)
     set({ activeRoomId: id, overlay: 'none' })
     void invoke('viewport:visible', true)
+    await get().refreshRoomData(id)
   },
 
   newTab: (url) => void invoke('tabs:new', url ?? 'about:blank'),

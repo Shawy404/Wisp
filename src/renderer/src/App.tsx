@@ -5,6 +5,8 @@ import TitleBar from './components/TitleBar'
 import AddressBar from './components/AddressBar'
 import RoomSidebar from './components/RoomSidebar'
 import Viewport from './components/Viewport'
+import SearchPanel from './components/SearchPanel'
+import SourcesPanel from './components/SourcesPanel'
 
 function OverlayPlaceholder({ label }: { label: string }): React.JSX.Element {
   return (
@@ -37,8 +39,8 @@ export default function App(): React.JSX.Element {
       <div className="flex min-h-0 flex-1">
         <RoomSidebar />
         <Viewport>
-          {overlay === 'search' && <OverlayPlaceholder label="Arama şeridi — Faz 2" />}
-          {overlay === 'sources' && <OverlayPlaceholder label="Kaynaklar — Faz 2" />}
+          {overlay === 'search' && <SearchPanel />}
+          {overlay === 'sources' && <SourcesPanel />}
           {overlay === 'notes' && <OverlayPlaceholder label="Notlar — Faz 4" />}
           {overlay === 'map' && <OverlayPlaceholder label="Kavram haritası — Faz 5" />}
           {overlay === 'settings' && <OverlayPlaceholder label="Ayarlar — Faz 7" />}
