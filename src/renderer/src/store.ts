@@ -33,6 +33,8 @@ interface AppState {
   map: MapData
   /** Query queued for the search panel — survives the panel not being mounted yet. */
   pendingSearch: string | null
+  /** Note queued for the notes panel (e.g. double-clicked on the map). */
+  pendingNoteId: string | null
   /** Data URL of the current background image (null = none). */
   backgroundUrl: string | null
   setBackgroundUrl: (url: string | null) => void
@@ -43,6 +45,9 @@ interface AppState {
   /** Open the search panel and run this query (from the address bar / palette). */
   requestSearch: (query: string) => void
   consumePendingSearch: () => string | null
+  /** Open the notes panel focused on this note. */
+  requestNote: (noteId: string) => void
+  consumePendingNote: () => string | null
   setConfig: (patch: Partial<WispConfig>) => Promise<void>
 
   createRoom: (name: string) => Promise<void>
@@ -106,6 +111,7 @@ export const useApp = create<AppState>((set, get) => ({
   },
 
   pendingSearch: null,
+  pendingNoteId: null,
 
   setOverlay: (overlay) => {
     set({ overlay })
@@ -121,6 +127,17 @@ export const useApp = create<AppState>((set, get) => ({
     const q = get().pendingSearch
     if (q !== null) set({ pendingSearch: null })
     return q
+  },
+
+  requestNote: (noteId) => {
+    set({ pendingNoteId: noteId })
+    get().setOverlay('notes')
+  },
+
+  consumePendingNote: () => {
+    const id = get().pendingNoteId
+    if (id !== null) set({ pendingNoteId: null })
+    return id
   },
 
   setConfig: async (patch) => {

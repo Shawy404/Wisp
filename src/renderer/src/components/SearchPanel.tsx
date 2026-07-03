@@ -24,7 +24,9 @@ export default function SearchPanel(): React.JSX.Element {
   const [loading, setLoading] = useState(false)
   const [tab, setTab] = useState<ResultTab>('academic')
   const [showJson, setShowJson] = useState(false)
+  const [page, setPage] = useState(0)
   const inputRef = useRef<HTMLInputElement>(null)
+  const listRef = useRef<HTMLDivElement>(null)
   // Guards the "restore last results" effect from clobbering a fresh search.
   const searchedRef = useRef(false)
 
@@ -70,6 +72,20 @@ export default function SearchPanel(): React.JSX.Element {
   }, [])
 
   const items: SourceItem[] = results ? results[tab] : []
+
+  // The backends return large result sets in one go; page through them so a
+  // query stays browsable instead of one endless scroll.
+  const pageSize = tab === 'images' ? 24 : 10
+  const totalPages = Math.max(1, Math.ceil(items.length / pageSize))
+  const currentPage = Math.min(page, totalPages - 1)
+  const pagedItems = items.slice(currentPage * pageSize, (currentPage + 1) * pageSize)
+  const goToPage = (p: number): void => {
+    setPage(Math.max(0, Math.min(p, totalPages - 1)))
+    listRef.current?.scrollTo({ top: 0 })
+  }
+  useEffect(() => {
+    setPage(0)
+  }, [tab, results])
 
   // Nothing saves automatically anymore — every result carries its own save
   // button, and already-saved ones show a check instead.
@@ -156,7 +172,7 @@ export default function SearchPanel(): React.JSX.Element {
         )}
       </div>
 
-      <div className="mx-auto w-full max-w-3xl flex-1 space-y-2 overflow-y-auto px-6 pb-6">
+      <div ref={listRef} className="mx-auto w-full max-w-3xl flex-1 space-y-2 overflow-y-auto px-6 pb-6">
         {showJson && results && (
           <pre className="rounded-lg border border-neutral-800 bg-neutral-900/70 p-3 text-[10px] leading-relaxed text-neutral-400 select-text">
             {JSON.stringify(results, null, 2)}
@@ -175,7 +191,7 @@ export default function SearchPanel(): React.JSX.Element {
           results &&
           (tab === 'images' ? (
             <div className="grid grid-cols-3 gap-2 sm:grid-cols-4">
-              {items.map((s) => (
+              {pagedItems.map((s) => (
                 <div
                   key={s.id}
                   className="group relative aspect-square overflow-hidden rounded-lg border border-neutral-800 bg-neutral-900"
@@ -212,12 +228,33 @@ export default function SearchPanel(): React.JSX.Element {
               ))}
             </div>
           ) : (
-            items.map((s) => (
+            pagedItems.map((s) => (
               <SourceCard key={s.id} source={s} extraActions={<SaveButton source={s} />} />
             ))
           ))}
         {!loading && results && items.length === 0 && (
           <div className="pt-8 text-center text-xs text-neutral-600">{t('search.noResultsInTab')}</div>
+        )}
+        {!loading && results && totalPages > 1 && (
+          <div className="flex items-center justify-center gap-3 pt-3 pb-1">
+            <button
+              disabled={currentPage === 0}
+              onClick={() => goToPage(currentPage - 1)}
+              className="rounded-md border border-neutral-800 px-3 py-1 text-xs text-neutral-300 hover:bg-neutral-800 disabled:opacity-30 disabled:hover:bg-transparent"
+            >
+              {t('search.prev')}
+            </button>
+            <span className="text-[11px] text-neutral-500">
+              {t('search.page', { page: currentPage + 1, total: totalPages })}
+            </span>
+            <button
+              disabled={currentPage >= totalPages - 1}
+              onClick={() => goToPage(currentPage + 1)}
+              className="rounded-md border border-neutral-800 px-3 py-1 text-xs text-neutral-300 hover:bg-neutral-800 disabled:opacity-30 disabled:hover:bg-transparent"
+            >
+              {t('search.next')}
+            </button>
+          </div>
         )}
         {results && results.errors.length > 0 && (
           <div className="pt-2 text-[10px] text-neutral-700">

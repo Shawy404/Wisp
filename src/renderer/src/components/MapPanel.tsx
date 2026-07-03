@@ -50,13 +50,29 @@ function cyStyle(c: MapColors): cytoscape.StylesheetJson {
     },
     { selector: 'node.concept', style: { shape: 'diamond' } },
     { selector: 'node.source', style: { shape: 'round-rectangle' } },
+    // Image sources with a loaded picture show the photo itself as the node.
+    {
+      selector: 'node.image',
+      style: {
+        shape: 'round-rectangle',
+        width: 46,
+        height: 46,
+        'background-image': 'data(img)',
+        'background-fit': 'cover',
+        'background-color': '#1f1f23',
+        'border-width': 1,
+        'border-color': c.edge
+      }
+    },
+    // Links are quiet dashes — no arrowheads. Kind is told by color, not shape.
     {
       selector: 'edge',
       style: {
         width: 1.4,
         'line-color': c.edge,
-        'target-arrow-color': c.edge,
-        'curve-style': 'bezier',
+        'line-style': 'dashed',
+        'line-dash-pattern': [7, 5],
+        'curve-style': 'straight',
         label: 'data(label)',
         'font-size': '8px',
         color: c.edgeLabel,
@@ -65,34 +81,12 @@ function cyStyle(c: MapColors): cytoscape.StylesheetJson {
         'text-rotation': 'autorotate'
       }
     },
-    { selector: 'edge.tag', style: { 'line-style': 'dashed', opacity: 0.45 } },
-    {
-      selector: 'edge.wikilink',
-      style: {
-        'line-color': '#7dd3a8',
-        'target-arrow-shape': 'triangle',
-        'target-arrow-color': '#7dd3a8',
-        width: 1.6
-      }
-    },
-    {
-      selector: 'edge.manual',
-      style: {
-        'line-color': '#a1a1aa',
-        width: 2,
-        'target-arrow-shape': 'triangle',
-        'target-arrow-color': '#a1a1aa'
-      }
-    },
+    { selector: 'edge.tag', style: { opacity: 0.35, 'line-dash-pattern': [3, 5] } },
+    { selector: 'edge.wikilink', style: { 'line-color': '#7dd3a8', opacity: 0.85 } },
+    { selector: 'edge.manual', style: { 'line-color': '#a1a1aa', width: 1.8 } },
     {
       selector: 'edge.ai-suggested',
-      style: {
-        'line-color': '#f8b48a',
-        'line-style': 'dotted',
-        width: 1.8,
-        'target-arrow-shape': 'triangle',
-        'target-arrow-color': '#f8b48a'
-      }
+      style: { 'line-color': '#f8b48a', 'line-dash-pattern': [2, 4], width: 1.6 }
     },
     {
       selector: 'node.hovered',
@@ -154,18 +148,27 @@ function runLayout(c: Core, pinned: Set<string>): void {
   c.fit(undefined, 50)
 }
 
-function toElements(graph: Graph, positions: NodePositions): ElementDefinition[] {
-  const nodes = graph.nodes.map((n) => ({
-    data: {
-      id: n.id,
-      // Keep labels short so they don't overlap; the full title shows on hover.
-      label: n.label.length > 28 ? n.label.slice(0, 27) + '…' : n.label,
-      fullLabel: n.label,
-      type: n.type
-    },
-    position: positions[n.id] ? { ...positions[n.id] } : undefined,
-    classes: n.type
-  }))
+function toElements(
+  graph: Graph,
+  positions: NodePositions,
+  images: Record<string, string>
+): ElementDefinition[] {
+  const nodes = graph.nodes.map((n) => {
+    // Image sources whose picture has resolved render as a photo node.
+    const img = n.type === 'source' && n.kind === 'image' ? images[n.id] : undefined
+    return {
+      data: {
+        id: n.id,
+        // Keep labels short so they don't overlap; the full title shows on hover.
+        label: n.label.length > 28 ? n.label.slice(0, 27) + '…' : n.label,
+        fullLabel: n.label,
+        type: n.type,
+        ...(img ? { img } : {})
+      },
+      position: positions[n.id] ? { ...positions[n.id] } : undefined,
+      classes: img ? `${n.type} image` : n.type
+    }
+  })
   const edges = graph.edges.map((e) => ({
     data: { id: e.id, source: e.from, target: e.to, label: e.label ?? '', kind: e.kind },
     classes: e.kind
@@ -182,6 +185,23 @@ interface CtxMenu {
   nodeType?: NodeType
   edgeId?: string
   edgeKind?: string
+}
+
+interface Renaming {
+  x: number
+  y: number
+  nodeId: string
+  nodeType: NodeType
+  value: string
+}
+
+/** Card shown on double-click for nodes that have nothing external to open. */
+interface NodeInfo {
+  title: string
+  typeLabel: string
+  img?: string
+  url?: string
+  neighbors: string[]
 }
 
 export default function MapPanel(): React.JSX.Element {
@@ -210,8 +230,29 @@ export default function MapPanel(): React.JSX.Element {
   })
   const [showTagLinks, setShowTagLinks] = useState(false)
   const [ctx, setCtx] = useState<CtxMenu | null>(null)
+  const [renaming, setRenaming] = useState<Renaming | null>(null)
+  const [info, setInfo] = useState<NodeInfo | null>(null)
   const [dropActive, setDropActive] = useState(false)
   const dragDepth = useRef(0)
+
+  // Resolved image URLs for image-kind sources (local clips come through the
+  // main process as data URLs). Mirrored in a ref for the cytoscape handlers.
+  const [images, setImages] = useState<Record<string, string>>({})
+  const imagesRef = useRef(images)
+  imagesRef.current = images
+  useEffect(() => {
+    for (const s of sources) {
+      if (s.kind !== 'image' || images[s.id]) continue
+      if (s.clipFile && activeRoomId) {
+        void invoke<string | null>('clips:dataUrl', activeRoomId, s.clipFile).then((url) => {
+          const src = url ?? s.imageUrl
+          if (src) setImages((prev) => (prev[s.id] ? prev : { ...prev, [s.id]: src }))
+        })
+      } else if (s.imageUrl) {
+        setImages((prev) => (prev[s.id] ? prev : { ...prev, [s.id]: s.imageUrl! }))
+      }
+    }
+  }, [sources, activeRoomId, images])
 
   // Hand-placed coordinates, kept in a ref so the long-lived cytoscape event
   // handlers always see the latest set (drags update it without a re-render).
@@ -268,10 +309,10 @@ export default function MapPanel(): React.JSX.Element {
     if (!host.current) return
     cy.current = cytoscape({
       container: host.current,
-      elements: toElements(graph, positionsRef.current),
+      elements: toElements(graph, positionsRef.current, imagesRef.current),
       style: cyStyle(mapColors(useApp.getState().config?.theme ?? 'dark')),
       layout: { name: 'preset' },
-      wheelSensitivity: 0.2
+      wheelSensitivity: 0.6
     })
     runLayout(cy.current, new Set(Object.keys(positionsRef.current)))
 
@@ -327,6 +368,46 @@ export default function MapPanel(): React.JSX.Element {
       }
     })
 
+    // Double-click opens what the node *is*: a website opens as a tab, a note
+    // opens in the notes panel, an image/concept shows its info card.
+    cy.current.on('dbltap', 'node', (evt) => {
+      const node = evt.target as cytoscape.NodeSingular
+      const id = node.id()
+      const neighbors = node
+        .neighborhood('node')
+        .map((n) => n.data('fullLabel') as string)
+      const app = useApp.getState()
+      const src = app.sources.find((s) => s.id === id)
+      if (src) {
+        if (src.kind === 'image') {
+          setInfo({
+            title: src.title,
+            typeLabel: t('map.info.type.image'),
+            img: imagesRef.current[id] ?? src.imageUrl,
+            url: src.url,
+            neighbors
+          })
+        } else if (src.url) {
+          app.newTab(src.url)
+          app.setOverlay('none')
+        } else {
+          setInfo({ title: src.title, typeLabel: src.kind, neighbors })
+        }
+        return
+      }
+      if (id.startsWith('note:')) {
+        app.requestNote(id.slice(5))
+        return
+      }
+      if (id.startsWith('concept:')) {
+        setInfo({
+          title: node.data('fullLabel') as string,
+          typeLabel: t('map.info.type.concept'),
+          neighbors
+        })
+      }
+    })
+
     // Right-click a node or edge → context menu (hide / delete).
     cy.current.on('cxttap', 'node', (evt) => {
       evt.originalEvent.preventDefault()
@@ -362,16 +443,17 @@ export default function MapPanel(): React.JSX.Element {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
-  // Rebuild elements when the underlying room data or filters change.
+  // Rebuild elements when the underlying room data, filters or resolved
+  // images change.
   useEffect(() => {
     if (!cy.current) return
     const c = cy.current
     c.batch(() => {
       c.elements().remove()
-      c.add(toElements(graph, positionsRef.current))
+      c.add(toElements(graph, positionsRef.current, images))
     })
     runLayout(c, new Set(Object.keys(positionsRef.current)))
-  }, [graph])
+  }, [graph, images])
 
   // Follow theme switches live — cytoscape can't read CSS variables itself.
   useEffect(() => {
@@ -399,6 +481,38 @@ export default function MapPanel(): React.JSX.Element {
   const clearHidden = async (): Promise<void> => {
     if (!activeRoomId) return
     await invoke('map:clearHidden', activeRoomId)
+    await applyRoomData()
+  }
+
+  const startRename = (nodeId: string, nodeType: NodeType, x: number, y: number): void => {
+    const full = (cy.current?.getElementById(nodeId).data('fullLabel') as string) ?? ''
+    setCtx(null)
+    setRenaming({ x, y, nodeId, nodeType, value: full })
+  }
+  const submitRename = async (): Promise<void> => {
+    if (!renaming || !activeRoomId) return
+    const title = renaming.value.trim()
+    const { nodeId, nodeType } = renaming
+    setRenaming(null)
+    if (!title) return
+    if (nodeType === 'concept') {
+      await invoke('map:renameConcept', activeRoomId, nodeId.replace(/^concept:/, ''), title)
+    } else if (nodeType === 'note') {
+      await invoke('notes:rename', activeRoomId, nodeId.replace(/^note:/, ''), title)
+    } else {
+      await invoke('sources:rename', activeRoomId, nodeId, title)
+    }
+    await applyRoomData()
+  }
+
+  // Image files dropped straight onto the canvas become photo nodes.
+  const dropImageFiles = async (files: File[], base?: { x: number; y: number }): Promise<void> => {
+    if (!activeRoomId) return
+    for (let i = 0; i < files.length; i++) {
+      const bytes = new Uint8Array(await files[i].arrayBuffer())
+      const pos = base ? { x: base.x + i * 34, y: base.y + i * 34 } : undefined
+      await invoke('map:addImage', activeRoomId, files[i].name || 'image.png', bytes, pos)
+    }
     await applyRoomData()
   }
 
@@ -459,7 +573,8 @@ export default function MapPanel(): React.JSX.Element {
         className="relative min-w-0 flex-1"
         onClick={() => setCtx(null)}
         onDragEnter={(e) => {
-          if (!e.dataTransfer.types.includes('wisp/source-id')) return
+          const types = e.dataTransfer.types
+          if (!types.includes('wisp/source-id') && !types.includes('Files')) return
           dragDepth.current++
           setDropActive(true)
         }}
@@ -468,13 +583,15 @@ export default function MapPanel(): React.JSX.Element {
           if (dragDepth.current === 0) setDropActive(false)
         }}
         onDragOver={(e) => {
-          if (e.dataTransfer.types.includes('wisp/source-id')) e.preventDefault()
+          const types = e.dataTransfer.types
+          if (types.includes('wisp/source-id') || types.includes('Files')) e.preventDefault()
         }}
         onDrop={(e) => {
           dragDepth.current = 0
           setDropActive(false)
           const id = e.dataTransfer.getData('wisp/source-id')
-          if (!id) return
+          const imageFiles = [...e.dataTransfer.files].filter((f) => f.type.startsWith('image/'))
+          if (!id && imageFiles.length === 0) return
           e.preventDefault()
           // Convert the drop point to model coordinates so the node lands
           // exactly under the cursor, at any pan/zoom.
@@ -489,7 +606,8 @@ export default function MapPanel(): React.JSX.Element {
               y: (e.clientY - rect.top - pan.y) / zoom
             }
           }
-          void placeOnMap(id, pos)
+          if (id) void placeOnMap(id, pos)
+          else void dropImageFiles(imageFiles, pos)
         }}
       >
         <div ref={host} className="h-full w-full" />
@@ -540,6 +658,14 @@ export default function MapPanel(): React.JSX.Element {
             style={{ left: ctx.x, top: ctx.y }}
             onClick={(e) => e.stopPropagation()}
           >
+            {ctx.nodeId && ctx.nodeType && (
+              <button
+                className="block w-full px-3 py-1.5 text-left text-neutral-200 hover:bg-neutral-800"
+                onClick={() => startRename(ctx.nodeId!, ctx.nodeType!, ctx.x, ctx.y)}
+              >
+                {t('map.ctx.rename')}
+              </button>
+            )}
             {ctx.nodeId && ctx.nodeType === 'concept' && (
               <button
                 className="block w-full px-3 py-1.5 text-left text-neutral-200 hover:bg-neutral-800"
@@ -575,6 +701,81 @@ export default function MapPanel(): React.JSX.Element {
             {ctx.edgeId && ctx.edgeKind !== 'manual' && ctx.edgeKind !== 'ai-suggested' && (
               <div className="px-3 py-1.5 text-neutral-600">{t('map.ctx.derivedLink')}</div>
             )}
+          </div>
+        )}
+
+        {/* Inline rename input, anchored where the context menu was. */}
+        {renaming && (
+          <input
+            autoFocus
+            value={renaming.value}
+            onChange={(e) => setRenaming({ ...renaming, value: e.target.value })}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter') void submitRename()
+              if (e.key === 'Escape') setRenaming(null)
+            }}
+            onBlur={() => setRenaming(null)}
+            onClick={(e) => e.stopPropagation()}
+            className="absolute z-50 w-52 rounded-md border border-accent/60 bg-neutral-900 px-2 py-1.5 text-xs text-neutral-100 shadow-2xl shadow-black/50 outline-none"
+            style={{ left: renaming.x, top: renaming.y }}
+          />
+        )}
+
+        {/* Double-click info card (concepts, photos, url-less sources). */}
+        {info && (
+          <div
+            className="absolute inset-0 z-50 flex items-center justify-center bg-black/40"
+            onClick={() => setInfo(null)}
+          >
+            <div
+              className="max-h-[80%] w-80 overflow-y-auto rounded-xl border border-neutral-700 bg-neutral-900 p-4 shadow-2xl shadow-black/60"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className="mb-1 flex items-start justify-between gap-2">
+                <div className="min-w-0">
+                  <div className="text-sm font-medium break-words text-neutral-100">{info.title}</div>
+                  <div className="text-[10px] text-neutral-500">{info.typeLabel}</div>
+                </div>
+                <button
+                  className="shrink-0 text-neutral-500 hover:text-neutral-200"
+                  onClick={() => setInfo(null)}
+                >
+                  ×
+                </button>
+              </div>
+              {info.img && (
+                <img
+                  src={info.img}
+                  alt={info.title}
+                  className="my-2 max-h-64 w-full rounded-lg object-contain"
+                />
+              )}
+              {info.url && (
+                <button
+                  className="mb-2 block max-w-full truncate text-left text-[11px] text-accent underline decoration-dotted"
+                  onClick={() => {
+                    useApp.getState().newTab(info.url!)
+                    useApp.getState().setOverlay('none')
+                  }}
+                >
+                  {info.url}
+                </button>
+              )}
+              <div className="mt-2 text-[10px] tracking-wide text-neutral-500 uppercase">
+                {t('map.info.connections')}
+              </div>
+              {info.neighbors.length === 0 ? (
+                <div className="py-1 text-[11px] text-neutral-600">{t('map.info.noConnections')}</div>
+              ) : (
+                <ul className="mt-1 space-y-0.5">
+                  {info.neighbors.map((n, i) => (
+                    <li key={i} className="truncate text-[11px] text-neutral-300">
+                      · {n}
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </div>
           </div>
         )}
       </div>

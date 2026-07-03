@@ -1,11 +1,13 @@
 // Wisp — © Shawy404. All rights reserved.
 import { ipcMain, net } from 'electron'
 import Anthropic from '@anthropic-ai/sdk'
-import type { AiEdgeSuggestion, ConceptNode, MapEdge } from '@shared/types'
+import type { AiEdgeSuggestion, ConceptNode, MapEdge, SourceItem } from '@shared/types'
 import { buildGraph } from '@shared/graph'
 import { stableId } from '@shared/tags'
 import { translate } from '@shared/i18n'
 import * as store from './storage'
+import { addSources } from './search-ipc'
+import { saveClipImage } from './notes-ipc'
 import type { WispContext } from './ipc'
 
 export function registerMapIpc(ctx: WispContext): void {
@@ -111,6 +113,48 @@ export function registerMapIpc(ctx: WispContext): void {
     notify(roomId)
     return concept
   })
+
+  ipcMain.handle('map:renameConcept', (_e, roomId: string, conceptId: string, title: string) => {
+    const map = store.loadMap(roomId)
+    const concept = map.concepts.find((c) => c.id === conceptId)
+    if (concept && title.trim()) {
+      concept.title = title.trim()
+      store.saveMap(roomId, map)
+      notify(roomId)
+    }
+    return map
+  })
+
+  // An image file dropped straight onto the canvas: store the bytes as a clip,
+  // create an image source for it and place it where it was dropped.
+  ipcMain.handle(
+    'map:addImage',
+    (_e, roomId: string, name: string, bytes: Uint8Array, pos?: { x: number; y: number }) => {
+      let file: string
+      try {
+        file = saveClipImage(roomId, String(name), bytes)
+      } catch {
+        return null
+      }
+      const title = String(name).replace(/\.[^.]+$/, '').trim() || file
+      const source: SourceItem = {
+        id: `src-${stableId(file)}`,
+        kind: 'image',
+        title,
+        clipFile: file,
+        tags: [],
+        addedAt: new Date().toISOString(),
+        origin: 'manual'
+      }
+      addSources(roomId, [source])
+      const map = store.loadMap(roomId)
+      map.included = [...new Set([...(map.included ?? []), source.id])]
+      if (pos) map.positions = { ...(map.positions ?? {}), [source.id]: pos }
+      store.saveMap(roomId, map)
+      notify(roomId)
+      return source
+    }
+  )
 
   ipcMain.handle('map:removeConcept', (_e, roomId: string, conceptId: string) => {
     const map = store.loadMap(roomId)

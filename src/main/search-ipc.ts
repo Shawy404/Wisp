@@ -40,6 +40,18 @@ export function registerSearchIpc(ctx: WispContext): void {
     return sources
   })
 
+  // Rename from the map (or anywhere) — the source's title is its map label.
+  ipcMain.handle('sources:rename', (_e, roomId: string, sourceId: string, title: string) => {
+    const sources = store.loadSources(roomId)
+    const source = sources.find((s) => s.id === sourceId)
+    if (source && title.trim()) {
+      source.title = title.trim()
+      store.saveSources(roomId, sources)
+      notify(roomId)
+    }
+    return sources
+  })
+
   ipcMain.handle('sources:delete', (_e, roomId: string, sourceId: string) => {
     const sources = store.loadSources(roomId).filter((s) => s.id !== sourceId)
     store.saveSources(roomId, sources)

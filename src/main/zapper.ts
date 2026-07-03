@@ -179,6 +179,11 @@ export function registerZapper(ctx: WispContext): void {
       hide: translate(lang, 'main.zap.hide'),
       cancel: translate(lang, 'main.zap.cancel')
     }
+    // The picker's Escape/hover listeners live inside the page, but the click
+    // that started zap mode focused the shell UI — give the page key focus
+    // right away so Esc works without having to click the page first.
+    ctx.win.focus()
+    wc.focus()
     try {
       const selector = (await wc.executeJavaScript(pickerScript(strings), true)) as string | null
       if (!selector) return { zapped: false }

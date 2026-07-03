@@ -21,6 +21,13 @@ export default function NotesPanel(): React.JSX.Element {
     if (!activeId && notes.length) setActiveId(notes[0].id)
   }, [notes, activeId])
 
+  // A note requested from elsewhere (map double-click) — focus it on arrival.
+  const pendingNoteId = useApp((s) => s.pendingNoteId)
+  useEffect(() => {
+    const id = useApp.getState().consumePendingNote()
+    if (id && notes.some((n) => n.id === id)) setActiveId(id)
+  }, [pendingNoteId, notes])
+
   // Ctrl-click on a [[wikilink]] opens or creates the target note.
   useEffect(() => {
     const handler = async (e: Event): Promise<void> => {

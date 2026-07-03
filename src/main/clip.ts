@@ -1,10 +1,11 @@
 // Wisp — © Shawy404. All rights reserved.
 import * as fs from 'fs'
 import { join } from 'path'
-import { Menu, net } from 'electron'
+import { clipboard, Menu, net } from 'electron'
 import type { SourceItem } from '@shared/types'
 import { extractKeywords, stableId, tagSlug } from '@shared/tags'
 import { translate } from '@shared/i18n'
+import { noteSlug } from '@shared/wikilink'
 import * as store from './storage'
 import { addSources } from './search-ipc'
 import type { WispContext } from './ipc'
@@ -53,6 +54,34 @@ export function registerClip(ctx: WispContext): void {
 
       const template: Electron.MenuItemConstructorOptions[] = []
 
+      // Standard edit actions first — a browser context menu is expected to
+      // copy/paste before anything Wisp-specific.
+      const ef = params.editFlags
+      const wc = view.webContents
+      const editItems: Electron.MenuItemConstructorOptions[] = []
+      if (ef.canCut && params.isEditable) {
+        editItems.push({ label: t('main.ctx.cut'), accelerator: 'CmdOrCtrl+X', click: () => wc.cut() })
+      }
+      if (ef.canCopy && params.selectionText) {
+        editItems.push({ label: t('main.ctx.copy'), accelerator: 'CmdOrCtrl+C', click: () => wc.copy() })
+      }
+      if (ef.canPaste && params.isEditable) {
+        editItems.push({ label: t('main.ctx.paste'), accelerator: 'CmdOrCtrl+V', click: () => wc.paste() })
+      }
+      if (ef.canSelectAll) {
+        editItems.push({ label: t('main.ctx.selectAll'), accelerator: 'CmdOrCtrl+A', click: () => wc.selectAll() })
+      }
+      if (params.linkURL) {
+        editItems.push({ label: t('main.ctx.copyLink'), click: () => clipboard.writeText(params.linkURL) })
+      }
+      if (params.mediaType === 'image' && params.srcURL) {
+        editItems.push({ label: t('main.ctx.copyImage'), click: () => wc.copyImageAt(params.x, params.y) })
+        editItems.push({ label: t('main.ctx.copyImageUrl'), click: () => clipboard.writeText(params.srcURL) })
+      }
+      if (editItems.length > 0) {
+        template.push(...editItems, { type: 'separator' })
+      }
+
       // The primary way to collect sources while researching: right-click a
       // page and take it as a source. Lightweight — title + URL, no clip file.
       if (pageUrl && !pageUrl.startsWith('about:')) {
@@ -83,24 +112,25 @@ export function registerClip(ctx: WispContext): void {
         template.push({ type: 'separator' })
       }
 
+      // Selected text becomes a real note (quote + source link) instead of a
+      // "section clip" source — a note is editable, linkable and shows on the map.
       if (params.selectionText && params.selectionText.trim()) {
         template.push({
-          label: t('main.clip.selectionLabel', { room: roomName }),
+          label: t('main.clip.selectionNoteLabel', { room: roomName }),
           click: () => {
             const excerpt = params.selectionText.trim()
-            const source: SourceItem = {
-              id: `src-${stableId(pageUrl + excerpt)}`,
-              kind: 'clip',
-              title: pageTitle || pageUrl,
-              url: pageUrl,
-              excerpt,
-              tags: [...extractKeywords(excerpt, 5).map(tagSlug)],
-              addedAt: new Date().toISOString(),
-              origin: 'clip'
-            }
-            addSources(roomId, [source])
+            const base = noteSlug(pageTitle || excerpt.slice(0, 60) || t('main.clip.defaultNoteTitle'))
+            const existing = new Set(store.listNotes(roomId).map((n) => n.id))
+            let id = base
+            let n = 2
+            while (existing.has(id)) id = `${base} ${n++}`
+            const quoted = excerpt
+              .split('\n')
+              .map((line) => `> ${line}`)
+              .join('\n')
+            store.writeNote(roomId, id, `# ${id}\n\n${quoted}\n\n— [${pageTitle || pageUrl}](${pageUrl})\n`)
             notify(roomId)
-            toast(t('main.clip.selectionToast'))
+            toast(t('main.clip.selectionNoteToast'))
           }
         })
       }

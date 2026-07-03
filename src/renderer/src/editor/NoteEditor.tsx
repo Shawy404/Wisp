@@ -6,6 +6,37 @@ import { defaultKeymap, history, historyKeymap } from '@codemirror/commands'
 import { markdown } from '@codemirror/lang-markdown'
 import { syntaxHighlighting, defaultHighlightStyle } from '@codemirror/language'
 import { wikilinkExtension } from './wikilinkExtension'
+import { imagePreview } from './imageExtension'
+import { invoke, useApp } from '@/store'
+
+/**
+ * Images pasted or dropped into a note are saved into the room's clips dir
+ * and referenced as `![name](../clips/<file>)` — the preview extension then
+ * renders them inline.
+ */
+function insertImages(dt: DataTransfer | null, view: EditorView): boolean {
+  const files = dt ? [...dt.files].filter((f) => f.type.startsWith('image/')) : []
+  if (files.length === 0) return false
+  const roomId = useApp.getState().activeRoomId
+  if (!roomId) return false
+  void (async () => {
+    for (const f of files) {
+      const bytes = new Uint8Array(await f.arrayBuffer())
+      const file = await invoke<string | null>('notes:saveImage', roomId, f.name || 'image.png', bytes)
+      if (!file) continue
+      const alt = (f.name || 'image').replace(/\.[^.]+$/, '')
+      const pos = view.state.selection.main.head
+      const insert = `![${alt}](../clips/${file})\n`
+      view.dispatch({ changes: { from: pos, insert }, selection: { anchor: pos + insert.length } })
+    }
+  })()
+  return true
+}
+
+const imageInput = EditorView.domEventHandlers({
+  paste: (event, view) => insertImages(event.clipboardData, view),
+  drop: (event, view) => insertImages(event.dataTransfer, view)
+})
 
 const wispTheme = EditorView.theme(
   {
@@ -55,6 +86,8 @@ export default function NoteEditor(props: {
         markdown(),
         syntaxHighlighting(defaultHighlightStyle),
         ...wikilinkExtension(),
+        imagePreview(),
+        imageInput,
         keymap.of([...defaultKeymap, ...historyKeymap]),
         wispTheme,
         EditorView.lineWrapping,

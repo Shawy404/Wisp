@@ -10,6 +10,7 @@ import { registerClip } from './clip'
 import { registerNotesIpc } from './notes-ipc'
 import { registerMapIpc } from './map-ipc'
 import { registerZapper } from './zapper'
+import { registerTooltip } from './tooltip'
 import { registerBackground } from './background'
 import { registerHistory } from './history'
 import { initAdblock } from './adblock'
@@ -17,6 +18,13 @@ import { hardenApp, openExternalSafe, webSession } from './security'
 
 // Wayland/Hyprland friendliness: let Chromium pick the native platform.
 app.commandLine.appendSwitch('ozone-platform-hint', 'auto')
+
+// Real window transparency on Linux/X11 silently fails without this switch
+// (the window just stays black/opaque). Harmless on Wayland, so gate it only
+// on the setting — it must be set before the app is ready.
+if (loadConfig().windowTransparent) {
+  app.commandLine.appendSwitch('enable-transparent-visuals')
+}
 
 let ctx: WispContext | null = null
 
@@ -62,6 +70,7 @@ function createWindow(): void {
   registerNotesIpc(ctx)
   registerMapIpc(ctx)
   registerZapper(ctx)
+  registerTooltip(ctx)
   registerBackground(ctx)
   registerHistory(ctx)
   void initAdblock(ctx.config)
