@@ -8,8 +8,9 @@
     "build": "electron-vite build",
     "typecheck": "tsc --noEmit -p tsconfig.node.json && tsc --noEmit -p tsconfig.web.json",
     "smoke": "electron-vite build && WISP_SMOKE=1 xvfb-run -a electron . --no-sandbox",
-    "build:linux": "electron-vite build && electron-builder --linux",
-    "build:win": "electron-vite build && electron-builder --win"
+    "fetch:bin": "node scripts/fetch-binaries.mjs",
+    "build:linux": "npm run fetch:bin && electron-vite build && electron-builder --linux",
+    "build:win": "npm run fetch:bin && electron-vite build && electron-builder --win"
   },
   "author": "Shawy404",
   "license": "UNLICENSED",

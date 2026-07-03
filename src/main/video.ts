@@ -1,7 +1,8 @@
 // Wisp — © Shawy404. All rights reserved.
+import * as fs from 'fs'
 import { spawn, execFile } from 'child_process'
 import { basename, join } from 'path'
-import { ipcMain } from 'electron'
+import { app, ipcMain } from 'electron'
 import type { SourceItem } from '@shared/types'
 import { stableId } from '@shared/tags'
 import { translate } from '@shared/i18n'
@@ -16,16 +17,29 @@ import type { WispContext } from './ipc'
  * becomes a `video` source. Progress shows in the downloads panel.
  */
 
+/** Packaged builds ship yt-dlp under resources/bin; dev falls back to PATH. */
+function ytDlpPath(): string {
+  if (app.isPackaged) {
+    const bundled = join(
+      process.resourcesPath,
+      'bin',
+      process.platform === 'win32' ? 'yt-dlp.exe' : 'yt-dlp'
+    )
+    if (fs.existsSync(bundled)) return bundled
+  }
+  return 'yt-dlp'
+}
+
 function hasYtDlp(): Promise<boolean> {
   return new Promise((resolve) => {
-    execFile('yt-dlp', ['--version'], (err) => resolve(!err))
+    execFile(ytDlpPath(), ['--version'], (err) => resolve(!err))
   })
 }
 
 function videoMeta(url: string): Promise<{ id: string; title: string } | null> {
   return new Promise((resolve) => {
     execFile(
-      'yt-dlp',
+      ytDlpPath(),
       ['--no-playlist', '--print', '%(id)s\n%(title)s', '--skip-download', url],
       { timeout: 30_000 },
       (err, stdout) => {
@@ -83,7 +97,7 @@ export function registerVideo(ctx: WispContext): void {
       args.push(url)
 
       const tracker = trackExternal(`${meta.title}${clipping ? ` (${start || '0'}–${end || '…'})` : ''}.mp4`, url)
-      const proc = spawn('yt-dlp', args)
+      const proc = spawn(ytDlpPath(), args)
       externalCancel.set(tracker.id, () => {
         proc.kill('SIGTERM')
         cancelExternalMark(tracker.id)

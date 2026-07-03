@@ -20,10 +20,17 @@ linux:
   desktop:
     entry:
       StartupWMClass: wisp
+  # Helper binaries (yt-dlp) ship with the app — no manual installs.
+  extraResources:
+    - from: build/bin/linux
+      to: bin
 win:
   target:
     - nsis
     - portable
+  extraResources:
+    - from: build/bin/win
+      to: bin
 nsis:
   oneClick: false
   allowToChangeInstallationDirectory: true

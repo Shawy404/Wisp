@@ -37,8 +37,7 @@ function shortcutFor(input: Input): string | null {
   const key = input.key.toLowerCase()
   if (key === 'tab') return input.shift ? 'prev-tab' : 'next-tab'
   if (input.shift) return key === 'f' ? 'room-search' : null
-  if (key === 't') return 'new-tab'
-  if (key === 'k') return 'palette-toggle'
+  if (key === 't') return 'palette-toggle'
   if (key === 'l') return 'address'
   if (key === 'w') return 'close-tab'
   if (key === 'h') return 'history'

@@ -3,8 +3,7 @@ import { useApp, useT } from '@/store'
 import type { TKey } from '@shared/i18n'
 
 const ROWS: { combo: string; key: TKey }[] = [
-  { combo: 'Ctrl+T', key: 'shortcuts.newTab' },
-  { combo: 'Ctrl+K', key: 'shortcuts.palette' },
+  { combo: 'Ctrl+T', key: 'shortcuts.palette' },
   { combo: 'Ctrl+L', key: 'shortcuts.address' },
   { combo: 'Ctrl+W', key: 'shortcuts.closeTab' },
   { combo: 'Ctrl+Tab / Ctrl+Shift+Tab', key: 'shortcuts.cycleTabs' },

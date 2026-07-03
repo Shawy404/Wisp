@@ -1,6 +1,7 @@
 // Wisp — © Shawy404. All rights reserved.
 import { useState } from 'react'
 import type { SourceItem } from '@shared/types'
+import { highlightUrl } from '@shared/address'
 import { formatCitation, type CitationFormat } from '@shared/citation'
 import { useApp, useT } from '@/store'
 import type { TKey } from '@shared/i18n'
@@ -74,7 +75,8 @@ export default function SourceCard(props: {
               title={source.url ?? source.title}
               onClick={() => {
                 if (source.url) {
-                  newTab(source.url)
+                  // Clipped selections reopen with the section highlighted.
+                  newTab(highlightUrl(source.url, source.excerpt))
                   setOverlay('none')
                 }
               }}

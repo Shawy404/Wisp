@@ -70,6 +70,38 @@ export function registerVault(getWin: () => BrowserWindow | null): void {
   ipcMain.handle('vault:locked', () => !unlocked)
   ipcMain.handle('vault:unlock', () => authenticate())
 
+  // ---- Autofill: the web preload asks what we know about the current site. --
+  const hostMatch = (site: string, host: string): boolean => {
+    const norm = (h: string): string => h.replace(/^www\./, '').toLowerCase()
+    const a = norm(site)
+    const b = norm(host)
+    return a === b || a.endsWith(`.${b}`) || b.endsWith(`.${a}`)
+  }
+
+  // Username suggestions for the focused login field (never the secret).
+  ipcMain.handle('vault:query', (_e, host: string) => {
+    if (!safeStorage.isEncryptionAvailable()) return []
+    return loadEntries()
+      .filter((en) => hostMatch(en.site, String(host)))
+      .map((en) => ({ id: en.id, username: en.username }))
+  })
+
+  // Picking a suggestion decrypts — behind the polkit prompt on first use,
+  // and only ever for the site the credential was saved on.
+  ipcMain.handle('vault:fill', async (_e, id: string, host: string) => {
+    const entry = loadEntries().find((en) => en.id === id)
+    if (!entry || !hostMatch(entry.site, String(host))) return null
+    if (!(await authenticate())) return null
+    try {
+      return {
+        username: entry.username,
+        password: safeStorage.decryptString(Buffer.from(entry.secret, 'base64'))
+      }
+    } catch {
+      return null
+    }
+  })
+
   ipcMain.handle('vault:list', (): VaultEntryMeta[] => {
     if (!unlocked) return []
     return loadEntries()

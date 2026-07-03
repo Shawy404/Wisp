@@ -4,6 +4,7 @@ import cytoscape, { type Core, type ElementDefinition } from 'cytoscape'
 import type { AiEdgeSuggestion, MapData } from '@shared/types'
 import type { TKey } from '@shared/i18n'
 import { buildGraph, type Graph } from '@shared/graph'
+import { highlightUrl } from '@shared/address'
 import { THEMES } from '@shared/themes'
 import { invoke, useApp, useT } from '@/store'
 
@@ -448,7 +449,7 @@ export default function MapPanel(): React.JSX.Element {
             neighbors
           })
         } else if (src.url) {
-          app.newTab(src.url)
+          app.newTab(highlightUrl(src.url, src.excerpt))
           app.setOverlay('none')
         } else {
           setInfo({ title: src.title, typeLabel: src.kind, neighbors })
@@ -559,6 +560,9 @@ export default function MapPanel(): React.JSX.Element {
       } else if (e.ctrlKey && e.key.toLowerCase() === 'y') {
         e.preventDefault()
         void doRedo()
+      } else if (e.key.toLowerCase() === 'a' && (e.ctrlKey || e.shiftKey)) {
+        e.preventDefault()
+        cy.current?.nodes().select()
       } else if (e.key === 'Delete' || e.key === 'Backspace') {
         e.preventDefault()
         void deleteSelection()

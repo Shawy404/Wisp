@@ -13,6 +13,17 @@ export function webSearchUrl(engine: SearchEngineId | undefined, query: string):
   return `${SEARCH_ENGINE_URLS[engine ?? 'google']}${encodeURIComponent(query)}`
 }
 
+/**
+ * Open a clipped source with its section highlighted: Chromium text fragments
+ * (#:~:text=…) scroll to and mark the excerpt on the page.
+ */
+export function highlightUrl(url: string, excerpt?: string): string {
+  if (!excerpt) return url
+  const words = excerpt.trim().split(/\s+/).slice(0, 8).join(' ')
+  if (!words || url.includes('#')) return url
+  return `${url}#:~:text=${encodeURIComponent(words)}`
+}
+
 /** Decide whether address-bar input is a URL to visit or a search query. */
 export function resolveAddress(
   input: string

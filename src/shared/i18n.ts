@@ -68,7 +68,7 @@ const tr = {
   'sidebar.collapse': 'Kenar çubuğunu daralt',
 
   'tabs.title': 'Sekmeler',
-  'tabs.newTab': 'Yeni sekme (Ctrl+T)',
+  'tabs.newTab': 'Yeni sekme',
   'tabs.unpin': 'Sabiti kaldır',
   'tabs.newTabDefault': 'Yeni sekme',
   'tabs.pin': 'Sabitle',
@@ -76,7 +76,7 @@ const tr = {
 
   'viewport.emptyHint':
     'Adres çubuğuna bir URL yaz ya da bir şey ara — aradığın her şey bu odanın kaynaklarına kaydedilir.',
-  'viewport.shortcuts': 'Ctrl+T yeni sekme · Ctrl+L adres çubuğu · Ctrl+K komut paleti',
+  'viewport.shortcuts': 'Ctrl+T komut çubuğu · Ctrl+L adres çubuğu · Ctrl+F sayfada bul',
 
   'palette.openSearch': 'Arama şeridini aç',
   'palette.openSources': 'Kaynakları aç',
@@ -154,7 +154,7 @@ const tr = {
 
   'shortcuts.title': 'Klavye kısayolları',
   'shortcuts.newTab': 'Yeni sekme',
-  'shortcuts.palette': 'Komut çubuğu',
+  'shortcuts.palette': 'Komut çubuğu — yeni sekme, arama, komutlar',
   'shortcuts.address': 'Adres çubuğuna odaklan',
   'shortcuts.closeTab': 'Sekmeyi kapat',
   'shortcuts.cycleTabs': 'Sekmeler arasında dolaş',
@@ -214,7 +214,7 @@ const tr = {
     'Notlarda [[köşeli parantez]] ile bağ kur, ❋ haritasında her şey görselleşir. Çift tık açar, sürükleyip bırakmak yerleştirir; boş başlamamak için hazır şablonlar da var.',
   'onboard.keys.title': 'Kısayollar',
   'onboard.keys.body':
-    'Ctrl+T yeni sekme · Ctrl+K komut çubuğu · Ctrl+F sayfada bul · Ctrl+Shift+F odada ara. Tam liste için istediğin an "?" tuşuna bas.',
+    'Ctrl+T komut çubuğu (yeni sekme, arama, komutlar) · Ctrl+F sayfada bul · Ctrl+Shift+F odada ara. Tam liste için istediğin an "?" tuşuna bas.',
 
   'map.templates': 'Şablonlar',
   'map.templates.hint': 'Hazır bir şemayla başla — hepsi normal düğüm, istediğin gibi düzenle.',
@@ -290,7 +290,7 @@ const tr = {
   'map.mentionLinks.hint':
     'Bir not başka bir düğümün adını geçirdiğinde otomatik bağ kur (ör. "monosodium" yazan not, monosodium kavramına bağlanır)',
   'map.hint.interact':
-    'Tıkla: odakla · Çift tık: aç · Shift+tıkla: bağla · Shift+sürükle: çoklu seç · Sağ tık: menü',
+    'Tıkla: odakla · Çift tık: aç · Shift+tıkla: bağla · Shift+sürükle: seç · Ctrl+A: tümünü seç · Del: sil',
   'map.hint.shiftSecond': 'İkinci düğüme Shift+tıkla — bağ oluşsun.',
   'map.undo': 'Geri al (Ctrl+Z)',
   'map.redo': 'Yinele (Ctrl+Shift+Z)',
@@ -366,8 +366,8 @@ const tr = {
   'main.clip.selectionNoteLabel': 'Seçimi "{room}" odasına not olarak ekle',
   'main.clip.selectionNoteToast': 'Seçim not olarak kaydedildi',
   'main.clip.defaultNoteTitle': 'Alıntı',
-  'main.clip.partLabel': 'Seçimi sayfa klibine ekle ("{room}")',
-  'main.clip.partToast': 'Seçim sayfa klibine eklendi — aynı sayfadan parça eklemeye devam edebilirsin',
+  'main.clip.shotLabel': 'Seçimin görüntüsünü "{room}"na klipsle',
+  'main.clip.shotToast': 'Seçimin görüntüsü klipslendi — kaynağa tıklayınca sayfada vurgulanır',
 
   'main.video.noRoom': 'Aktif oda yok.',
   'main.video.needYtdlp': 'yt-dlp bulunamadı — video indirmek için sisteme kur (ör. pacman -S yt-dlp).',
@@ -474,7 +474,7 @@ const en: typeof tr = {
   'sidebar.collapse': 'Collapse sidebar',
 
   'tabs.title': 'Tabs',
-  'tabs.newTab': 'New tab (Ctrl+T)',
+  'tabs.newTab': 'New tab',
   'tabs.unpin': 'Unpin',
   'tabs.newTabDefault': 'New tab',
   'tabs.pin': 'Pin',
@@ -482,7 +482,7 @@ const en: typeof tr = {
 
   'viewport.emptyHint':
     'Type a URL in the address bar or search for something — everything you find is saved to this room.',
-  'viewport.shortcuts': 'Ctrl+T new tab · Ctrl+L address bar · Ctrl+K command palette',
+  'viewport.shortcuts': 'Ctrl+T command bar · Ctrl+L address bar · Ctrl+F find in page',
 
   'palette.openSearch': 'Open search',
   'palette.openSources': 'Open sources',
@@ -560,7 +560,7 @@ const en: typeof tr = {
 
   'shortcuts.title': 'Keyboard shortcuts',
   'shortcuts.newTab': 'New tab',
-  'shortcuts.palette': 'Command bar',
+  'shortcuts.palette': 'Command bar — new tab, search, commands',
   'shortcuts.address': 'Focus the address bar',
   'shortcuts.closeTab': 'Close tab',
   'shortcuts.cycleTabs': 'Cycle through tabs',
@@ -620,7 +620,7 @@ const en: typeof tr = {
     'Link notes with [[double brackets]]; the ❋ map visualizes everything. Double-click opens, drag-and-drop places — and ready-made templates mean you never start from a blank canvas.',
   'onboard.keys.title': 'Shortcuts',
   'onboard.keys.body':
-    'Ctrl+T new tab · Ctrl+K command bar · Ctrl+F find in page · Ctrl+Shift+F search the room. Press "?" anytime for the full list.',
+    'Ctrl+T command bar (new tab, search, commands) · Ctrl+F find in page · Ctrl+Shift+F search the room. Press "?" anytime for the full list.',
 
   'map.templates': 'Templates',
   'map.templates.hint': 'Start from a ready-made scheme — all plain nodes, edit freely.',
@@ -696,7 +696,7 @@ const en: typeof tr = {
   'map.mentionLinks.hint':
     'Auto-link when a note mentions another node\'s name (e.g. a note that says "monosodium" links to the monosodium concept)',
   'map.hint.interact':
-    'Click: focus · Double-click: open · Shift-click: link · Shift-drag: multi-select · Right-click: menu',
+    'Click: focus · Double-click: open · Shift-click: link · Shift-drag: select · Ctrl+A: select all · Del: delete',
   'map.hint.shiftSecond': 'Shift-click the second node to link them.',
   'map.undo': 'Undo (Ctrl+Z)',
   'map.redo': 'Redo (Ctrl+Shift+Z)',
@@ -772,8 +772,8 @@ const en: typeof tr = {
   'main.clip.selectionNoteLabel': 'Add selection to "{room}" as a note',
   'main.clip.selectionNoteToast': 'Selection saved as a note',
   'main.clip.defaultNoteTitle': 'Quote',
-  'main.clip.partLabel': 'Append selection to the page clip ("{room}")',
-  'main.clip.partToast': 'Selection appended to the page clip — keep adding parts from this page',
+  'main.clip.shotLabel': 'Clip a picture of the selection to "{room}"',
+  'main.clip.shotToast': 'Selection snapshot clipped — clicking the source highlights it on the page',
 
   'main.video.noRoom': 'No active room.',
   'main.video.needYtdlp': 'yt-dlp not found — install it to download videos (e.g. pacman -S yt-dlp).',
