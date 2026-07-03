@@ -168,6 +168,22 @@ export interface WispConfig {
   searchEngine?: SearchEngineId
   /** First-run tutorial completed (or skipped). */
   onboarded?: boolean
+  /** Which sidebar mini-widgets are visible (default: all). */
+  sidebarWidgets?: { music?: boolean; ram?: boolean }
+}
+
+/** What's playing in some tab, for the sidebar music widget. */
+export interface MediaState {
+  tabId: string
+  title: string
+  playing: boolean
+}
+
+/** Memory usage snapshot for the sidebar RAM widget (bytes). */
+export interface MemoryStats {
+  app: number
+  sysUsed: number
+  sysTotal: number
 }
 
 /** A password-vault entry as the renderer sees it — never with the secret. */

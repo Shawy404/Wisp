@@ -1,191 +1,114 @@
 <!-- Wisp - © Shawy404. All rights reserved. -->
 
+<div align="center">
+
+<img src="docs/media/icon.png" width="120" alt="Wisp icon" />
+
 # Wisp
 
-**v0.1.2-pre-alpha.** Early days, things will break, expect rough edges.
+**A browser built for research.** Rooms, clean search, notes and a concept map — all on your own disk.
 
-Wisp is a desktop browser for people who do research and are sick of it
-living in fifty tabs, a separate notes app, and a citation manager that
-never talks to any of it. Each topic gets its own room, and the tabs,
-notes, sources and concept map for that topic all live together and
-switch in and out as you move between rooms. Nothing leaves your disk
-unless you ask it to.
+`v0.1.2-pre-alpha` · Linux & Windows · [Download a build](../../releases) · Built by [Shawy404](https://github.com/Shawy404)
 
-The name is from *will-o'-the-wisp*, the ghost light that leads travelers
-through marshland. The Japanese folklore version is *kitsunebi* (狐火),
-"fox fire."
+<img src="docs/media/map.png" width="820" alt="Wisp concept map" />
 
-Built by Shawy404. © Shawy404, all rights reserved.
+</div>
 
-## What's new in 0.1.2
+---
 
-- **First-run tour** — pick your language, get a short skippable intro.
-- **Video clipping** — on a YouTube/Vimeo page, download the whole video or
-  just a time range (1:20–2:45) into the room. `yt-dlp` ships inside the
-  packaged builds, so nothing to install.
-- **Password vault** — app-wide, encrypted through the OS keychain, opened
-  with your system password. Submitting a login on any site offers to save
-  it; focusing a login field later suggests the saved account and fills it.
-- **Section clips** — right-click selected text to clip that section;
-  opening the source jumps back to the page with the section highlighted.
-- **Map overhaul** — boxed nodes, six ready-made templates, photo nodes
-  (drag an image file straight onto the canvas, resize from the menu),
-  double-click to open, rename anything, undo/redo, box-select with
-  shift+drag, per-edge line styles and labels, and auto-links when a note
-  mentions another node's name.
-- **Browser table stakes** — find in page (Ctrl+F), full-text room search
-  (Ctrl+Shift+F), a download manager, tab sleeping, real shortcuts that
-  work even while a page has focus (`?` shows the list), search result
-  pagination, and pages now see the browser as Wisp instead of Electron.
+## Why
+
+If you do research, your work is scattered: forty tabs you're scared to close, a notes app that doesn't know what those tabs are, and a citation tool that talks to neither. Wisp puts them in one place.
+
+Each topic you work on is a **room**. The tabs, sources, notes and concept map for that topic all live inside it and swap in and out as you move between rooms. Nothing leaves your machine unless you ask it to — everything is a plain file under `~/Wisp/`.
+
+The name is from *will-o'-the-wisp*, the ghost light that leads travelers through the marsh.
 
 ## What it does
 
-**Rooms.** Each research topic is a room with its own tabs, notes, sources
-and map. Switch rooms and your tabs swap out; close and reopen a room and
-everything's right where you left it. Rooms get their own folder on disk.
+**Rooms.** One room per topic. Switch rooms and your whole workspace — tabs, sources, notes, map — swaps with it. Close and reopen a room and it's all exactly where you left it.
 
-**Search.** One search bar hits Semantic Scholar, Crossref, arXiv,
-Wikipedia (Turkish and English), Openverse and DuckDuckGo at the same
-time, and figures out on its own whether you're asking something academic
-or general. Academic, wiki and image hits get saved into the room's
-sources automatically, so you're not copy-pasting citations by hand.
+**Search that isn't just Google.** One search bar hits Semantic Scholar, Crossref, arXiv, Wikipedia, Openverse and the web at once, sorts the results into Academic / Overview / Images / Web, and lets you save the ones you want into the room with a click — no copy-pasting citations. A Wisp/Web toggle sits right next to it when you'd rather just search the web.
 
-**Adblock.** The full filter set — ads, trackers, annoyances and cookie
-banners — with a toggle, per-site exceptions in settings, a blocked-request
-counter in the address bar, and the compiled engine cached on disk so
-launches (even offline ones) don't wait on a download.
+<img src="docs/media/sources.png" width="820" alt="Sources collected in a room" />
 
-**Privacy & security.** Web pages run in their own sandboxed, isolated
-session — their cookies and storage never touch the app shell. Permission
-prompts (camera, microphone, location, notifications) are denied outright,
-only http/https ever loads in a tab, and anything else gets handed to the
-OS only if it's a scheme worth trusting.
+**Notes and a concept map.** Notes are plain markdown (Obsidian-compatible), with `[[wikilinks]]`, inline images, and `![[src-id]]` to embed a source. The map is the same data as a graph: boxed nodes, photos for image sources, six ready-made templates to start from, undo/redo and version history, drag-to-link, editable edge labels, and auto-links when one note mentions another node by name.
 
-**Reader mode.** Strips a page down to just the article, Readability-style.
-One click saves it to the room.
+<img src="docs/media/notes.png" width="820" alt="Notes with wikilinks" />
 
-**Clipping.** Right-click a page, some selected text, or an image to save
-it into `clips/` and tie it back to your sources.
+**Clip anything.** Right-click a page, a text selection, or an image to save it into the room. Clip just a section and reopening it jumps back to the exact spot on the page, highlighted. On a YouTube page, clip the whole video or a time range — `yt-dlp` ships inside the app, nothing to install.
 
-**Notes.** CodeMirror 6 markdown, writing straight to `notes/*.md`
-(works fine with Obsidian too), `[[wikilink]]` navigation (ctrl-click to
-open or create the target), and `![[src-id]]` to embed a source right in
-a note.
+**A real browser underneath.** Find in page (`Ctrl+F`), full-text search across the room (`Ctrl+Shift+F`), a download manager, tab sleeping to save memory, an ad/tracker blocker, reader mode, per-site permission prompts, and keyboard shortcuts that work even while a page has focus (press `?` for the list).
 
-**Concept map.** One graph, three views of it. Boxed nodes with photos for
-image sources, ready-made templates to start from, undo/redo, box
-selection. Edges come from wikilinks (green), name mentions (auto, faint
-blue), tag-based suggestions (dashed, deterministic), manual links
-(shift-click two nodes) with per-edge styles and labels, or an on-demand
-AI pass that suggests connections (needs your own API key, only runs when
-you ask for it).
+**A password vault.** App-wide, encrypted through your OS keychain, unlocked with your system password. Log in somewhere and Wisp offers to save it; come back and it fills the form for you.
 
-**Research tools.** Copy BibTeX/APA/MLA off a source card, split view for
-reading a source next to your notes, and a command bar (ctrl-T, prefix
-with `?` to search).
+**Little comforts.** A per-room focus timer with adjustable length, sidebar widgets for the currently-playing tab and memory usage (with a one-click "sleep background tabs"), six themes with a custom accent, and a first-run tour in English or Turkish.
 
-**Everything else.** Six themes (Dark, Midnight, Forest, Plum, Light,
-Sepia) with a custom accent color on top, a web-dev mode (DevTools plus a
-JSON viewer for search responses), a focus timer, and profile labels.
+## Install
 
-## Shortcuts
+Grab a ready build from the [**Releases**](../../releases) page — an `AppImage` for Linux, an installer or portable `.exe` for Windows. No setup, no dependencies.
 
-| Shortcut | Action |
-| --- | --- |
-| Ctrl+T | Command bar — new tab, search, commands |
-| Ctrl+W | Close tab |
-| Ctrl+L | Address bar |
-| Ctrl+Tab / Ctrl+Shift+Tab | Cycle tabs |
-| Ctrl+1 … Ctrl+9 | Go to the Nth tab (9 = last) |
-| Ctrl+F | Find in page |
-| Ctrl+Shift+F | Full-text search across the room |
-| Ctrl+H | History |
-| `?` | Full shortcut list |
-| Shift-click (two nodes on the map) | Manual link |
-| Shift-drag / Ctrl+A (map) | Box-select / select all — Delete removes |
-| Ctrl+Z / Ctrl+Shift+Z (map) | Undo / redo |
-| Ctrl-click (a wikilink in a note) | Open or create the target note |
+### Or run it from source
 
-## Installing & running
-
-You need [Node.js](https://nodejs.org) 20+ (which includes npm) and git.
-The same three commands work on both Linux and Windows:
+You'll need [Node.js](https://nodejs.org) 20+ and git.
 
 ```bash
 git clone https://github.com/Shawy404/Wisp.git
 cd Wisp
-npm install    # pulls all dependencies + the Electron binary
-npm run dev    # starts Wisp in dev mode, hot reload
+npm install     # dependencies + the Electron binary
+npm run dev     # start Wisp, hot reload
 ```
 
-To build a real, installable app for yourself:
+Build your own installable app:
 
 ```bash
-npm run build:linux   # Linux: AppImage, lands in dist/
-npm run build:win     # Windows: installer + portable exe, lands in dist/
+npm run build:linux   # AppImage → dist/
+npm run build:win     # installer + portable exe → dist/
 ```
 
-The build step also downloads `yt-dlp` (for video clipping) and packages
-it inside the app, so end users never install anything by hand. No
-native/platform-specific bits otherwise — everything works straight off
-`npm install`. If npm can't reach GitHub to grab the Electron binary,
-point `ELECTRON_MIRROR` at a mirror before installing.
+The build downloads `yt-dlp` and bundles it, so the app you ship works out of the box. If npm can't reach GitHub for the Electron binary, set `ELECTRON_MIRROR` to a mirror first.
 
-```bash
-npm run typecheck   # TS type checking, no build needed
-```
+## Shortcuts
 
-## Architecture
+| Key | Action |
+| --- | --- |
+| `Ctrl+T` | Command bar — new tab, search, commands |
+| `Ctrl+L` | Focus the address bar |
+| `Ctrl+W` | Close tab |
+| `Ctrl+Tab` / `Ctrl+1…9` | Cycle / jump to tab |
+| `Ctrl+F` | Find in page |
+| `Ctrl+Shift+F` | Search the whole room |
+| `?` | All shortcuts |
 
-Electron + React + TypeScript + Tailwind v4, glued together with
-electron-vite. Cytoscape.js runs the concept map, CodeMirror 6 the notes,
-`@mozilla/readability` the reader mode. `@ghostery/adblocker-electron`
-handles blocking, `@anthropic-ai/sdk` powers the optional AI link
-suggestions.
+On the map: shift-click two nodes to link, shift-drag or `Ctrl+A` to select, `Delete` to remove, `Ctrl+Z` / `Ctrl+Shift+Z` to undo/redo.
 
-The main process owns windows and tabs (via `WebContentsView`), the
-adblocker, search aggregation (`net.fetch`), the filesystem and IPC. The
-renderer is UI only: `contextIsolation: true`, `nodeIntegration: false`,
-everything crosses through a preload bridge.
+## Under the hood
 
-Everything's local-first. Nothing goes anywhere except the optional AI
-link suggestions, and even that only sends node titles/tags, only when
-you ask for it. All data lives under `~/Wisp/` (or `%USERPROFILE%\Wisp`
-on Windows; override with `WISP_HOME` to move it):
+Electron + React + TypeScript + Tailwind, built with electron-vite. Cytoscape drives the map, CodeMirror the notes, `@mozilla/readability` the reader, `@ghostery/adblocker-electron` the blocking. The main process owns tabs (`WebContentsView`), search and the filesystem; the renderer is UI only, behind a preload bridge with `contextIsolation` on.
+
+Everything is local. The only thing that ever leaves your machine is the optional AI link suggestion, and only when you ask for it — and only node titles and tags. Your data lives here (override with `WISP_HOME`):
 
 ```
 ~/Wisp/
-  config.json                 # global settings (theme, adblock, API key, profile)
-  rooms/
-    <room>/
-      room.json               # room metadata + open tabs + active tab
-      notes/*.md               # notes (Obsidian-compatible markdown)
-      sources.json             # collected sources + metadata
-      map.json                 # concept nodes + persisted links
-      clips/                   # clipped images / cleaned pages (.md)
+  config.json              global settings
+  vault.json               passwords (encrypted via the OS keychain)
+  rooms/<room>/
+    room.json              metadata + open tabs
+    notes/*.md             notes (Obsidian-compatible)
+    sources.json           collected sources
+    map.json               concept nodes + links
+    map-history.json       map version snapshots
+    clips/                 clipped images / pages / video
 ```
 
-One graph feeds three surfaces: the source card in the sidebar, a
-`[[wikilink]]`/`![[src-id]]` in a note, and a node on the map are the
-same underlying object. `shared/graph.ts` derives the graph from each
-room's data, so editing one view updates the others.
+## Honest limitations
 
-## Known limitations
+- Pre-alpha. Things will break; the data format may still shift.
+- No Chrome extensions, no cloud sync, no mobile.
+- Video clipping needs `ffmpeg` on your system for trimmed ranges (whole-video downloads work without it).
+- Password autofill catches ordinary login forms; a few fully-JavaScript logins may slip past.
+- The "Web" search tab scrapes results, so it can come back empty if that source changes its markup (the other tabs are unaffected).
 
-- No real Chrome extension API.
-- Not aiming for full multi-process sandbox security, relies on Electron's
-  defaults plus contextIsolation; tab content is sandboxed.
-- No cloud sync, no mobile.
-- Web-dev mode is a global toggle for now (a per-room setting is reserved
-  in `room.json` but unused).
-- Multiple profiles are just a label right now; use separate `WISP_HOME`
-  paths if you actually need separate data directories.
-- The DuckDuckGo "Web" results are scraped HTML, so if DDG changes their
-  markup that tab can come back empty (other sources aren't affected).
+## License
 
-## Up next
-
-- Note preview (marked is already wired in, just needs a read-only render).
-- Per-room dev mode and per-room focus stats.
-- Persist `search:last` results to disk for cross-session search history.
-- Room export (markdown bundle + citation list).
+© Shawy404. All rights reserved.

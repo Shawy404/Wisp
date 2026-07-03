@@ -156,6 +156,26 @@ export function saveMap(id: string, map: MapData): void {
   writeJson(join(roomDir(id), 'map.json'), map)
 }
 
+/** Obsidian-Git-style safety net: past map states, restorable from the panel. */
+export interface MapSnapshot {
+  at: string
+  map: MapData
+}
+
+const MAP_HISTORY_CAP = 30
+
+export function loadMapHistory(id: string): MapSnapshot[] {
+  return readJson<{ snapshots: MapSnapshot[] }>(join(roomDir(id), 'map-history.json'), {
+    snapshots: []
+  }).snapshots
+}
+
+export function saveMapHistory(id: string, snapshots: MapSnapshot[]): void {
+  writeJson(join(roomDir(id), 'map-history.json'), {
+    snapshots: snapshots.slice(-MAP_HISTORY_CAP)
+  })
+}
+
 /** Browsing history, per room — the room is the research context. */
 const HISTORY_CAP = 3000
 

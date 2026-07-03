@@ -283,6 +283,10 @@ export default function MapPanel(): React.JSX.Element {
   const [renaming, setRenaming] = useState<Renaming | null>(null)
   const [edgeEdit, setEdgeEdit] = useState<{ x: number; y: number; edgeId: string; value: string } | null>(null)
   const [tplOpen, setTplOpen] = useState(false)
+  const [historyOpen, setHistoryOpen] = useState(false)
+  const [versions, setVersions] = useState<
+    { index: number; at: string; concepts: number; edges: number; included: number }[]
+  >([])
   const [info, setInfo] = useState<NodeInfo | null>(null)
   const [dropActive, setDropActive] = useState(false)
   const dragDepth = useRef(0)
@@ -534,6 +538,22 @@ export default function MapPanel(): React.JSX.Element {
     await invoke('map:redo', activeRoomId)
     await applyRoomData()
   }
+  const openHistory = async (): Promise<void> => {
+    if (!activeRoomId) return
+    if (historyOpen) {
+      setHistoryOpen(false)
+      return
+    }
+    setVersions(await invoke('map:history', activeRoomId))
+    setHistoryOpen(true)
+  }
+  const restoreVersion = async (index: number): Promise<void> => {
+    if (!activeRoomId) return
+    setHistoryOpen(false)
+    await invoke('map:restoreVersion', activeRoomId, index)
+    await applyRoomData()
+  }
+
   const deleteSelection = async (): Promise<void> => {
     const c = cy.current
     if (!c || !activeRoomId) return
@@ -811,7 +831,49 @@ export default function MapPanel(): React.JSX.Element {
           >
             ↷
           </button>
+          <button
+            onClick={() => void openHistory()}
+            className={`flex h-5 w-5 items-center justify-center rounded-full border text-[11px] ${
+              historyOpen
+                ? 'border-accent/50 text-accent'
+                : 'border-neutral-850 text-neutral-500 hover:border-neutral-600 hover:text-neutral-200'
+            }`}
+            data-tip={t('map.history')}
+            data-tip-pos="bottom"
+          >
+            ◷
+          </button>
         </div>
+
+        {/* Version history: durable snapshots of the map, one click to restore. */}
+        {historyOpen && (
+          <div className="absolute top-10 left-3 z-40 max-h-72 w-64 overflow-y-auto rounded-lg border border-neutral-700 bg-neutral-900 py-1 shadow-2xl shadow-black/50">
+            {versions.length === 0 && (
+              <div className="px-3 py-3 text-center text-[11px] text-neutral-600">
+                {t('map.history.empty')}
+              </div>
+            )}
+            {versions.map((v) => (
+              <button
+                key={v.index}
+                className="block w-full px-3 py-1.5 text-left hover:bg-neutral-800"
+                onClick={() => void restoreVersion(v.index)}
+              >
+                <div className="text-[11px] text-neutral-200">
+                  {new Date(v.at).toLocaleString(undefined, {
+                    day: '2-digit',
+                    month: '2-digit',
+                    hour: '2-digit',
+                    minute: '2-digit'
+                  })}
+                </div>
+                <div className="text-[10px] text-neutral-500">
+                  {t('map.history.meta', { concepts: v.concepts, edges: v.edges, included: v.included })}
+                </div>
+              </button>
+            ))}
+          </div>
+        )}
 
         <div className="pointer-events-none absolute right-3 bottom-3 flex flex-col items-end gap-1 text-[10px] text-neutral-600">
           <span>{t('map.hint.interact')}</span>

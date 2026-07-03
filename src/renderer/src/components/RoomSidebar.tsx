@@ -2,6 +2,7 @@
 import { useState } from 'react'
 import { useApp, useT, type Overlay } from '@/store'
 import VerticalTabs from './VerticalTabs'
+import SidebarWidgets from './SidebarWidgets'
 
 function RailButton(props: {
   title: string
@@ -160,6 +161,9 @@ export default function RoomSidebar(): React.JSX.Element {
 
       {/* Dikey sekmeler */}
       <VerticalTabs collapsed={collapsed} />
+
+      {/* Mini widget'lar: müzik + bellek (daraltılmış rayda gizli) */}
+      {!collapsed && <SidebarWidgets />}
 
       {/* Panel rayı + daraltma */}
       <div

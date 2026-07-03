@@ -94,6 +94,12 @@ export const useApp = create<AppState>((set, get) => ({
     window.wisp.on('room:updated', (roomId) => {
       if (roomId === get().activeRoomId) void get().refreshRoomData()
     })
+    // Screenshot tooling (WISP_SHOT): main asks for an overlay to be shown.
+    window.wisp.on('shot:overlay', (name) => {
+      const overlay = name as string
+      if (overlay === 'search-run') get().requestSearch('mycorrhizal networks')
+      else if (overlay && overlay !== 'none') get().setOverlay(overlay as Overlay)
+    })
     const boot = await invoke<{ config: WispConfig; rooms: RoomMeta[]; activeRoomId: string }>(
       'app:init'
     )

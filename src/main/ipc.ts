@@ -101,6 +101,34 @@ export function registerCoreIpc(ctx: WispContext): void {
 
   ipcMain.handle('adblock:stats', () => ({ blocked: getBlockedCount() }))
 
+  // ---- Sidebar widgets: what's playing, and how heavy the app is. ----
+  tabs.onMediaChange = () => {
+    if (!win.isDestroyed()) win.webContents.send('media:state', tabs.mediaState())
+  }
+  ipcMain.handle('media:state', () => tabs.mediaState())
+  ipcMain.handle('media:toggle', async () => {
+    const state = tabs.mediaState()
+    if (!state) return
+    const wc = tabs.getTab(state.tabId)?.view?.webContents
+    if (!wc) return
+    // Top-frame <audio>/<video> only — covers YouTube & friends.
+    const js = state.playing
+      ? 'document.querySelectorAll("audio,video").forEach(m => { if (!m.paused) m.pause() })'
+      : 'document.querySelectorAll("audio,video").forEach(m => { if (m.paused && m.currentTime > 0) m.play().catch(() => {}) })'
+    await wc.executeJavaScript(js, true).catch(() => {})
+    tabs.onMediaChange()
+  })
+  ipcMain.handle('media:focus', () => {
+    const state = tabs.mediaState()
+    if (state) tabs.activateTab(state.tabId)
+  })
+  ipcMain.handle('stats:memory', () => {
+    const appBytes = app.getAppMetrics().reduce((sum, m) => sum + m.memory.workingSetSize, 0) * 1024
+    const sys = process.getSystemMemoryInfo()
+    return { app: appBytes, sysUsed: (sys.total - sys.free) * 1024, sysTotal: sys.total * 1024 }
+  })
+  ipcMain.handle('tabs:freeMemory', () => tabs.sleepBackgroundNow())
+
   ipcMain.handle('viewport:bounds', (_e, b: { x: number; y: number; width: number; height: number }) => {
     tabs.setBounds({
       x: Math.round(b.x),

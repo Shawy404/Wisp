@@ -250,6 +250,7 @@ const tr = {
   'focus.start': 'Başlat',
   'focus.pause': 'Duraklat',
   'focus.reset': 'Sıfırla',
+  'focus.customMin': 'dk…',
   'focus.minutesRoom': '{minutes} dk · {room}',
   'focus.sessionDone': 'Odak seansı bitti 🎉',
   'focus.room': 'oda',
@@ -294,6 +295,9 @@ const tr = {
   'map.hint.shiftSecond': 'İkinci düğüme Shift+tıkla — bağ oluşsun.',
   'map.undo': 'Geri al (Ctrl+Z)',
   'map.redo': 'Yinele (Ctrl+Shift+Z)',
+  'map.history': 'Sürüm geçmişi — haritanın eski hallerine dön',
+  'map.history.empty': 'Henüz kayıtlı sürüm yok — harita değiştikçe otomatik birikir.',
+  'map.history.meta': '{concepts} kavram · {edges} bağ · {included} kaynak',
   'map.ctx.rename': 'Yeniden adlandır',
   'map.ctx.deleteSelected': 'Seçilenleri sil ({count})',
   'map.ctx.lineStyle': 'Çizgi stili',
@@ -406,7 +410,14 @@ const tr = {
 
   'main.zap.confirm': 'Bu öğe gizlensin mi?',
   'main.zap.hide': 'Gizle',
-  'main.zap.cancel': 'Vazgeç'
+  'main.zap.cancel': 'Vazgeç',
+
+  'widgets.music': 'Müzik',
+  'widgets.ram': 'Bellek',
+  'widgets.nothingPlaying': 'Şu an çalan yok',
+  'widgets.freeMemory': 'Arka plan sekmelerini uyut — RAM boşalt',
+  'widgets.slept': 'Arka plan sekmeleri uyutuldu',
+  'widgets.add': 'Widget ekle'
 }
 
 const en: typeof tr = {
@@ -657,6 +668,7 @@ const en: typeof tr = {
   'focus.start': 'Start',
   'focus.pause': 'Pause',
   'focus.reset': 'Reset',
+  'focus.customMin': 'min…',
   'focus.minutesRoom': '{minutes} min · {room}',
   'focus.sessionDone': 'Focus session done 🎉',
   'focus.room': 'room',
@@ -701,6 +713,9 @@ const en: typeof tr = {
   'map.hint.shiftSecond': 'Shift-click the second node to link them.',
   'map.undo': 'Undo (Ctrl+Z)',
   'map.redo': 'Redo (Ctrl+Shift+Z)',
+  'map.history': 'Version history — go back to older map states',
+  'map.history.empty': 'No versions yet — they accumulate as the map changes.',
+  'map.history.meta': '{concepts} concepts · {edges} links · {included} sources',
   'map.ctx.rename': 'Rename',
   'map.ctx.deleteSelected': 'Delete selected ({count})',
   'map.ctx.lineStyle': 'Line style',
@@ -813,7 +828,14 @@ const en: typeof tr = {
 
   'main.zap.confirm': 'Hide this element?',
   'main.zap.hide': 'Hide',
-  'main.zap.cancel': 'Cancel'
+  'main.zap.cancel': 'Cancel',
+
+  'widgets.music': 'Music',
+  'widgets.ram': 'Memory',
+  'widgets.nothingPlaying': 'Nothing playing',
+  'widgets.freeMemory': 'Sleep background tabs — free up RAM',
+  'widgets.slept': 'Background tabs put to sleep',
+  'widgets.add': 'Add widget'
 }
 
 export const dictionaries: Record<Lang, typeof tr> = { tr, en }

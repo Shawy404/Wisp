@@ -1,7 +1,7 @@
 // Wisp — © Shawy404. All rights reserved.
 import { join } from 'path'
 import { BrowserWindow, WebContentsView, type Input } from 'electron'
-import type { TabInfo } from '@shared/types'
+import type { MediaState, TabInfo } from '@shared/types'
 import { WEB_PARTITION, isSafeTabUrl, openExternalSafe } from './security'
 
 interface TabEntry {
@@ -69,6 +69,10 @@ export class TabManager {
     () => {}
   /** Hooks for attaching per-tab behaviour (context menus, zapper…) to new views. */
   viewHooks: ((view: WebContentsView, tabId: string) => void)[] = []
+  /** Fired when some tab starts/stops playing audio (sidebar music widget). */
+  onMediaChange: () => void = () => {}
+  /** The tab that most recently played audio — the widget's target. */
+  private lastMediaTab: string | null = null
 
   constructor(win: BrowserWindow) {
     this.win = win
@@ -222,6 +226,26 @@ export class TabManager {
     return this.currentRoom
   }
 
+  /** What's playing (or paused) in the most recent media tab, if any. */
+  mediaState(): MediaState | null {
+    // Prefer whatever is audible right now; fall back to the last media tab
+    // (paused media can be resumed from the widget).
+    for (const entry of this.tabs.values()) {
+      if (entry.view?.webContents.isCurrentlyAudible()) {
+        this.lastMediaTab = entry.id
+        return { tabId: entry.id, title: entry.title, playing: true }
+      }
+    }
+    const last = this.lastMediaTab ? this.tabs.get(this.lastMediaTab) : null
+    if (!last?.view) return null
+    return { tabId: last.id, title: last.title, playing: false }
+  }
+
+  /** Unload every background tab right now (the RAM widget's broom). */
+  sleepBackgroundNow(): number {
+    return this.sleepIdleTabs(true)
+  }
+
   state(): { roomId: string | null; tabs: TabInfo[]; activeTabId: string | null } {
     const roomId = this.currentRoom
     const ids = roomId ? (this.order.get(roomId) ?? []) : []
@@ -288,12 +312,13 @@ export class TabManager {
 
   /** Unload long-idle background tabs. The active tab of the current room —
    *  and anything playing audio — is never touched. */
-  private sleepIdleTabs(): void {
+  private sleepIdleTabs(force = false): number {
     const now = Date.now()
     const activeId = this.activeTabId()
+    let slept = 0
     for (const entry of this.tabs.values()) {
       if (!entry.view || entry.id === activeId) continue
-      if (now - entry.lastActiveAt < SLEEP_AFTER_MS) continue
+      if (!force && now - entry.lastActiveAt < SLEEP_AFTER_MS) continue
       const wc = entry.view.webContents
       if (wc.isCurrentlyAudible()) continue
       // Keep the freshest url/title before dropping the contents.
@@ -306,8 +331,10 @@ export class TabManager {
       }
       wc.close()
       entry.view = null
+      slept++
     }
-    this.broadcast()
+    if (slept > 0) this.broadcast()
+    return slept
   }
 
   private destroyTab(id: string): void {
@@ -377,6 +404,11 @@ export class TabManager {
     })
     wc.on('did-start-loading', () => this.broadcast())
     wc.on('did-stop-loading', () => this.broadcast())
+    wc.on('media-started-playing', () => {
+      this.lastMediaTab = entry.id
+      this.onMediaChange()
+    })
+    wc.on('media-paused', () => this.onMediaChange())
     wc.on('page-favicon-updated', (_e, favicons) => {
       entry.favicon = favicons[0]
       this.broadcast()

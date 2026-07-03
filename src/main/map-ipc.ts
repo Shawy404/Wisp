@@ -22,12 +22,44 @@ export function registerMapIpc(ctx: WispContext): void {
   const undoStacks = new Map<string, MapData[]>()
   const redoStacks = new Map<string, MapData[]>()
   const snapshot = (roomId: string): void => {
+    const currentJson = JSON.stringify(store.loadMap(roomId))
     const stack = undoStacks.get(roomId) ?? []
-    stack.push(JSON.parse(JSON.stringify(store.loadMap(roomId))) as MapData)
+    stack.push(JSON.parse(currentJson) as MapData)
     if (stack.length > 50) stack.shift()
     undoStacks.set(roomId, stack)
     redoStacks.set(roomId, [])
+    // Also keep a durable version on disk (the panel's history list) —
+    // skipping consecutive identical states keeps the file meaningful.
+    const history = store.loadMapHistory(roomId)
+    const last = history[history.length - 1]
+    if (!last || JSON.stringify(last.map) !== currentJson) {
+      history.push({ at: new Date().toISOString(), map: JSON.parse(currentJson) as MapData })
+      store.saveMapHistory(roomId, history)
+    }
   }
+
+  ipcMain.handle('map:history', (_e, roomId: string) =>
+    store
+      .loadMapHistory(roomId)
+      .map((s, index) => ({
+        index,
+        at: s.at,
+        concepts: s.map.concepts.length,
+        edges: s.map.edges.length,
+        included: s.map.included?.length ?? 0
+      }))
+      .reverse()
+  )
+
+  ipcMain.handle('map:restoreVersion', (_e, roomId: string, index: number) => {
+    const history = store.loadMapHistory(roomId)
+    const snap = history[index]
+    if (!snap) return null
+    snapshot(roomId) // current state stays reachable via undo/history
+    store.saveMap(roomId, JSON.parse(JSON.stringify(snap.map)) as MapData)
+    notify(roomId)
+    return snap.map
+  })
 
   ipcMain.handle('map:undo', (_e, roomId: string) => {
     const undo = undoStacks.get(roomId) ?? []

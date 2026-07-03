@@ -75,6 +75,20 @@ function createWindow(): void {
       .replace(/ wisp\/[\d.a-z-]+/i, '')
       .replace(/Electron\/[\d.]+/, `Wisp/${app.getVersion()}`)
   )
+  // Client hints are what most "which browser is this" checks read nowadays,
+  // and Chromium only advertises its own brands there. Rewrite the header so
+  // Wisp leads the brand list (Chromium stays for compatibility checks).
+  const chromeMajor = process.versions.chrome.split('.')[0]
+  const brandHeader =
+    `"Wisp";v="${app.getVersion().split('-')[0]}", ` +
+    `"Chromium";v="${chromeMajor}", "Not?A_Brand";v="99"`
+  ses.webRequest.onBeforeSendHeaders((details, callback) => {
+    const headers = details.requestHeaders
+    for (const key of Object.keys(headers)) {
+      if (key.toLowerCase() === 'sec-ch-ua') headers[key] = brandHeader
+    }
+    callback({ requestHeaders: headers })
+  })
 
   ctx = { win, tabs: new TabManager(win), config }
   registerCoreIpc(ctx)
@@ -124,6 +138,23 @@ if (!app.requestSingleInstanceLock()) {
     if (process.env.WISP_SMOKE) {
       console.log('WISP_READY')
       setTimeout(() => app.quit(), 2500)
+    }
+
+    // Dev tooling for README/store screenshots: WISP_SHOT="<overlay>:<file>"
+    // boots, tells the renderer to open an overlay, captures the shell as a
+    // PNG and quits. Not reachable in normal use.
+    if (process.env.WISP_SHOT) {
+      const [overlay, file] = process.env.WISP_SHOT.split(/:(.+)/)
+      const wait = overlay === 'search-run' ? 12_000 : 3500
+      setTimeout(() => {
+        ctx?.win.webContents.send('shot:overlay', overlay)
+        setTimeout(() => {
+          void ctx?.win.webContents.capturePage().then((image) => {
+            require('fs').writeFileSync(file, image.toPNG())
+            app.quit()
+          })
+        }, wait)
+      }, 3000)
     }
 
     app.on('activate', () => {
