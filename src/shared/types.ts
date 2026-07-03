@@ -10,6 +10,8 @@ export interface TabInfo {
   canGoBack: boolean
   canGoForward: boolean
   isLoading: boolean
+  /** True while the tab's web contents are unloaded to save memory. */
+  asleep?: boolean
 }
 
 /** A pinned tab: a saved place that survives closing the tab itself. */
@@ -36,7 +38,7 @@ export interface RoomMeta {
 }
 
 export type NodeType = 'source' | 'note' | 'concept'
-export type SourceKind = 'academic' | 'wiki' | 'image' | 'web' | 'clip'
+export type SourceKind = 'academic' | 'wiki' | 'image' | 'web' | 'clip' | 'video'
 
 /** A collected source (rooms/<slug>/sources.json). Also a node in the graph. */
 export interface SourceItem {
@@ -78,7 +80,7 @@ export interface NoteInfo {
   updatedAt: string
 }
 
-export type EdgeKind = 'manual' | 'wikilink' | 'tag' | 'ai-suggested'
+export type EdgeKind = 'manual' | 'wikilink' | 'tag' | 'ai-suggested' | 'mention'
 
 export interface MapEdge {
   id: string
@@ -175,4 +177,26 @@ export interface AiEdgeSuggestion {
   from: string
   to: string
   label: string
+}
+
+/** One entry in the download manager (file downloads and yt-dlp video clips). */
+export interface DownloadInfo {
+  id: string
+  filename: string
+  path: string
+  url: string
+  state: 'progress' | 'done' | 'failed' | 'canceled'
+  received: number
+  /** 0 when the size is unknown (e.g. streamed video clips). */
+  total: number
+  startedAt: string
+}
+
+/** A hit from the room-wide full-text search. */
+export interface RoomSearchHit {
+  type: 'note' | 'source' | 'clip' | 'history'
+  id: string
+  title: string
+  snippet: string
+  url?: string
 }

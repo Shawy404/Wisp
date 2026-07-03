@@ -13,6 +13,9 @@ export type Overlay =
   | 'reader'
   | 'split'
   | 'history'
+  | 'downloads'
+  | 'roomsearch'
+  | 'shortcuts'
 
 interface TabsState {
   roomId: string | null

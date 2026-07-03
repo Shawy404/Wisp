@@ -10,6 +10,9 @@ import ReaderPanel from './components/ReaderPanel'
 import NotesPanel from './components/NotesPanel'
 import MapPanel from './components/MapPanel'
 import HistoryPanel from './components/HistoryPanel'
+import DownloadsPanel from './components/DownloadsPanel'
+import RoomSearchPanel from './components/RoomSearchPanel'
+import ShortcutsPanel from './components/ShortcutsPanel'
 import SplitView from './components/SplitView'
 import CommandPalette from './components/CommandPalette'
 import SettingsPanel from './components/SettingsPanel'
@@ -79,6 +82,9 @@ export default function App(): React.JSX.Element {
           {overlay === 'notes' && <NotesPanel />}
           {overlay === 'map' && <MapPanel />}
           {overlay === 'history' && <HistoryPanel />}
+          {overlay === 'downloads' && <DownloadsPanel />}
+          {overlay === 'roomsearch' && <RoomSearchPanel />}
+          {overlay === 'shortcuts' && <ShortcutsPanel />}
           {overlay === 'split' && <SplitView />}
           {overlay === 'settings' && <SettingsPanel />}
           <CommandPalette />

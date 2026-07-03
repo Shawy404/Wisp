@@ -1,6 +1,7 @@
 // Wisp — © Shawy404. All rights reserved.
 import { useEffect, useRef, useState } from 'react'
 import type { SearchResults, SourceItem } from '@shared/types'
+import { webSearchUrl } from '@shared/address'
 import { invoke, useApp, useT } from '@/store'
 import type { TKey } from '@shared/i18n'
 import SourceCard from './SourceCard'
@@ -25,6 +26,8 @@ export default function SearchPanel(): React.JSX.Element {
   const [tab, setTab] = useState<ResultTab>('academic')
   const [showJson, setShowJson] = useState(false)
   const [page, setPage] = useState(0)
+  // Where the query goes: Wisp's research aggregator, or the plain web engine.
+  const [mode, setMode] = useState<'wisp' | 'web'>('wisp')
   const inputRef = useRef<HTMLInputElement>(null)
   const listRef = useRef<HTMLDivElement>(null)
   // Guards the "restore last results" effect from clobbering a fresh search.
@@ -32,6 +35,12 @@ export default function SearchPanel(): React.JSX.Element {
 
   const run = async (q: string): Promise<void> => {
     if (!q.trim()) return
+    if (mode === 'web') {
+      const { newTab, setOverlay, config } = useApp.getState()
+      newTab(webSearchUrl(config?.searchEngine, q.trim()))
+      setOverlay('none')
+      return
+    }
     searchedRef.current = true
     setLoading(true)
     try {
@@ -133,6 +142,26 @@ export default function SearchPanel(): React.JSX.Element {
           >
             {loading ? t('search.searching') : t('search.button')}
           </button>
+          {/* Which engine answers: Wisp's research search or the plain web. */}
+          <div
+            className="flex h-10 shrink-0 overflow-hidden rounded-lg border border-neutral-800"
+            data-tip={t('search.mode.hint')}
+            data-tip-pos="bottom"
+          >
+            {(['wisp', 'web'] as const).map((m) => (
+              <button
+                key={m}
+                onClick={() => setMode(m)}
+                className={`px-3 text-xs font-medium ${
+                  mode === m
+                    ? 'bg-neutral-800 text-accent'
+                    : 'bg-neutral-900 text-neutral-500 hover:text-neutral-300'
+                }`}
+              >
+                {t(m === 'wisp' ? 'search.mode.wisp' : 'search.mode.web')}
+              </button>
+            ))}
+          </div>
         </div>
 
         {results && (

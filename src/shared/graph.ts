@@ -33,8 +33,22 @@ export interface GraphOptions {
    * from guessed keyword overlap, so you don't get connections you never made.
    */
   tagLinks?: boolean
+  /**
+   * Auto-link nodes when one *names* another: a note whose text mentions
+   * "monosodium" links to the monosodium concept/note without any [[...]].
+   * On by default — these are real references, just not marked up.
+   */
+  mentionLinks?: boolean
   /** Node ids the user has hidden from the map (persisted per room). */
   hidden?: Set<string>
+}
+
+const escapeRegExp = (s: string): string => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+
+/** Whole-word (unicode-aware) containment: "monosodium" in "…monosodium is…". */
+function mentions(haystackLower: string, labelLower: string): boolean {
+  const re = new RegExp(`(^|[^\\p{L}\\p{N}])${escapeRegExp(labelLower)}($|[^\\p{L}\\p{N}])`, 'u')
+  return re.test(haystackLower)
 }
 
 /**
@@ -81,8 +95,11 @@ export function buildGraph(data: RoomData, opts: GraphOptions = {}): Graph {
   const edgeKeys = new Set<string>()
   const pushEdge = (from: string, to: string, kind: MapEdge['kind'], label?: string): void => {
     if (from === to || !nodeIds.has(from) || !nodeIds.has(to)) return
-    // Undirected de-dupe for tag/manual; keep direction for wikilink/ai.
-    const key = kind === 'tag' ? [from, to].sort().join('|') + '|tag' : `${from}|${to}|${kind}`
+    // Undirected de-dupe for tag/mention; keep direction for wikilink/ai.
+    const key =
+      kind === 'tag' || kind === 'mention'
+        ? [from, to].sort().join('|') + `|${kind}`
+        : `${from}|${to}|${kind}`
     if (edgeKeys.has(key)) return
     edgeKeys.add(key)
     edges.push({ id: `e-${edges.length}-${kind}`, from, to, kind, label })
@@ -102,6 +119,35 @@ export function buildGraph(data: RoomData, opts: GraphOptions = {}): Graph {
 
   // 2. Persisted manual + AI edges from map.json (explicit user connections).
   for (const e of data.map.edges) pushEdge(e.from, e.to, e.kind, e.label)
+
+  // 2b. Name mentions: a note whose text contains another node's title links
+  //     to it automatically (concepts and notes; plus concepts named in source
+  //     titles). Pairs already joined by a wikilink are skipped.
+  if (opts.mentionLinks !== false) {
+    const alreadyLinked = (a: string, b: string): boolean =>
+      edgeKeys.has(`${a}|${b}|wikilink`) || edgeKeys.has(`${b}|${a}|wikilink`)
+    const targets = nodes
+      .filter((n) => n.type === 'concept' || n.type === 'note')
+      .map((n) => ({ id: n.id, label: n.label.toLowerCase().trim() }))
+      .filter((t) => t.label.length >= 3)
+    for (const n of data.notes) {
+      const from = noteNodeId(n.id)
+      if (!nodeIds.has(from)) continue
+      const hay = `${n.title}\n${n.body}`.toLowerCase()
+      for (const target of targets) {
+        if (target.id === from || alreadyLinked(from, target.id)) continue
+        if (mentions(hay, target.label)) pushEdge(from, target.id, 'mention')
+      }
+    }
+    const concepts = targets.filter((t) => t.id.startsWith('concept:'))
+    for (const s of data.sources) {
+      if (!nodeIds.has(s.id)) continue
+      const hay = s.title.toLowerCase()
+      for (const target of concepts) {
+        if (mentions(hay, target.label)) pushEdge(s.id, target.id, 'mention')
+      }
+    }
+  }
 
   // 3. Optional tag-similarity edges — only when the user turns them on, and
   //    even then kept conservative: each shared tag scores by specificity

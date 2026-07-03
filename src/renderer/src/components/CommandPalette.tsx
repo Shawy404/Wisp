@@ -19,27 +19,29 @@ export default function CommandPalette(): React.JSX.Element | null {
   const [index, setIndex] = useState(0)
   const inputRef = useRef<HTMLInputElement>(null)
 
+  // Ctrl+T/Ctrl+K arrive as events from shortcuts.ts (they work even while a
+  // web page has focus); Escape is handled here directly.
   useEffect(() => {
     const handler = (e: KeyboardEvent): void => {
-      if (e.ctrlKey && e.key.toLowerCase() === 'k') {
-        e.preventDefault()
-        setOpen((v) => !v)
-        setQuery('')
-        setIndex(0)
-      }
       if (e.key === 'Escape') setOpen(false)
     }
-    // Sidebar "+" ve Ctrl+T buraya düşer: yeni sekme akışı komut çubuğundan.
     const openBar = (): void => {
       setOpen(true)
       setQuery('')
       setIndex(0)
     }
+    const toggleBar = (): void => {
+      setOpen((v) => !v)
+      setQuery('')
+      setIndex(0)
+    }
     window.addEventListener('keydown', handler)
     window.addEventListener('wisp:open-palette', openBar)
+    window.addEventListener('wisp:toggle-palette', toggleBar)
     return () => {
       window.removeEventListener('keydown', handler)
       window.removeEventListener('wisp:open-palette', openBar)
+      window.removeEventListener('wisp:toggle-palette', toggleBar)
     }
   }, [])
 
@@ -65,6 +67,9 @@ export default function CommandPalette(): React.JSX.Element | null {
       { id: 'notes', label: t('palette.openNotes'), hint: t('palette.hint.panel'), run: go('notes') },
       { id: 'map', label: t('palette.openMap'), hint: t('palette.hint.panel'), run: go('map') },
       { id: 'history', label: t('palette.openHistory'), hint: t('palette.hint.panel'), run: go('history') },
+      { id: 'downloads', label: t('palette.openDownloads'), hint: t('palette.hint.panel'), run: go('downloads') },
+      { id: 'roomsearch', label: t('palette.openRoomSearch'), hint: t('palette.hint.panel'), run: go('roomsearch') },
+      { id: 'shortcuts', label: t('palette.openShortcuts'), hint: t('palette.hint.panel'), run: go('shortcuts') },
       { id: 'settings', label: t('palette.openSettings'), hint: t('palette.hint.panel'), run: go('settings') },
       {
         id: 'newtab',

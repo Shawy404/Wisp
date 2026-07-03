@@ -1,5 +1,5 @@
 // Wisp — © Shawy404. All rights reserved.
-import { BrowserWindow, WebContentsView } from 'electron'
+import { BrowserWindow, WebContentsView, type Input } from 'electron'
 import type { TabInfo } from '@shared/types'
 import { WEB_PARTITION, isSafeTabUrl, openExternalSafe } from './security'
 
@@ -9,7 +9,9 @@ interface TabEntry {
   url: string
   title: string
   favicon?: string
-  view: WebContentsView
+  /** null while the tab sleeps — recreated (and reloaded) on activation. */
+  view: WebContentsView | null
+  lastActiveAt: number
 }
 
 interface Bounds {
@@ -21,11 +23,35 @@ interface Bounds {
 
 let nextTabId = 1
 
+/** Background tabs unload after this long to free memory; waking reloads them. */
+const SLEEP_AFTER_MS = 20 * 60 * 1000
+const SLEEP_CHECK_MS = 60 * 1000
+
+/**
+ * App shortcuts that must work even while a web page has key focus. The page
+ * never sees these; they're forwarded to the shell renderer as names.
+ */
+function shortcutFor(input: Input): string | null {
+  if (input.type !== 'keyDown' || !input.control || input.alt || input.meta) return null
+  const key = input.key.toLowerCase()
+  if (key === 'tab') return input.shift ? 'prev-tab' : 'next-tab'
+  if (input.shift) return key === 'f' ? 'room-search' : null
+  if (key === 't') return 'palette'
+  if (key === 'k') return 'palette-toggle'
+  if (key === 'l') return 'address'
+  if (key === 'w') return 'close-tab'
+  if (key === 'h') return 'history'
+  if (key === 'f') return 'find'
+  if (key === '/') return 'shortcuts'
+  if (/^[1-9]$/.test(key)) return `tab-${key}`
+  return null
+}
+
 /**
  * Owns every WebContentsView. Each room has its own ordered tab list; only the
  * active room's active tab is attached to the window. Switching rooms swaps
  * which set of tabs is live — inactive rooms keep their views in memory so a
- * switch back is instant.
+ * switch back is instant (until the sleep timer unloads long-idle ones).
  */
 export class TabManager {
   private win: BrowserWindow
@@ -46,6 +72,8 @@ export class TabManager {
 
   constructor(win: BrowserWindow) {
     this.win = win
+    const timer = setInterval(() => this.sleepIdleTabs(), SLEEP_CHECK_MS)
+    win.once('closed', () => clearInterval(timer))
   }
 
   /** Switch the window to a room, restoring persisted tabs on first visit. */
@@ -76,30 +104,15 @@ export class TabManager {
 
   openTab(roomId: string, url: string, activate = true, silent = false): string {
     const id = `tab-${nextTabId++}`
-    // Pages live in their own persisted partition, isolated from the UI session.
-    const view = new WebContentsView({
-      webPreferences: {
-        contextIsolation: true,
-        nodeIntegration: false,
-        sandbox: true,
-        partition: WEB_PARTITION
-      }
-    })
-    const entry: TabEntry = { id, roomId, url, title: url, view }
-    // Match the rounded corners of the renderer's viewport card.
-    if (typeof view.setBorderRadius === 'function') view.setBorderRadius(12)
+    const entry: TabEntry = { id, roomId, url, title: url, view: null, lastActiveAt: Date.now() }
     this.tabs.set(id, entry)
+    this.createView(entry)
     if (!this.order.has(roomId)) {
       this.order.set(roomId, [])
       this.active.set(roomId, null)
       this.loadedRooms.add(roomId)
     }
     this.order.get(roomId)!.push(id)
-    this.wireEvents(entry)
-    for (const hook of this.viewHooks) hook(view, id)
-    if (url && url !== 'about:blank' && isSafeTabUrl(url)) {
-      view.webContents.loadURL(url).catch(() => {})
-    }
     if (activate) this.activateTab(id)
     if (!silent) {
       this.broadcast()
@@ -149,21 +162,31 @@ export class TabManager {
 
   navigate(id: string, url: string): void {
     if (!isSafeTabUrl(url)) return
-    this.tabs.get(id)?.view.webContents.loadURL(url).catch(() => {})
+    const entry = this.tabs.get(id)
+    if (!entry) return
+    entry.url = url
+    this.wake(entry)
+    entry.view?.webContents.loadURL(url).catch(() => {})
   }
 
   goBack(id: string): void {
-    const wc = this.tabs.get(id)?.view.webContents
+    const wc = this.tabs.get(id)?.view?.webContents
     if (wc?.navigationHistory.canGoBack()) wc.navigationHistory.goBack()
   }
 
   goForward(id: string): void {
-    const wc = this.tabs.get(id)?.view.webContents
+    const wc = this.tabs.get(id)?.view?.webContents
     if (wc?.navigationHistory.canGoForward()) wc.navigationHistory.goForward()
   }
 
   reload(id: string): void {
-    this.tabs.get(id)?.view.webContents.reload()
+    const entry = this.tabs.get(id)
+    if (!entry) return
+    if (!entry.view) {
+      this.wake(entry)
+      return
+    }
+    entry.view.webContents.reload()
   }
 
   setBounds(bounds: Bounds): void {
@@ -190,7 +213,7 @@ export class TabManager {
     return id ? (this.tabs.get(id)?.view ?? null) : null
   }
 
-  getTab(id: string): { url: string; title: string; view: WebContentsView } | null {
+  getTab(id: string): { url: string; title: string; view: WebContentsView | null } | null {
     const e = this.tabs.get(id)
     return e ? { url: e.url, title: e.title, view: e.view } : null
   }
@@ -211,9 +234,10 @@ export class TabManager {
         url: e.url,
         title: e.title,
         favicon: e.favicon,
-        canGoBack: e.view.webContents.navigationHistory.canGoBack(),
-        canGoForward: e.view.webContents.navigationHistory.canGoForward(),
-        isLoading: e.view.webContents.isLoading()
+        canGoBack: e.view?.webContents.navigationHistory.canGoBack() ?? false,
+        canGoForward: e.view?.webContents.navigationHistory.canGoForward() ?? false,
+        isLoading: e.view?.webContents.isLoading() ?? false,
+        asleep: e.view === null
       }))
     return { roomId, tabs, activeTabId: roomId ? (this.active.get(roomId) ?? null) : null }
   }
@@ -233,15 +257,68 @@ export class TabManager {
     this.onPersist(roomId, urls, activeIndex)
   }
 
+  /** Build (or rebuild, after sleep) the native view for a tab entry. */
+  private createView(entry: TabEntry): void {
+    // Pages live in their own persisted partition, isolated from the UI session.
+    const view = new WebContentsView({
+      webPreferences: {
+        contextIsolation: true,
+        nodeIntegration: false,
+        sandbox: true,
+        partition: WEB_PARTITION
+      }
+    })
+    // Match the rounded corners of the renderer's viewport card.
+    if (typeof view.setBorderRadius === 'function') view.setBorderRadius(12)
+    entry.view = view
+    this.wireEvents(entry)
+    for (const hook of this.viewHooks) hook(view, entry.id)
+    if (entry.url && entry.url !== 'about:blank' && isSafeTabUrl(entry.url)) {
+      view.webContents.loadURL(entry.url).catch(() => {})
+    }
+  }
+
+  private wake(entry: TabEntry): void {
+    if (entry.view) return
+    this.createView(entry)
+    this.broadcast()
+  }
+
+  /** Unload long-idle background tabs. The active tab of the current room —
+   *  and anything playing audio — is never touched. */
+  private sleepIdleTabs(): void {
+    const now = Date.now()
+    const activeId = this.activeTabId()
+    for (const entry of this.tabs.values()) {
+      if (!entry.view || entry.id === activeId) continue
+      if (now - entry.lastActiveAt < SLEEP_AFTER_MS) continue
+      const wc = entry.view.webContents
+      if (wc.isCurrentlyAudible()) continue
+      // Keep the freshest url/title before dropping the contents.
+      entry.url = wc.getURL() || entry.url
+      entry.title = wc.getTitle() || entry.title
+      try {
+        this.win.contentView.removeChildView(entry.view)
+      } catch {
+        /* not attached */
+      }
+      wc.close()
+      entry.view = null
+    }
+    this.broadcast()
+  }
+
   private destroyTab(id: string): void {
     const entry = this.tabs.get(id)
     if (!entry) return
-    try {
-      this.win.contentView.removeChildView(entry.view)
-    } catch {
-      /* not attached */
+    if (entry.view) {
+      try {
+        this.win.contentView.removeChildView(entry.view)
+      } catch {
+        /* not attached */
+      }
+      entry.view.webContents.close()
     }
-    entry.view.webContents.close()
     this.tabs.delete(id)
     const ids = this.order.get(entry.roomId)
     if (ids) ids.splice(ids.indexOf(id), 1)
@@ -259,15 +336,19 @@ export class TabManager {
   }
 
   private attachActive(): void {
-    const view = this.activeView()
-    if (!view) return
-    this.win.contentView.addChildView(view)
-    view.setBounds(this.bounds)
-    view.setVisible(this.visible)
+    const id = this.activeTabId()
+    const entry = id ? this.tabs.get(id) : null
+    if (!entry) return
+    entry.lastActiveAt = Date.now()
+    if (!entry.view) this.wake(entry)
+    if (!entry.view) return
+    this.win.contentView.addChildView(entry.view)
+    entry.view.setBounds(this.bounds)
+    entry.view.setVisible(this.visible)
   }
 
   private wireEvents(entry: TabEntry): void {
-    const wc = entry.view.webContents
+    const wc = entry.view!.webContents
     const sync = (): void => {
       entry.url = wc.getURL() || entry.url
       entry.title = wc.getTitle() || entry.title
@@ -298,6 +379,14 @@ export class TabManager {
       entry.favicon = favicons[0]
       this.broadcast()
       visit()
+    })
+    // App shortcuts fire even while the page has key focus.
+    wc.on('before-input-event', (event, input) => {
+      const name = shortcutFor(input)
+      if (name) {
+        event.preventDefault()
+        if (!this.win.isDestroyed()) this.win.webContents.send('shortcut', name)
+      }
     })
     wc.setWindowOpenHandler(({ url }) => {
       if (isSafeTabUrl(url)) this.openTab(entry.roomId, url, true)

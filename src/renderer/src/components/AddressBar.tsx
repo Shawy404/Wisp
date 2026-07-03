@@ -64,6 +64,98 @@ function ShieldBadge(): React.JSX.Element | null {
   )
 }
 
+const VIDEO_URL_RE = /(youtube\.com\/(watch|shorts)|youtu\.be\/|vimeo\.com\/\d)/i
+
+/**
+ * Shows on video pages: downloads the whole video — or just a time range —
+ * into the room's clips via yt-dlp. Progress lands in the downloads panel.
+ */
+function VideoClipButton({ url }: { url?: string }): React.JSX.Element | null {
+  const t = useT()
+  const [open, setOpen] = useState(false)
+  const [start, setStart] = useState('')
+  const [end, setEnd] = useState('')
+  const [busy, setBusy] = useState(false)
+
+  // The dialog floats over the page area — hide the native view meanwhile.
+  useEffect(() => {
+    if (open) void invoke('viewport:visible', false)
+    else void invoke('viewport:visible', useApp.getState().overlay === 'none')
+  }, [open])
+
+  if (!url || !VIDEO_URL_RE.test(url)) return null
+
+  const startDownload = async (): Promise<void> => {
+    setBusy(true)
+    const res = await invoke<{ error?: string }>(
+      'video:clip',
+      url,
+      start.trim() || undefined,
+      end.trim() || undefined
+    )
+    setBusy(false)
+    if (res.error) {
+      window.dispatchEvent(new CustomEvent('wisp:toast-local', { detail: res.error }))
+      return
+    }
+    setOpen(false)
+    setStart('')
+    setEnd('')
+  }
+
+  return (
+    <>
+      <NavButton title={t('video.button')} onClick={() => setOpen(true)}>
+        <svg width="12" height="12" viewBox="0 0 12 12">
+          <rect x="0.8" y="2" width="7.4" height="8" rx="1.2" fill="none" stroke="currentColor" strokeWidth="1.1" />
+          <path d="M8.2 5 L11.2 3.2 V10.8 L8.2 9" fill="none" stroke="currentColor" strokeWidth="1.1" strokeLinejoin="round" />
+          <path d="M3.4 4.6 L6 6 L3.4 7.4 Z" fill="currentColor" />
+        </svg>
+      </NavButton>
+      {open && (
+        <div
+          className="fixed inset-0 z-50 flex items-start justify-center bg-black/40 pt-28"
+          onClick={() => setOpen(false)}
+        >
+          <div
+            className="w-96 rounded-xl border border-neutral-700 bg-neutral-900 p-4 shadow-2xl"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="mb-1 text-sm font-medium text-neutral-100">{t('video.title')}</div>
+            <div className="mb-3 text-[11px] text-neutral-500">{t('video.hint')}</div>
+            <div className="mb-3 flex items-center gap-2">
+              <input
+                autoFocus
+                value={start}
+                onChange={(e) => setStart(e.target.value)}
+                placeholder={t('video.start')}
+                className="h-8 w-1/2 rounded-md border border-neutral-800 bg-neutral-950 px-2 text-xs text-neutral-100 outline-none placeholder:text-neutral-600 focus:border-accent/60"
+                spellCheck={false}
+              />
+              <span className="text-neutral-600">–</span>
+              <input
+                value={end}
+                onChange={(e) => setEnd(e.target.value)}
+                placeholder={t('video.end')}
+                onKeyDown={(e) => e.key === 'Enter' && void startDownload()}
+                className="h-8 w-1/2 rounded-md border border-neutral-800 bg-neutral-950 px-2 text-xs text-neutral-100 outline-none placeholder:text-neutral-600 focus:border-accent/60"
+                spellCheck={false}
+              />
+            </div>
+            <button
+              className="h-8 w-full rounded-md bg-accent/15 text-xs font-medium text-accent hover:bg-accent/25 disabled:opacity-40"
+              disabled={busy}
+              onClick={() => void startDownload()}
+            >
+              {t('video.download')}
+            </button>
+          </div>
+        </div>
+      )}
+    </>
+  )
+}
+
 export default function AddressBar(): React.JSX.Element {
   const tabs = useApp((s) => s.tabs)
   const activeTabId = useApp((s) => s.activeTabId)
@@ -78,31 +170,14 @@ export default function AddressBar(): React.JSX.Element {
     if (!focused) setValue(activeTab?.url === 'about:blank' ? '' : (activeTab?.url ?? ''))
   }, [activeTab?.url, activeTabId, focused])
 
+  // Shortcuts live in shortcuts.ts; Ctrl+L arrives here as a focus event.
   useEffect(() => {
-    const handler = (e: KeyboardEvent): void => {
-      if (e.ctrlKey && e.key.toLowerCase() === 'l') {
-        e.preventDefault()
-        inputRef.current?.focus()
-        inputRef.current?.select()
-      }
-      if (e.ctrlKey && e.key.toLowerCase() === 't') {
-        e.preventDefault()
-        // Yeni sekme akışı komut çubuğundan: yaz, Enter'la aç ya da ara.
-        window.dispatchEvent(new CustomEvent('wisp:open-palette'))
-      }
-      if (e.ctrlKey && e.key.toLowerCase() === 'w') {
-        e.preventDefault()
-        const { activeTabId, closeTab } = useApp.getState()
-        if (activeTabId) closeTab(activeTabId)
-      }
-      if (e.ctrlKey && e.key.toLowerCase() === 'h') {
-        e.preventDefault()
-        const { overlay, setOverlay } = useApp.getState()
-        setOverlay(overlay === 'history' ? 'none' : 'history')
-      }
+    const focus = (): void => {
+      inputRef.current?.focus()
+      inputRef.current?.select()
     }
-    window.addEventListener('keydown', handler)
-    return () => window.removeEventListener('keydown', handler)
+    window.addEventListener('wisp:focus-address', focus)
+    return () => window.removeEventListener('wisp:focus-address', focus)
   }, [])
 
   const submit = (): void => {
@@ -198,6 +273,7 @@ export default function AddressBar(): React.JSX.Element {
           />
         </svg>
       </NavButton>
+      <VideoClipButton url={activeTab?.url} />
       <NavButton
         title={t('address.reader')}
         disabled={!activeTab || activeTab.url === 'about:blank'}

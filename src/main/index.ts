@@ -11,6 +11,9 @@ import { registerNotesIpc } from './notes-ipc'
 import { registerMapIpc } from './map-ipc'
 import { registerZapper } from './zapper'
 import { registerTooltip } from './tooltip'
+import { registerDownloads } from './downloads'
+import { registerFind } from './find'
+import { registerVideo } from './video'
 import { registerBackground } from './background'
 import { registerHistory } from './history'
 import { initAdblock } from './adblock'
@@ -62,6 +65,16 @@ function createWindow(): void {
     return { action: 'deny' }
   })
 
+  // Sites should see a browser called Wisp, not "Electron/43": swap the
+  // Electron token for Wisp and drop the lowercase package-name token.
+  const ses = webSession()
+  ses.setUserAgent(
+    ses
+      .getUserAgent()
+      .replace(/ wisp\/[\d.a-z-]+/i, '')
+      .replace(/Electron\/[\d.]+/, `Wisp/${app.getVersion()}`)
+  )
+
   ctx = { win, tabs: new TabManager(win), config }
   registerCoreIpc(ctx)
   registerSearchIpc(ctx)
@@ -71,6 +84,9 @@ function createWindow(): void {
   registerMapIpc(ctx)
   registerZapper(ctx)
   registerTooltip(ctx)
+  registerDownloads(ctx)
+  registerFind(ctx)
+  registerVideo(ctx)
   registerBackground(ctx)
   registerHistory(ctx)
   void initAdblock(ctx.config)

@@ -133,6 +133,36 @@ export function registerClip(ctx: WispContext): void {
             toast(t('main.clip.selectionNoteToast'))
           }
         })
+        // Build a clip source out of just the useful parts of a page: each
+        // selection appends to the same per-page clip file, so you collect
+        // exactly the sections that matter instead of the whole page.
+        template.push({
+          label: t('main.clip.partLabel', { room: roomName }),
+          click: () => {
+            const excerpt = params.selectionText.trim()
+            const clipName = `${stableId(pageUrl)}.md`
+            const file = join(store.clipsDir(roomId), clipName)
+            fs.mkdirSync(store.clipsDir(roomId), { recursive: true })
+            if (!fs.existsSync(file)) {
+              fs.writeFileSync(file, `# ${pageTitle || pageUrl}\n\n> ${pageUrl}\n`)
+            }
+            fs.appendFileSync(file, `\n${excerpt}\n`)
+            const source: SourceItem = {
+              id: `src-${stableId(pageUrl)}`,
+              kind: 'clip',
+              title: pageTitle || pageUrl,
+              url: pageUrl,
+              excerpt,
+              clipFile: clipName,
+              tags: extractKeywords(excerpt, 5).map(tagSlug),
+              addedAt: new Date().toISOString(),
+              origin: 'clip'
+            }
+            addSources(roomId, [source])
+            notify(roomId)
+            toast(t('main.clip.partToast'))
+          }
+        })
       }
 
       if (params.mediaType === 'image' && params.srcURL) {

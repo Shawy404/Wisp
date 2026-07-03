@@ -82,6 +82,7 @@ function cyStyle(c: MapColors): cytoscape.StylesheetJson {
       }
     },
     { selector: 'edge.tag', style: { opacity: 0.35, 'line-dash-pattern': [3, 5] } },
+    { selector: 'edge.mention', style: { 'line-color': '#8ab4f8', opacity: 0.5, 'line-dash-pattern': [2, 6] } },
     { selector: 'edge.wikilink', style: { 'line-color': '#7dd3a8', opacity: 0.85 } },
     { selector: 'edge.manual', style: { 'line-color': '#a1a1aa', width: 1.8 } },
     {
@@ -229,6 +230,7 @@ export default function MapPanel(): React.JSX.Element {
     concept: true
   })
   const [showTagLinks, setShowTagLinks] = useState(false)
+  const [showMentionLinks, setShowMentionLinks] = useState(true)
   const [ctx, setCtx] = useState<CtxMenu | null>(null)
   const [renaming, setRenaming] = useState<Renaming | null>(null)
   const [info, setInfo] = useState<NodeInfo | null>(null)
@@ -268,9 +270,9 @@ export default function MapPanel(): React.JSX.Element {
     () =>
       buildGraph(
         { meta: {} as never, sources, notes, map },
-        { tagLinks: showTagLinks, hidden: new Set(map.hidden ?? []) }
+        { tagLinks: showTagLinks, mentionLinks: showMentionLinks, hidden: new Set(map.hidden ?? []) }
       ),
-    [sources, notes, map, showTagLinks]
+    [sources, notes, map, showTagLinks, showMentionLinks]
   )
   const graph = useMemo(() => {
     const nodes = fullGraph.nodes.filter((n) => showTypes[n.type])
@@ -637,6 +639,18 @@ export default function MapPanel(): React.JSX.Element {
             data-tip-pos="bottom"
           >
             {t('map.tagLinks')}
+          </button>
+          <button
+            onClick={() => setShowMentionLinks((v) => !v)}
+            className={`rounded-full border px-2 py-0.5 text-[10px] transition ${
+              showMentionLinks
+                ? 'border-accent/50 bg-accent/15 text-accent'
+                : 'border-neutral-850 text-neutral-600'
+            }`}
+            data-tip={t('map.mentionLinks.hint')}
+            data-tip-pos="bottom"
+          >
+            {t('map.mentionLinks')}
           </button>
         </div>
 

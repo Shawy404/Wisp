@@ -13,6 +13,7 @@ const FILTERS: { key: Filter; labelKey: TKey }[] = [
   { key: 'wiki', labelKey: 'sources.filter.wiki' },
   { key: 'image', labelKey: 'sources.filter.image' },
   { key: 'clip', labelKey: 'sources.filter.clip' },
+  { key: 'video', labelKey: 'sources.filter.video' },
   { key: 'web', labelKey: 'sources.filter.web' }
 ]
 

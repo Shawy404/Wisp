@@ -28,7 +28,7 @@ export async function extractReadable(
   tabId: string
 ): Promise<{ article: ExtractedArticle | null; url: string; title: string } | null> {
   const tab = ctx.tabs.getTab(tabId)
-  if (!tab) return null
+  if (!tab?.view) return null
   const wc = tab.view.webContents
   const readabilitySrc = fs.readFileSync(
     require.resolve('@mozilla/readability/Readability.js'),
