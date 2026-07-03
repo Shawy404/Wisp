@@ -192,6 +192,9 @@ export default function RoomSidebar(): React.JSX.Element {
         >
           ⇣
         </RailButton>
+        <RailButton title={t('sidebar.vault')} active={overlay === 'vault'} onClick={() => toggle('vault')}>
+          ⚿
+        </RailButton>
         <RailButton title={t('sidebar.settings')} active={overlay === 'settings'} onClick={() => toggle('settings')}>
           ⚙
         </RailButton>

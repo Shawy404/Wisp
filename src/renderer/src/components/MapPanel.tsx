@@ -2,6 +2,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import cytoscape, { type Core, type ElementDefinition } from 'cytoscape'
 import type { AiEdgeSuggestion, MapData } from '@shared/types'
+import type { TKey } from '@shared/i18n'
 import { buildGraph, type Graph } from '@shared/graph'
 import { THEMES } from '@shared/themes'
 import { invoke, useApp, useT } from '@/store'
@@ -18,60 +19,74 @@ interface MapColors {
   labelOutline: string
   edge: string
   edgeLabel: string
+  nodeBg: string
 }
 
 function mapColors(themeId: string): MapColors {
   const light = THEMES.find((t) => t.id === themeId)?.light ?? false
   return light
-    ? { label: '#3f3d38', labelOutline: 'rgba(250,249,246,0.85)', edge: '#c4bfb2', edgeLabel: '#8a8578' }
-    : { label: '#d4d4d4', labelOutline: 'rgba(14,14,18,0.85)', edge: '#3f3f46', edgeLabel: '#8b8b93' }
+    ? {
+        label: '#3f3d38',
+        labelOutline: 'rgba(250,249,246,0.85)',
+        edge: '#c4bfb2',
+        edgeLabel: '#8a8578',
+        nodeBg: '#f2f0ea'
+      }
+    : {
+        label: '#d4d4d4',
+        labelOutline: 'rgba(14,14,18,0.85)',
+        edge: '#3f3f46',
+        edgeLabel: '#8b8b93',
+        nodeBg: '#17171b'
+      }
 }
 
 function cyStyle(c: MapColors): cytoscape.StylesheetJson {
   return [
+    // Nodes are labeled boxes — dark pill with a type-colored border, like a
+    // proper diagram, instead of dots with captions hanging underneath.
     {
       selector: 'node',
       style: {
+        shape: 'round-rectangle',
         label: 'data(label)',
         color: c.label,
         'font-size': '10px',
         'text-wrap': 'wrap',
-        'text-max-width': '110px',
-        'text-valign': 'bottom',
-        'text-margin-y': 5,
-        'text-outline-width': 2,
-        'text-outline-color': c.labelOutline,
-        // Well-connected nodes read as more important.
-        width: (el: cytoscape.NodeSingular) => 14 + Math.min(el.degree(false), 8) * 2,
-        height: (el: cytoscape.NodeSingular) => 14 + Math.min(el.degree(false), 8) * 2,
-        'background-color': (el: cytoscape.NodeSingular) => TYPE_COLOR[el.data('type')] ?? '#888',
-        'border-width': 0
+        'text-max-width': '130px',
+        'text-valign': 'center',
+        'text-halign': 'center',
+        width: 'label',
+        height: 16,
+        padding: '8px',
+        'background-color': c.nodeBg,
+        'background-opacity': 1,
+        'border-width': 1.4,
+        'border-color': (el: cytoscape.NodeSingular) =>
+          (el.data('color') as string) || TYPE_COLOR[el.data('type')] || '#888'
       }
     },
-    { selector: 'node.concept', style: { shape: 'diamond' } },
-    { selector: 'node.source', style: { shape: 'round-rectangle' } },
     // Image sources with a loaded picture show the photo itself as the node.
     {
       selector: 'node.image',
       style: {
-        shape: 'round-rectangle',
-        width: 46,
-        height: 46,
+        width: 52,
+        height: 52,
         'background-image': 'data(img)',
         'background-fit': 'cover',
-        'background-color': '#1f1f23',
-        'border-width': 1,
-        'border-color': c.edge
+        'text-valign': 'bottom',
+        'text-margin-y': 6,
+        'text-outline-width': 2,
+        'text-outline-color': c.labelOutline,
+        padding: '0px'
       }
     },
-    // Links are quiet dashes — no arrowheads. Kind is told by color, not shape.
+    // Strong (deliberate) links are solid, derived ones dashed — no arrowheads.
     {
       selector: 'edge',
       style: {
-        width: 1.4,
+        width: 1.3,
         'line-color': c.edge,
-        'line-style': 'dashed',
-        'line-dash-pattern': [7, 5],
         'curve-style': 'straight',
         label: 'data(label)',
         'font-size': '8px',
@@ -81,17 +96,23 @@ function cyStyle(c: MapColors): cytoscape.StylesheetJson {
         'text-rotation': 'autorotate'
       }
     },
-    { selector: 'edge.tag', style: { opacity: 0.35, 'line-dash-pattern': [3, 5] } },
-    { selector: 'edge.mention', style: { 'line-color': '#8ab4f8', opacity: 0.5, 'line-dash-pattern': [2, 6] } },
-    { selector: 'edge.wikilink', style: { 'line-color': '#7dd3a8', opacity: 0.85 } },
-    { selector: 'edge.manual', style: { 'line-color': '#a1a1aa', width: 1.8 } },
+    { selector: 'edge.manual', style: { 'line-color': '#a1a1aa', width: 1.6 } },
+    { selector: 'edge.wikilink', style: { 'line-color': '#7dd3a8', opacity: 0.9 } },
+    {
+      selector: 'edge.tag',
+      style: { 'line-style': 'dashed', 'line-dash-pattern': [3, 5], opacity: 0.35 }
+    },
+    {
+      selector: 'edge.mention',
+      style: { 'line-style': 'dashed', 'line-dash-pattern': [2, 6], 'line-color': '#8ab4f8', opacity: 0.5 }
+    },
     {
       selector: 'edge.ai-suggested',
-      style: { 'line-color': '#f8b48a', 'line-dash-pattern': [2, 4], width: 1.6 }
+      style: { 'line-style': 'dashed', 'line-dash-pattern': [2, 4], 'line-color': '#f8b48a', width: 1.5 }
     },
     {
       selector: 'node.hovered',
-      style: { 'z-index': 99, 'font-size': '12px', 'text-outline-width': 3, color: c.label }
+      style: { 'z-index': 99, 'font-size': '11px', 'border-width': 2 }
     },
     // Focus mode: everything outside the clicked node's neighbourhood dims.
     { selector: '.faded', style: { opacity: 0.12 } },
@@ -164,6 +185,7 @@ function toElements(
         label: n.label.length > 28 ? n.label.slice(0, 27) + '…' : n.label,
         fullLabel: n.label,
         type: n.type,
+        ...(n.color ? { color: n.color } : {}),
         ...(img ? { img } : {})
       },
       position: positions[n.id] ? { ...positions[n.id] } : undefined,
@@ -886,6 +908,38 @@ export default function MapPanel(): React.JSX.Element {
                 </div>
               </>
             )}
+          </div>
+
+          {/* Ready-made schemas: one click drops a positioned starter skeleton. */}
+          <div className="mb-3">
+            <div className="mb-1.5 text-[10px] tracking-wide text-neutral-500 uppercase">
+              {t('map.templates')}
+            </div>
+            <div className="mb-1.5 text-[10px] text-neutral-600">{t('map.templates.hint')}</div>
+            <div className="grid grid-cols-2 gap-1">
+              {(
+                [
+                  ['central', '✳'],
+                  ['relational', '⇄'],
+                  ['timeline', '⇥'],
+                  ['hierarchy', '⌥'],
+                  ['brainstorm', '☁'],
+                  ['project', '⚑']
+                ] as const
+              ).map(([tpl, glyph]) => (
+                <button
+                  key={tpl}
+                  className="flex items-center gap-1.5 rounded-md border border-neutral-800 bg-neutral-900/60 px-2 py-1.5 text-left text-[10px] text-neutral-400 hover:border-neutral-600 hover:text-neutral-200"
+                  onClick={() =>
+                    activeRoomId &&
+                    void invoke('map:applyTemplate', activeRoomId, tpl).then(applyRoomData)
+                  }
+                >
+                  <span className="text-neutral-500">{glyph}</span>
+                  <span className="min-w-0 flex-1 leading-tight">{t(`map.template.${tpl}` as TKey)}</span>
+                </button>
+              ))}
+            </div>
           </div>
 
           <div>

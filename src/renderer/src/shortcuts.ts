@@ -24,7 +24,7 @@ function nameFromEvent(e: KeyboardEvent): string | null {
     const key = e.key.toLowerCase()
     if (key === 'tab') return e.shiftKey ? 'prev-tab' : 'next-tab'
     if (e.shiftKey) return key === 'f' ? 'room-search' : null
-    if (key === 't') return 'palette'
+    if (key === 't') return 'new-tab'
     if (key === 'k') return 'palette-toggle'
     if (key === 'l') return 'address'
     if (key === 'w') return 'close-tab'
@@ -47,8 +47,12 @@ function run(name: string): void {
     app.setOverlay(app.overlay === o ? 'none' : o)
 
   switch (name) {
-    case 'palette':
-      window.dispatchEvent(new CustomEvent('wisp:open-palette'))
+    // Ctrl+T behaves like every other browser: blank tab, cursor in the
+    // address bar. The command palette is Ctrl+K's job.
+    case 'new-tab':
+      app.newTab()
+      app.setOverlay('none')
+      window.dispatchEvent(new CustomEvent('wisp:focus-address'))
       return
     case 'palette-toggle':
       window.dispatchEvent(new CustomEvent('wisp:toggle-palette'))

@@ -14,6 +14,7 @@ import { registerTooltip } from './tooltip'
 import { registerDownloads } from './downloads'
 import { registerFind } from './find'
 import { registerVideo } from './video'
+import { registerVault } from './vault'
 import { registerBackground } from './background'
 import { registerHistory } from './history'
 import { initAdblock } from './adblock'
@@ -87,6 +88,7 @@ function createWindow(): void {
   registerDownloads(ctx)
   registerFind(ctx)
   registerVideo(ctx)
+  registerVault()
   registerBackground(ctx)
   registerHistory(ctx)
   void initAdblock(ctx.config)

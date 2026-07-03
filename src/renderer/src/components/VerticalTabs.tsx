@@ -80,7 +80,10 @@ export default function VerticalTabs({ collapsed }: { collapsed: boolean }): Rea
         )}
         <button
           className="flex h-5 w-5 items-center justify-center rounded text-neutral-500 hover:bg-neutral-800 hover:text-neutral-200"
-          onClick={() => window.dispatchEvent(new CustomEvent('wisp:open-palette'))}
+          onClick={() => {
+            newTab()
+            window.dispatchEvent(new CustomEvent('wisp:focus-address'))
+          }}
           data-tip={t('tabs.newTab')}
         >
           +

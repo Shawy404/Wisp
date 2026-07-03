@@ -13,6 +13,8 @@ import HistoryPanel from './components/HistoryPanel'
 import DownloadsPanel from './components/DownloadsPanel'
 import RoomSearchPanel from './components/RoomSearchPanel'
 import ShortcutsPanel from './components/ShortcutsPanel'
+import VaultPanel from './components/VaultPanel'
+import Onboarding from './components/Onboarding'
 import SplitView from './components/SplitView'
 import CommandPalette from './components/CommandPalette'
 import SettingsPanel from './components/SettingsPanel'
@@ -85,6 +87,7 @@ export default function App(): React.JSX.Element {
           {overlay === 'downloads' && <DownloadsPanel />}
           {overlay === 'roomsearch' && <RoomSearchPanel />}
           {overlay === 'shortcuts' && <ShortcutsPanel />}
+          {overlay === 'vault' && <VaultPanel />}
           {overlay === 'split' && <SplitView />}
           {overlay === 'settings' && <SettingsPanel />}
           <CommandPalette />
@@ -92,6 +95,8 @@ export default function App(): React.JSX.Element {
         </Viewport>
       </div>
       </div>
+      {/* First run: language + a short skippable tour, above everything. */}
+      {config && !config.onboarded && <Onboarding />}
     </div>
   )
 }

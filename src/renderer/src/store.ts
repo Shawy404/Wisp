@@ -16,6 +16,7 @@ export type Overlay =
   | 'downloads'
   | 'roomsearch'
   | 'shortcuts'
+  | 'vault'
 
 interface TabsState {
   roomId: string | null

@@ -95,6 +95,8 @@ export interface ConceptNode {
   id: string
   title: string
   tags: string[]
+  /** Border/accent color on the map (templates assign varied colors). */
+  color?: string
 }
 
 export interface MapData {
@@ -158,6 +160,16 @@ export interface WispConfig {
   windowTransparent?: boolean
   /** Engine used for address-bar web searches. */
   searchEngine?: SearchEngineId
+  /** First-run tutorial completed (or skipped). */
+  onboarded?: boolean
+}
+
+/** A password-vault entry as the renderer sees it — never with the secret. */
+export interface VaultEntryMeta {
+  id: string
+  site: string
+  username: string
+  updatedAt: string
 }
 
 /** Search results returned by the main-process search aggregator. */

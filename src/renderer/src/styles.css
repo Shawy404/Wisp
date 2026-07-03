@@ -157,6 +157,94 @@ html.wisp-translucent .wisp-chrome {
  * the main process, which draws the bubble above everything.
  */
 
+/*
+ * Search loader: a little wisp with eyes drifting side to side, ghost dots
+ * trailing behind it. Purely decorative — shows while all sources are queried.
+ */
+.wisp-loader {
+  position: relative;
+  width: 180px;
+  height: 56px;
+}
+.wisp-orb,
+.wisp-trail {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  animation: wisp-drift 3s ease-in-out infinite alternate;
+}
+.wisp-orb {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  width: 30px;
+  height: 30px;
+  margin: -15px 0 0 -15px;
+  border-radius: 50% 50% 45% 45%;
+  background: radial-gradient(circle at 35% 30%, var(--wisp-accent), color-mix(in srgb, var(--wisp-accent) 55%, #000));
+  box-shadow: 0 0 18px color-mix(in srgb, var(--wisp-accent) 55%, transparent);
+}
+.wisp-eye {
+  width: 4px;
+  height: 6px;
+  border-radius: 999px;
+  background: rgb(10 10 14 / 0.85);
+  animation: wisp-blink 3.4s infinite;
+}
+.wisp-trail {
+  width: 8px;
+  height: 8px;
+  margin: -4px 0 0 -4px;
+  border-radius: 50%;
+  background: var(--wisp-accent);
+  opacity: 0.35;
+}
+.wisp-trail:nth-child(1) {
+  animation-delay: -0.18s;
+  opacity: 0.3;
+}
+.wisp-trail:nth-child(2) {
+  animation-delay: -0.36s;
+  width: 6px;
+  height: 6px;
+  opacity: 0.2;
+}
+.wisp-trail:nth-child(3) {
+  animation-delay: -0.54s;
+  width: 4px;
+  height: 4px;
+  opacity: 0.12;
+}
+@keyframes wisp-drift {
+  0% {
+    transform: translateX(-70px) translateY(0) scale(1, 1);
+  }
+  30% {
+    transform: translateX(-25px) translateY(-12px) scale(1.06, 0.94);
+  }
+  55% {
+    transform: translateX(15px) translateY(8px) scale(0.97, 1.03);
+  }
+  80% {
+    transform: translateX(45px) translateY(-6px) scale(1.03, 0.97);
+  }
+  100% {
+    transform: translateX(70px) translateY(0) scale(1, 1);
+  }
+}
+@keyframes wisp-blink {
+  0%,
+  91%,
+  100% {
+    transform: scaleY(1);
+  }
+  94%,
+  97% {
+    transform: scaleY(0.12);
+  }
+}
+
 ::-webkit-scrollbar {
   width: 8px;
   height: 8px;

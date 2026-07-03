@@ -70,6 +70,7 @@ export default function CommandPalette(): React.JSX.Element | null {
       { id: 'downloads', label: t('palette.openDownloads'), hint: t('palette.hint.panel'), run: go('downloads') },
       { id: 'roomsearch', label: t('palette.openRoomSearch'), hint: t('palette.hint.panel'), run: go('roomsearch') },
       { id: 'shortcuts', label: t('palette.openShortcuts'), hint: t('palette.hint.panel'), run: go('shortcuts') },
+      { id: 'vault', label: t('palette.openVault'), hint: t('palette.hint.panel'), run: go('vault') },
       { id: 'settings', label: t('palette.openSettings'), hint: t('palette.hint.panel'), run: go('settings') },
       {
         id: 'newtab',

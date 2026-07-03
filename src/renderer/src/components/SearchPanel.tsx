@@ -8,6 +8,30 @@ import SourceCard from './SourceCard'
 
 type ResultTab = 'academic' | 'wiki' | 'images' | 'web'
 
+/** The wisp drifts around while every source is queried — nicer than a spinner. */
+function WispLoader(): React.JSX.Element {
+  const t = useT()
+  const [msg, setMsg] = useState(0)
+  useEffect(() => {
+    const id = setInterval(() => setMsg((m) => (m + 1) % 5), 1700)
+    return () => clearInterval(id)
+  }, [])
+  return (
+    <div className="flex flex-col items-center gap-5 pt-16">
+      <div className="wisp-loader">
+        <span className="wisp-trail" />
+        <span className="wisp-trail" />
+        <span className="wisp-trail" />
+        <div className="wisp-orb">
+          <span className="wisp-eye" />
+          <span className="wisp-eye" />
+        </div>
+      </div>
+      <div className="text-xs text-neutral-500">{t(`search.fun.${msg + 1}` as TKey)}</div>
+    </div>
+  )
+}
+
 const TAB_KEY: Record<ResultTab, TKey> = {
   academic: 'search.tab.academic',
   wiki: 'search.tab.wiki',
@@ -207,12 +231,7 @@ export default function SearchPanel(): React.JSX.Element {
             {JSON.stringify(results, null, 2)}
           </pre>
         )}
-        {loading && (
-          <div className="flex items-center gap-2 pt-8 text-sm text-neutral-500">
-            <span className="h-4 w-4 animate-spin rounded-full border border-neutral-600 border-t-accent" />
-            {t('search.loading')}
-          </div>
-        )}
+        {loading && <WispLoader />}
         {!loading && !results && (
           <div className="pt-10 text-center text-sm text-neutral-600">{t('search.empty')}</div>
         )}

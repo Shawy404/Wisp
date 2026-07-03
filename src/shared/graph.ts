@@ -8,6 +8,8 @@ export interface GraphNode {
   type: 'source' | 'note' | 'concept'
   kind?: SourceItem['kind']
   tags: string[]
+  /** Custom accent color (concepts created from templates). */
+  color?: string
 }
 
 export interface GraphEdge {
@@ -88,7 +90,7 @@ export function buildGraph(data: RoomData, opts: GraphOptions = {}): Graph {
     add({ id: noteNodeId(n.id), label: n.title, type: 'note', tags: n.tags })
   }
   for (const c of data.map.concepts) {
-    add({ id: conceptNodeId(c.id), label: c.title, type: 'concept', tags: c.tags })
+    add({ id: conceptNodeId(c.id), label: c.title, type: 'concept', tags: c.tags, color: c.color })
   }
 
   const edges: GraphEdge[] = []

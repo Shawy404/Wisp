@@ -8,6 +8,7 @@ import { translate } from '@shared/i18n'
 import * as store from './storage'
 import { addSources } from './search-ipc'
 import { saveClipImage } from './notes-ipc'
+import { buildTemplate, type TemplateId } from './map-templates'
 import type { WispContext } from './ipc'
 
 export function registerMapIpc(ctx: WispContext): void {
@@ -112,6 +113,18 @@ export function registerMapIpc(ctx: WispContext): void {
     store.saveMap(roomId, map)
     notify(roomId)
     return concept
+  })
+
+  // Insert a ready-made skeleton (starter concepts + edges, pre-positioned).
+  ipcMain.handle('map:applyTemplate', (_e, roomId: string, templateId: TemplateId) => {
+    const tpl = buildTemplate(templateId, ctx.config.language ?? 'tr')
+    const map = store.loadMap(roomId)
+    map.concepts.push(...tpl.concepts)
+    map.edges.push(...tpl.edges)
+    map.positions = { ...(map.positions ?? {}), ...tpl.positions }
+    store.saveMap(roomId, map)
+    notify(roomId)
+    return map
   })
 
   ipcMain.handle('map:renameConcept', (_e, roomId: string, conceptId: string, title: string) => {
