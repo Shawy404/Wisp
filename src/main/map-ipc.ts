@@ -1,7 +1,7 @@
 // Wisp — © Shawy404. All rights reserved.
 import { ipcMain, net } from 'electron'
 import Anthropic from '@anthropic-ai/sdk'
-import type { AiEdgeSuggestion, ConceptNode, MapEdge, SourceItem } from '@shared/types'
+import type { AiEdgeSuggestion, ConceptNode, EdgeStyle, MapData, MapEdge, SourceItem } from '@shared/types'
 import { buildGraph } from '@shared/graph'
 import { stableId } from '@shared/tags'
 import { translate } from '@shared/i18n'
@@ -16,11 +16,49 @@ export function registerMapIpc(ctx: WispContext): void {
     if (!ctx.win.isDestroyed()) ctx.win.webContents.send('room:updated', roomId)
   }
 
+  // Undo/redo: every structural mutation snapshots map.json first. Drag moves
+  // (map:setPosition) are deliberately excluded — undo is for structure, not
+  // for every pixel of a drag.
+  const undoStacks = new Map<string, MapData[]>()
+  const redoStacks = new Map<string, MapData[]>()
+  const snapshot = (roomId: string): void => {
+    const stack = undoStacks.get(roomId) ?? []
+    stack.push(JSON.parse(JSON.stringify(store.loadMap(roomId))) as MapData)
+    if (stack.length > 50) stack.shift()
+    undoStacks.set(roomId, stack)
+    redoStacks.set(roomId, [])
+  }
+
+  ipcMain.handle('map:undo', (_e, roomId: string) => {
+    const undo = undoStacks.get(roomId) ?? []
+    const prev = undo.pop()
+    if (!prev) return null
+    const redo = redoStacks.get(roomId) ?? []
+    redo.push(JSON.parse(JSON.stringify(store.loadMap(roomId))) as MapData)
+    redoStacks.set(roomId, redo)
+    store.saveMap(roomId, prev)
+    notify(roomId)
+    return prev
+  })
+
+  ipcMain.handle('map:redo', (_e, roomId: string) => {
+    const redo = redoStacks.get(roomId) ?? []
+    const next = redo.pop()
+    if (!next) return null
+    const undo = undoStacks.get(roomId) ?? []
+    undo.push(JSON.parse(JSON.stringify(store.loadMap(roomId))) as MapData)
+    undoStacks.set(roomId, undo)
+    store.saveMap(roomId, next)
+    notify(roomId)
+    return next
+  })
+
   // A manual drag-to-link becomes a persisted edge; promoting a suggested edge
   // to permanent is the same call with kind 'manual'.
   ipcMain.handle(
     'map:addEdge',
     (_e, roomId: string, from: string, to: string, kind: MapEdge['kind'] = 'manual', label?: string) => {
+      snapshot(roomId)
       const map = store.loadMap(roomId)
       const id = `e-${stableId(`${from}->${to}:${kind}`)}`
       if (!map.edges.some((edge) => edge.id === id)) {
@@ -33,6 +71,7 @@ export function registerMapIpc(ctx: WispContext): void {
   )
 
   ipcMain.handle('map:removeEdge', (_e, roomId: string, edgeId: string) => {
+    snapshot(roomId)
     const map = store.loadMap(roomId)
     map.edges = map.edges.filter((edge) => edge.id !== edgeId)
     store.saveMap(roomId, map)
@@ -40,8 +79,44 @@ export function registerMapIpc(ctx: WispContext): void {
     return map
   })
 
+  // Per-edge looks: line style (solid/dashed/dotted) and a free-text label.
+  ipcMain.handle('map:setEdgeStyle', (_e, roomId: string, edgeId: string, style: EdgeStyle) => {
+    snapshot(roomId)
+    const map = store.loadMap(roomId)
+    const edge = map.edges.find((x) => x.id === edgeId)
+    if (edge) {
+      edge.style = style
+      store.saveMap(roomId, map)
+      notify(roomId)
+    }
+    return map
+  })
+
+  ipcMain.handle('map:setEdgeLabel', (_e, roomId: string, edgeId: string, label: string) => {
+    snapshot(roomId)
+    const map = store.loadMap(roomId)
+    const edge = map.edges.find((x) => x.id === edgeId)
+    if (edge) {
+      edge.label = label.trim() || undefined
+      store.saveMap(roomId, map)
+      notify(roomId)
+    }
+    return map
+  })
+
+  // Resizable nodes (used by image nodes): px size, clamped to sane bounds.
+  ipcMain.handle('map:setNodeSize', (_e, roomId: string, nodeId: string, size: number) => {
+    snapshot(roomId)
+    const map = store.loadMap(roomId)
+    map.sizes = { ...(map.sizes ?? {}), [nodeId]: Math.round(Math.max(28, Math.min(420, size))) }
+    store.saveMap(roomId, map)
+    notify(roomId)
+    return map
+  })
+
   // Hide a source/note node from the map without deleting the underlying item.
   ipcMain.handle('map:hideNode', (_e, roomId: string, nodeId: string) => {
+    snapshot(roomId)
     const map = store.loadMap(roomId)
     const hidden = new Set(map.hidden ?? [])
     hidden.add(nodeId)
@@ -54,6 +129,7 @@ export function registerMapIpc(ctx: WispContext): void {
   })
 
   ipcMain.handle('map:unhideNode', (_e, roomId: string, nodeId: string) => {
+    snapshot(roomId)
     const map = store.loadMap(roomId)
     map.hidden = (map.hidden ?? []).filter((id) => id !== nodeId)
     store.saveMap(roomId, map)
@@ -66,6 +142,7 @@ export function registerMapIpc(ctx: WispContext): void {
   ipcMain.handle(
     'map:includeNode',
     (_e, roomId: string, sourceId: string, pos?: { x: number; y: number }) => {
+      snapshot(roomId)
       const map = store.loadMap(roomId)
       const included = new Set(map.included ?? [])
       included.add(sourceId)
@@ -91,6 +168,7 @@ export function registerMapIpc(ctx: WispContext): void {
   // simply don't render while an endpoint is off the canvas, and come back
   // if the source is placed again.
   ipcMain.handle('map:excludeNode', (_e, roomId: string, sourceId: string) => {
+    snapshot(roomId)
     const map = store.loadMap(roomId)
     map.included = (map.included ?? []).filter((id) => id !== sourceId)
     store.saveMap(roomId, map)
@@ -99,6 +177,7 @@ export function registerMapIpc(ctx: WispContext): void {
   })
 
   ipcMain.handle('map:clearHidden', (_e, roomId: string) => {
+    snapshot(roomId)
     const map = store.loadMap(roomId)
     map.hidden = []
     store.saveMap(roomId, map)
@@ -107,6 +186,7 @@ export function registerMapIpc(ctx: WispContext): void {
   })
 
   ipcMain.handle('map:addConcept', (_e, roomId: string, title: string, tags: string[] = []) => {
+    snapshot(roomId)
     const map = store.loadMap(roomId)
     const concept: ConceptNode = { id: `c-${stableId(title + Date.now())}`, title, tags }
     map.concepts.push(concept)
@@ -117,6 +197,7 @@ export function registerMapIpc(ctx: WispContext): void {
 
   // Insert a ready-made skeleton (starter concepts + edges, pre-positioned).
   ipcMain.handle('map:applyTemplate', (_e, roomId: string, templateId: TemplateId) => {
+    snapshot(roomId)
     const tpl = buildTemplate(templateId, ctx.config.language ?? 'tr')
     const map = store.loadMap(roomId)
     map.concepts.push(...tpl.concepts)
@@ -128,6 +209,7 @@ export function registerMapIpc(ctx: WispContext): void {
   })
 
   ipcMain.handle('map:renameConcept', (_e, roomId: string, conceptId: string, title: string) => {
+    snapshot(roomId)
     const map = store.loadMap(roomId)
     const concept = map.concepts.find((c) => c.id === conceptId)
     if (concept && title.trim()) {
@@ -160,6 +242,7 @@ export function registerMapIpc(ctx: WispContext): void {
         origin: 'manual'
       }
       addSources(roomId, [source])
+      snapshot(roomId)
       const map = store.loadMap(roomId)
       map.included = [...new Set([...(map.included ?? []), source.id])]
       if (pos) map.positions = { ...(map.positions ?? {}), [source.id]: pos }
@@ -170,6 +253,7 @@ export function registerMapIpc(ctx: WispContext): void {
   )
 
   ipcMain.handle('map:removeConcept', (_e, roomId: string, conceptId: string) => {
+    snapshot(roomId)
     const map = store.loadMap(roomId)
     map.concepts = map.concepts.filter((c) => c.id !== conceptId)
     const nodeId = `concept:${conceptId}`

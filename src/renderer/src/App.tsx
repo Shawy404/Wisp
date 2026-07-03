@@ -20,6 +20,7 @@ import CommandPalette from './components/CommandPalette'
 import SettingsPanel from './components/SettingsPanel'
 import Toast from './components/Toast'
 import PermissionPrompt from './components/PermissionPrompt'
+import VaultOffer from './components/VaultOffer'
 
 export default function App(): React.JSX.Element {
   const ready = useApp((s) => s.ready)
@@ -75,6 +76,7 @@ export default function App(): React.JSX.Element {
       <div className="relative z-10 flex h-full flex-col">
       <TitleBar />
       <PermissionPrompt />
+      <VaultOffer />
       <div className="flex min-h-0 flex-1">
         <RoomSidebar />
         <Viewport>

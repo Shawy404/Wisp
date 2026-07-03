@@ -18,6 +18,7 @@ export interface GraphEdge {
   to: string
   kind: MapEdge['kind']
   label?: string
+  style?: MapEdge['style']
 }
 
 export interface Graph {
@@ -95,7 +96,14 @@ export function buildGraph(data: RoomData, opts: GraphOptions = {}): Graph {
 
   const edges: GraphEdge[] = []
   const edgeKeys = new Set<string>()
-  const pushEdge = (from: string, to: string, kind: MapEdge['kind'], label?: string): void => {
+  const pushEdge = (
+    from: string,
+    to: string,
+    kind: MapEdge['kind'],
+    label?: string,
+    id?: string,
+    style?: MapEdge['style']
+  ): void => {
     if (from === to || !nodeIds.has(from) || !nodeIds.has(to)) return
     // Undirected de-dupe for tag/mention; keep direction for wikilink/ai.
     const key =
@@ -104,7 +112,9 @@ export function buildGraph(data: RoomData, opts: GraphOptions = {}): Graph {
         : `${from}|${to}|${kind}`
     if (edgeKeys.has(key)) return
     edgeKeys.add(key)
-    edges.push({ id: `e-${edges.length}-${kind}`, from, to, kind, label })
+    // Persisted edges MUST keep their map.json id — deleting/styling an edge
+    // sends this id back to the store, so a synthetic one would never match.
+    edges.push({ id: id ?? `e-${edges.length}-${kind}`, from, to, kind, label, style })
   }
 
   // 1. Wikilink + embed edges from note bodies.
@@ -120,7 +130,7 @@ export function buildGraph(data: RoomData, opts: GraphOptions = {}): Graph {
   }
 
   // 2. Persisted manual + AI edges from map.json (explicit user connections).
-  for (const e of data.map.edges) pushEdge(e.from, e.to, e.kind, e.label)
+  for (const e of data.map.edges) pushEdge(e.from, e.to, e.kind, e.label, e.id, e.style)
 
   // 2b. Name mentions: a note whose text contains another node's title links
   //     to it automatically (concepts and notes; plus concepts named in source

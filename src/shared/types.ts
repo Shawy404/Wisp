@@ -82,12 +82,16 @@ export interface NoteInfo {
 
 export type EdgeKind = 'manual' | 'wikilink' | 'tag' | 'ai-suggested' | 'mention'
 
+export type EdgeStyle = 'solid' | 'dashed' | 'dotted'
+
 export interface MapEdge {
   id: string
   from: string
   to: string
   kind: EdgeKind
   label?: string
+  /** Visual line style override; defaults per kind when unset. */
+  style?: EdgeStyle
 }
 
 /** Extra concept nodes + persisted edges (rooms/<slug>/map.json). */
@@ -116,6 +120,8 @@ export interface MapData {
    * only ever touches nodes without a saved position.
    */
   positions?: Record<string, { x: number; y: number }>
+  /** Per-node size overrides in px (image nodes are resizable). */
+  sizes?: Record<string, number>
 }
 
 /** Everything the renderer needs about one room's knowledge base. */

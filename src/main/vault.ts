@@ -1,7 +1,8 @@
 // Wisp — © Shawy404. All rights reserved.
 import * as fs from 'fs'
 import { join } from 'path'
-import { ipcMain, safeStorage } from 'electron'
+import { execFile } from 'child_process'
+import { ipcMain, safeStorage, type BrowserWindow } from 'electron'
 import type { VaultEntryMeta } from '@shared/types'
 import { stableId } from '@shared/tags'
 import { wispRoot } from './storage'
@@ -41,19 +42,91 @@ const toMeta = (e: VaultEntry): VaultEntryMeta => ({
   updatedAt: e.updatedAt
 })
 
-export function registerVault(): void {
-  ipcMain.handle('vault:available', () => safeStorage.isEncryptionAvailable())
+export function registerVault(getWin: () => BrowserWindow | null): void {
+  // The vault opens only after the user proves they're the machine's owner:
+  // pkexec pops the system (polkit) password dialog. Unlock lasts until the
+  // app quits. On systems without polkit the check degrades to open access —
+  // there is nothing local to authenticate against.
+  let unlocked = false
+  let authInFlight: Promise<boolean> | null = null
 
-  ipcMain.handle('vault:list', (): VaultEntryMeta[] =>
-    loadEntries()
+  const authenticate = (): Promise<boolean> => {
+    if (unlocked) return Promise.resolve(true)
+    if (authInFlight) return authInFlight
+    authInFlight = new Promise<boolean>((resolve) => {
+      execFile('pkexec', ['true'], { timeout: 120_000 }, (err) => {
+        const enoent = (err as NodeJS.ErrnoException | null)?.code === 'ENOENT'
+        resolve(!err || enoent)
+      })
+    }).then((ok) => {
+      authInFlight = null
+      if (ok) unlocked = true
+      return ok
+    })
+    return authInFlight
+  }
+
+  ipcMain.handle('vault:available', () => safeStorage.isEncryptionAvailable())
+  ipcMain.handle('vault:locked', () => !unlocked)
+  ipcMain.handle('vault:unlock', () => authenticate())
+
+  ipcMain.handle('vault:list', (): VaultEntryMeta[] => {
+    if (!unlocked) return []
+    return loadEntries()
       .map(toMeta)
       .sort((a, b) => a.site.localeCompare(b.site))
-  )
+  })
+
+  // ---- Auto-capture: the web preload reports password-form submissions. ----
+  // The secret waits in main-process memory while the shell asks the user;
+  // it never travels to the UI renderer.
+  interface PendingCredential {
+    host: string
+    username: string
+    password: string
+    timer: NodeJS.Timeout
+  }
+  const pendingOffers = new Map<number, PendingCredential>()
+  let nextOfferId = 1
+
+  ipcMain.on('vault:credentials-submitted', (_e, payload: { host?: string; username?: string; password?: string }) => {
+    const host = String(payload?.host ?? '').slice(0, 200)
+    const username = String(payload?.username ?? '').slice(0, 200)
+    const password = String(payload?.password ?? '')
+    if (!host || !password) return
+    // Already saved for this site+user? Don't nag.
+    const exists = loadEntries().some((en) => en.site === host && en.username === username)
+    if (exists || !safeStorage.isEncryptionAvailable()) return
+    const win = getWin()
+    if (!win || win.isDestroyed()) return
+    const id = nextOfferId++
+    const timer = setTimeout(() => pendingOffers.delete(id), 2 * 60_000)
+    pendingOffers.set(id, { host, username, password, timer })
+    win.webContents.send('vault:offer', { id, host, username })
+  })
+
+  ipcMain.handle('vault:offer-respond', (_e, id: number, save: boolean) => {
+    const offer = pendingOffers.get(id)
+    if (!offer) return false
+    pendingOffers.delete(id)
+    clearTimeout(offer.timer)
+    if (!save) return false
+    const entries = loadEntries()
+    entries.push({
+      id: `pw-${stableId(offer.host + offer.username + Date.now())}`,
+      site: offer.host,
+      username: offer.username,
+      updatedAt: new Date().toISOString(),
+      secret: safeStorage.encryptString(offer.password).toString('base64')
+    })
+    saveEntries(entries)
+    return true
+  })
 
   ipcMain.handle(
     'vault:add',
     (_e, site: string, username: string, password: string): VaultEntryMeta | null => {
-      if (!safeStorage.isEncryptionAvailable()) return null
+      if (!unlocked || !safeStorage.isEncryptionAvailable()) return null
       site = site.trim()
       username = username.trim()
       if (!site || !password) return null
@@ -72,11 +145,13 @@ export function registerVault(): void {
   )
 
   ipcMain.handle('vault:delete', (_e, id: string) => {
+    if (!unlocked) return
     saveEntries(loadEntries().filter((e) => e.id !== id))
   })
 
   // Decrypt on demand only — for the reveal eye and the copy button.
   ipcMain.handle('vault:reveal', (_e, id: string): string | null => {
+    if (!unlocked) return null
     const entry = loadEntries().find((e) => e.id === id)
     if (!entry || !safeStorage.isEncryptionAvailable()) return null
     try {

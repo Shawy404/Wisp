@@ -181,7 +181,8 @@ export default function AddressBar(): React.JSX.Element {
   }, [])
 
   const submit = (): void => {
-    const { activeTabId, navigate, newTab, requestSearch, config } = useApp.getState()
+    const { activeTabId, navigate, newTab, requestSearch, config, overlay, setOverlay } =
+      useApp.getState()
     // "?" prefix targets Wisp's research search; anything else behaves like a
     // normal browser — URLs open, plain text goes to the web search engine.
     if (value.trim().startsWith('?')) {
@@ -198,7 +199,12 @@ export default function AddressBar(): React.JSX.Element {
       const url = webSearchUrl(config?.searchEngine, resolved.query)
       if (activeTabId) navigate(activeTabId, url)
       else newTab(url)
+    } else {
+      inputRef.current?.blur()
+      return
     }
+    // Whatever panel was open, the user asked for the web — bring it back.
+    if (overlay !== 'none') setOverlay('none')
     inputRef.current?.blur()
   }
 

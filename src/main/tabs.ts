@@ -1,4 +1,5 @@
 // Wisp — © Shawy404. All rights reserved.
+import { join } from 'path'
 import { BrowserWindow, WebContentsView, type Input } from 'electron'
 import type { TabInfo } from '@shared/types'
 import { WEB_PARTITION, isSafeTabUrl, openExternalSafe } from './security'
@@ -260,12 +261,14 @@ export class TabManager {
   /** Build (or rebuild, after sleep) the native view for a tab entry. */
   private createView(entry: TabEntry): void {
     // Pages live in their own persisted partition, isolated from the UI session.
+    // The web preload only watches for password-form submits (vault offers).
     const view = new WebContentsView({
       webPreferences: {
         contextIsolation: true,
         nodeIntegration: false,
         sandbox: true,
-        partition: WEB_PARTITION
+        partition: WEB_PARTITION,
+        preload: join(__dirname, '../preload/web.js')
       }
     })
     // Match the rounded corners of the renderer's viewport card.

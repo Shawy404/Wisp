@@ -11,6 +11,8 @@ import { invoke, useT } from '@/store'
 export default function VaultPanel(): React.JSX.Element {
   const t = useT()
   const [available, setAvailable] = useState(true)
+  const [locked, setLocked] = useState(true)
+  const [unlockFailed, setUnlockFailed] = useState(false)
   const [entries, setEntries] = useState<VaultEntryMeta[]>([])
   const [filter, setFilter] = useState('')
   const [site, setSite] = useState('')
@@ -24,8 +26,22 @@ export default function VaultPanel(): React.JSX.Element {
   }
   useEffect(() => {
     void invoke<boolean>('vault:available').then(setAvailable)
-    void refresh()
+    void invoke<boolean>('vault:locked').then((isLocked) => {
+      setLocked(isLocked)
+      if (!isLocked) void refresh()
+    })
   }, [])
+
+  const unlock = async (): Promise<void> => {
+    setUnlockFailed(false)
+    const ok = await invoke<boolean>('vault:unlock')
+    if (ok) {
+      setLocked(false)
+      await refresh()
+    } else {
+      setUnlockFailed(true)
+    }
+  }
 
   const add = async (): Promise<void> => {
     if (!site.trim() || !password) return
@@ -59,6 +75,26 @@ export default function VaultPanel(): React.JSX.Element {
       e.site.toLowerCase().includes(filter.toLowerCase()) ||
       e.username.toLowerCase().includes(filter.toLowerCase())
   )
+
+  // The vault stays behind the machine owner's own password (polkit dialog).
+  if (locked) {
+    return (
+      <div className="absolute inset-0 flex flex-col items-center justify-center gap-4 bg-neutral-950">
+        <div className="flex h-16 w-16 items-center justify-center rounded-2xl border border-accent/30 bg-accent/10 text-3xl text-accent">
+          ⚿
+        </div>
+        <div className="text-sm font-semibold text-neutral-200">{t('vault.locked.title')}</div>
+        <div className="max-w-xs text-center text-xs text-neutral-500">{t('vault.locked.body')}</div>
+        {unlockFailed && <div className="text-xs text-red-400">{t('vault.unlockFailed')}</div>}
+        <button
+          className="rounded-lg bg-accent/15 px-5 py-2 text-sm font-medium text-accent hover:bg-accent/25"
+          onClick={() => void unlock()}
+        >
+          {t('vault.unlock')}
+        </button>
+      </div>
+    )
+  }
 
   return (
     <div className="absolute inset-0 flex flex-col overflow-hidden bg-neutral-950">

@@ -13,6 +13,15 @@ export default defineConfig({
   },
   preload: {
     plugins: [externalizeDepsPlugin()],
+    build: {
+      rollupOptions: {
+        input: {
+          // index: the shell UI bridge; web: injected into page views.
+          index: resolve(__dirname, 'src/preload/index.ts'),
+          web: resolve(__dirname, 'src/preload/web.ts')
+        }
+      }
+    },
     resolve: {
       alias: { '@shared': resolve(__dirname, 'src/shared') }
     }

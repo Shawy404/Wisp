@@ -186,6 +186,13 @@ const tr = {
   'vault.filter': 'Şifrelerde ara…',
   'vault.unavailable':
     'Sistem anahtarlığına ulaşılamıyor — şifreler güvenle saklanamayacağı için kasa devre dışı.',
+  'vault.locked.title': 'Kasa kilitli',
+  'vault.locked.body': 'Şifrelerini görmek için sistem (oturum) şifrenle kimliğini doğrula.',
+  'vault.unlock': 'Kilidi aç',
+  'vault.unlockFailed': 'Kimlik doğrulanamadı — tekrar dene.',
+  'vault.offer.question': '{host} için şifre kaydedilsin mi?',
+  'vault.offer.save': 'Kaydet',
+  'vault.offer.dismiss': 'Yoksay',
 
   'onboard.skip': 'Atla',
   'onboard.back': 'Geri',
@@ -282,9 +289,16 @@ const tr = {
   'map.mentionLinks': 'Ad bağları',
   'map.mentionLinks.hint':
     'Bir not başka bir düğümün adını geçirdiğinde otomatik bağ kur (ör. "monosodium" yazan not, monosodium kavramına bağlanır)',
-  'map.hint.interact': 'Tıkla: odakla · Çift tık: aç · Shift+tıkla: bağla · Sağ tık: menü',
+  'map.hint.interact':
+    'Tıkla: odakla · Çift tık: aç · Shift+tıkla: bağla · Shift+sürükle: çoklu seç · Sağ tık: menü',
   'map.hint.shiftSecond': 'İkinci düğüme Shift+tıkla — bağ oluşsun.',
+  'map.undo': 'Geri al (Ctrl+Z)',
+  'map.redo': 'Yinele (Ctrl+Shift+Z)',
   'map.ctx.rename': 'Yeniden adlandır',
+  'map.ctx.lineStyle': 'Çizgi stili',
+  'map.ctx.editLabel': 'Bağ etiketi…',
+  'map.ctx.bigger': 'Büyüt',
+  'map.ctx.smaller': 'Küçült',
   'map.ctx.hideNode': 'Haritadan gizle',
   'map.ctx.removeFromMap': 'Haritadan çıkar',
   'map.ctx.deleteConcept': 'Kavramı sil',
@@ -578,6 +592,13 @@ const en: typeof tr = {
   'vault.filter': 'Search passwords…',
   'vault.unavailable':
     "The system keychain isn't reachable — the vault is disabled because passwords couldn't be stored safely.",
+  'vault.locked.title': 'Vault locked',
+  'vault.locked.body': 'Verify yourself with your system (login) password to see your passwords.',
+  'vault.unlock': 'Unlock',
+  'vault.unlockFailed': 'Authentication failed — try again.',
+  'vault.offer.question': 'Save the password for {host}?',
+  'vault.offer.save': 'Save',
+  'vault.offer.dismiss': 'Dismiss',
 
   'onboard.skip': 'Skip',
   'onboard.back': 'Back',
@@ -674,9 +695,16 @@ const en: typeof tr = {
   'map.mentionLinks': 'Name links',
   'map.mentionLinks.hint':
     'Auto-link when a note mentions another node\'s name (e.g. a note that says "monosodium" links to the monosodium concept)',
-  'map.hint.interact': 'Click: focus · Double-click: open · Shift-click: link · Right-click: menu',
+  'map.hint.interact':
+    'Click: focus · Double-click: open · Shift-click: link · Shift-drag: multi-select · Right-click: menu',
   'map.hint.shiftSecond': 'Shift-click the second node to link them.',
+  'map.undo': 'Undo (Ctrl+Z)',
+  'map.redo': 'Redo (Ctrl+Shift+Z)',
   'map.ctx.rename': 'Rename',
+  'map.ctx.lineStyle': 'Line style',
+  'map.ctx.editLabel': 'Edge label…',
+  'map.ctx.bigger': 'Bigger',
+  'map.ctx.smaller': 'Smaller',
   'map.ctx.hideNode': 'Hide from map',
   'map.ctx.removeFromMap': 'Remove from map',
   'map.ctx.deleteConcept': 'Delete concept',

@@ -67,11 +67,12 @@ function cyStyle(c: MapColors): cytoscape.StylesheetJson {
       }
     },
     // Image sources with a loaded picture show the photo itself as the node.
+    // Size comes from data(size) so photos are resizable per node.
     {
       selector: 'node.image',
       style: {
-        width: 52,
-        height: 52,
+        width: 'data(size)',
+        height: 'data(size)',
         'background-image': 'data(img)',
         'background-fit': 'cover',
         'text-valign': 'bottom',
@@ -110,10 +111,23 @@ function cyStyle(c: MapColors): cytoscape.StylesheetJson {
       selector: 'edge.ai-suggested',
       style: { 'line-style': 'dashed', 'line-dash-pattern': [2, 4], 'line-color': '#f8b48a', width: 1.5 }
     },
+    // Per-edge style override (the context menu's — / - - / ··· choices).
+    { selector: 'edge[lineStyle = "solid"]', style: { 'line-style': 'solid' } },
+    {
+      selector: 'edge[lineStyle = "dashed"]',
+      style: { 'line-style': 'dashed', 'line-dash-pattern': [7, 5] }
+    },
+    { selector: 'edge[lineStyle = "dotted"]', style: { 'line-style': 'dotted' } },
     {
       selector: 'node.hovered',
       style: { 'z-index': 99, 'font-size': '11px', 'border-width': 2 }
     },
+    // Box-selected (shift+drag) nodes glow so group moves read clearly.
+    {
+      selector: 'node:selected',
+      style: { 'border-width': 2.5, 'border-color': '#f8b48a' }
+    },
+    { selector: 'edge:selected', style: { 'line-color': '#f8b48a' } },
     // Focus mode: everything outside the clicked node's neighbourhood dims.
     { selector: '.faded', style: { opacity: 0.12 } },
     { selector: '.link-source', style: { 'border-width': 3, 'border-color': '#f8b48a' } }
@@ -173,7 +187,8 @@ function runLayout(c: Core, pinned: Set<string>): void {
 function toElements(
   graph: Graph,
   positions: NodePositions,
-  images: Record<string, string>
+  images: Record<string, string>,
+  sizes: Record<string, number>
 ): ElementDefinition[] {
   const nodes = graph.nodes.map((n) => {
     // Image sources whose picture has resolved render as a photo node.
@@ -186,14 +201,21 @@ function toElements(
         fullLabel: n.label,
         type: n.type,
         ...(n.color ? { color: n.color } : {}),
-        ...(img ? { img } : {})
+        ...(img ? { img, size: sizes[n.id] ?? 52 } : {})
       },
       position: positions[n.id] ? { ...positions[n.id] } : undefined,
       classes: img ? `${n.type} image` : n.type
     }
   })
   const edges = graph.edges.map((e) => ({
-    data: { id: e.id, source: e.from, target: e.to, label: e.label ?? '', kind: e.kind },
+    data: {
+      id: e.id,
+      source: e.from,
+      target: e.to,
+      label: e.label ?? '',
+      kind: e.kind,
+      ...(e.style ? { lineStyle: e.style } : {})
+    },
     classes: e.kind
   }))
   return [...nodes, ...edges]
@@ -206,6 +228,7 @@ interface CtxMenu {
   y: number
   nodeId?: string
   nodeType?: NodeType
+  isImage?: boolean
   edgeId?: string
   edgeKind?: string
 }
@@ -255,6 +278,8 @@ export default function MapPanel(): React.JSX.Element {
   const [showMentionLinks, setShowMentionLinks] = useState(true)
   const [ctx, setCtx] = useState<CtxMenu | null>(null)
   const [renaming, setRenaming] = useState<Renaming | null>(null)
+  const [edgeEdit, setEdgeEdit] = useState<{ x: number; y: number; edgeId: string; value: string } | null>(null)
+  const [tplOpen, setTplOpen] = useState(false)
   const [info, setInfo] = useState<NodeInfo | null>(null)
   const [dropActive, setDropActive] = useState(false)
   const dragDepth = useRef(0)
@@ -282,6 +307,9 @@ export default function MapPanel(): React.JSX.Element {
   // handlers always see the latest set (drags update it without a re-render).
   const positionsRef = useRef<NodePositions>({})
   positionsRef.current = { ...(map.positions ?? {}), ...positionsRef.current }
+  // Per-node size overrides (resizable photos), same freshness trick.
+  const sizesRef = useRef<Record<string, number>>({})
+  sizesRef.current = map.sizes ?? {}
 
   const hiddenCount = map.hidden?.length ?? 0
 
@@ -333,20 +361,28 @@ export default function MapPanel(): React.JSX.Element {
     if (!host.current) return
     cy.current = cytoscape({
       container: host.current,
-      elements: toElements(graph, positionsRef.current, imagesRef.current),
+      elements: toElements(graph, positionsRef.current, imagesRef.current, sizesRef.current),
       style: cyStyle(mapColors(useApp.getState().config?.theme ?? 'dark')),
       layout: { name: 'preset' },
-      wheelSensitivity: 0.6
+      wheelSensitivity: 0.6,
+      // Shift+drag on empty canvas draws a selection box (plain drag pans).
+      boxSelectionEnabled: true
     })
     runLayout(cy.current, new Set(Object.keys(positionsRef.current)))
 
     // A node stays exactly where the user drops it — persisted quietly so the
-    // canvas doesn't re-layout mid-interaction.
+    // canvas doesn't re-layout mid-interaction. Dragging one node of a box
+    // selection moves the whole selection, so persist every moved position.
     cy.current.on('dragfree', 'node', (evt) => {
-      const id = evt.target.id()
-      const p = evt.target.position()
-      positionsRef.current[id] = { x: p.x, y: p.y }
-      if (activeRoomId) void invoke('map:setPosition', activeRoomId, id, p.x, p.y)
+      const target = evt.target as cytoscape.NodeSingular
+      const moved = target.selected()
+        ? cy.current!.$('node:selected').union(target)
+        : target
+      moved.forEach((n) => {
+        const p = n.position()
+        positionsRef.current[n.id()] = { x: p.x, y: p.y }
+        if (activeRoomId) void invoke('map:setPosition', activeRoomId, n.id(), p.x, p.y)
+      })
     })
 
     const focusNode = (target: cytoscape.NodeSingular): void => {
@@ -440,7 +476,8 @@ export default function MapPanel(): React.JSX.Element {
         x: p.x,
         y: p.y,
         nodeId: evt.target.id(),
-        nodeType: evt.target.data('type') as NodeType
+        nodeType: evt.target.data('type') as NodeType,
+        isImage: (evt.target as cytoscape.NodeSingular).hasClass('image')
       })
     })
     cy.current.on('cxttap', 'edge', (evt) => {
@@ -474,10 +511,63 @@ export default function MapPanel(): React.JSX.Element {
     const c = cy.current
     c.batch(() => {
       c.elements().remove()
-      c.add(toElements(graph, positionsRef.current, images))
+      c.add(toElements(graph, positionsRef.current, images, sizesRef.current))
     })
     runLayout(c, new Set(Object.keys(positionsRef.current)))
-  }, [graph, images])
+  }, [graph, images, map.sizes])
+
+  // Undo/redo — buttons in the filter bar plus Ctrl+Z / Ctrl+Shift+Z / Ctrl+Y,
+  // and Delete clears the current (box) selection.
+  const doUndo = async (): Promise<void> => {
+    if (!activeRoomId) return
+    await invoke('map:undo', activeRoomId)
+    await applyRoomData()
+  }
+  const doRedo = async (): Promise<void> => {
+    if (!activeRoomId) return
+    await invoke('map:redo', activeRoomId)
+    await applyRoomData()
+  }
+  const deleteSelection = async (): Promise<void> => {
+    const c = cy.current
+    if (!c || !activeRoomId) return
+    const selected = c.$(':selected')
+    if (selected.length === 0) return
+    for (const el of selected.toArray()) {
+      if (el.isNode()) {
+        const id = el.id()
+        const type = el.data('type') as NodeType
+        if (type === 'concept') await invoke('map:removeConcept', activeRoomId, id.replace(/^concept:/, ''))
+        else if (type === 'source') await invoke('map:excludeNode', activeRoomId, id)
+        else await invoke('map:hideNode', activeRoomId, id)
+      } else {
+        const kind = el.data('kind') as string
+        if (kind === 'manual' || kind === 'ai-suggested') {
+          await invoke('map:removeEdge', activeRoomId, el.id())
+        }
+      }
+    }
+    await applyRoomData()
+  }
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent): void => {
+      const el = e.target as HTMLElement | null
+      if (el && (el.tagName === 'INPUT' || el.tagName === 'TEXTAREA' || el.isContentEditable)) return
+      if (e.ctrlKey && e.key.toLowerCase() === 'z') {
+        e.preventDefault()
+        void (e.shiftKey ? doRedo() : doUndo())
+      } else if (e.ctrlKey && e.key.toLowerCase() === 'y') {
+        e.preventDefault()
+        void doRedo()
+      } else if (e.key === 'Delete' || e.key === 'Backspace') {
+        e.preventDefault()
+        void deleteSelection()
+      }
+    }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeRoomId])
 
   // Follow theme switches live — cytoscape can't read CSS variables itself.
   useEffect(() => {
@@ -505,6 +595,27 @@ export default function MapPanel(): React.JSX.Element {
   const clearHidden = async (): Promise<void> => {
     if (!activeRoomId) return
     await invoke('map:clearHidden', activeRoomId)
+    await applyRoomData()
+  }
+
+  // Photo nodes grow/shrink in steps from the context menu.
+  const resizeImage = async (nodeId: string, factor: number): Promise<void> => {
+    if (!activeRoomId) return
+    const current = sizesRef.current[nodeId] ?? 52
+    await invoke('map:setNodeSize', activeRoomId, nodeId, current * factor)
+    await applyRoomData()
+  }
+  const setEdgeStyle = async (edgeId: string, style: 'solid' | 'dashed' | 'dotted'): Promise<void> => {
+    if (!activeRoomId) return
+    setCtx(null)
+    await invoke('map:setEdgeStyle', activeRoomId, edgeId, style)
+    await applyRoomData()
+  }
+  const submitEdgeLabel = async (): Promise<void> => {
+    if (!edgeEdit || !activeRoomId) return
+    const { edgeId, value } = edgeEdit
+    setEdgeEdit(null)
+    await invoke('map:setEdgeLabel', activeRoomId, edgeId, value)
     await applyRoomData()
   }
 
@@ -674,6 +785,23 @@ export default function MapPanel(): React.JSX.Element {
           >
             {t('map.mentionLinks')}
           </button>
+          <span className="mx-0.5 h-4 w-px bg-neutral-800" />
+          <button
+            onClick={() => void doUndo()}
+            className="flex h-5 w-5 items-center justify-center rounded-full border border-neutral-850 text-[11px] text-neutral-500 hover:border-neutral-600 hover:text-neutral-200"
+            data-tip={t('map.undo')}
+            data-tip-pos="bottom"
+          >
+            ↶
+          </button>
+          <button
+            onClick={() => void doRedo()}
+            className="flex h-5 w-5 items-center justify-center rounded-full border border-neutral-850 text-[11px] text-neutral-500 hover:border-neutral-600 hover:text-neutral-200"
+            data-tip={t('map.redo')}
+            data-tip-pos="bottom"
+          >
+            ↷
+          </button>
         </div>
 
         <div className="pointer-events-none absolute right-3 bottom-3 flex flex-col items-end gap-1 text-[10px] text-neutral-600">
@@ -702,6 +830,22 @@ export default function MapPanel(): React.JSX.Element {
                 {t('map.ctx.rename')}
               </button>
             )}
+            {ctx.nodeId && ctx.isImage && (
+              <div className="flex items-center gap-1 px-3 py-1.5">
+                <button
+                  className="flex-1 rounded border border-neutral-700 px-2 py-0.5 text-neutral-300 hover:bg-neutral-800"
+                  onClick={() => void resizeImage(ctx.nodeId!, 1 / 1.3)}
+                >
+                  − {t('map.ctx.smaller')}
+                </button>
+                <button
+                  className="flex-1 rounded border border-neutral-700 px-2 py-0.5 text-neutral-300 hover:bg-neutral-800"
+                  onClick={() => void resizeImage(ctx.nodeId!, 1.3)}
+                >
+                  + {t('map.ctx.bigger')}
+                </button>
+              </div>
+            )}
             {ctx.nodeId && ctx.nodeType === 'concept' && (
               <button
                 className="block w-full px-3 py-1.5 text-left text-neutral-200 hover:bg-neutral-800"
@@ -727,17 +871,66 @@ export default function MapPanel(): React.JSX.Element {
               </button>
             )}
             {ctx.edgeId && (ctx.edgeKind === 'manual' || ctx.edgeKind === 'ai-suggested') && (
-              <button
-                className="block w-full px-3 py-1.5 text-left text-neutral-200 hover:bg-neutral-800"
-                onClick={() => void deleteEdge(ctx.edgeId!)}
-              >
-                {t('map.ctx.deleteLink')}
-              </button>
+              <>
+                {/* Line style: — solid, - - dashed, ··· dotted */}
+                <div className="flex items-center gap-1 px-3 py-1.5" title={t('map.ctx.lineStyle')}>
+                  {(
+                    [
+                      ['solid', '——'],
+                      ['dashed', '– –'],
+                      ['dotted', '···']
+                    ] as const
+                  ).map(([st, glyph]) => (
+                    <button
+                      key={st}
+                      className="flex-1 rounded border border-neutral-700 px-2 py-0.5 text-center font-mono text-neutral-300 hover:bg-neutral-800"
+                      onClick={() => void setEdgeStyle(ctx.edgeId!, st)}
+                    >
+                      {glyph}
+                    </button>
+                  ))}
+                </div>
+                <button
+                  className="block w-full px-3 py-1.5 text-left text-neutral-200 hover:bg-neutral-800"
+                  onClick={() => {
+                    const current =
+                      (cy.current?.getElementById(ctx.edgeId!).data('label') as string) ?? ''
+                    setEdgeEdit({ x: ctx.x, y: ctx.y, edgeId: ctx.edgeId!, value: current })
+                    setCtx(null)
+                  }}
+                >
+                  {t('map.ctx.editLabel')}
+                </button>
+                <button
+                  className="block w-full px-3 py-1.5 text-left text-neutral-200 hover:bg-neutral-800"
+                  onClick={() => void deleteEdge(ctx.edgeId!)}
+                >
+                  {t('map.ctx.deleteLink')}
+                </button>
+              </>
             )}
             {ctx.edgeId && ctx.edgeKind !== 'manual' && ctx.edgeKind !== 'ai-suggested' && (
               <div className="px-3 py-1.5 text-neutral-600">{t('map.ctx.derivedLink')}</div>
             )}
           </div>
+        )}
+
+        {/* Inline edge-label input ("--belki--" style), same anchoring. */}
+        {edgeEdit && (
+          <input
+            autoFocus
+            value={edgeEdit.value}
+            onChange={(e) => setEdgeEdit({ ...edgeEdit, value: e.target.value })}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter') void submitEdgeLabel()
+              if (e.key === 'Escape') setEdgeEdit(null)
+            }}
+            onBlur={() => setEdgeEdit(null)}
+            onClick={(e) => e.stopPropagation()}
+            placeholder={t('map.ctx.editLabel')}
+            className="absolute z-50 w-44 rounded-md border border-accent/60 bg-neutral-900 px-2 py-1.5 text-xs text-neutral-100 shadow-2xl shadow-black/50 outline-none"
+            style={{ left: edgeEdit.x, top: edgeEdit.y }}
+          />
         )}
 
         {/* Inline rename input, anchored where the context menu was. */}
@@ -910,36 +1103,49 @@ export default function MapPanel(): React.JSX.Element {
             )}
           </div>
 
-          {/* Ready-made schemas: one click drops a positioned starter skeleton. */}
+          {/* Ready-made schemas, tucked behind a collapsed header so they
+              don't crowd the panel. One click drops a positioned skeleton. */}
           <div className="mb-3">
-            <div className="mb-1.5 text-[10px] tracking-wide text-neutral-500 uppercase">
-              {t('map.templates')}
-            </div>
-            <div className="mb-1.5 text-[10px] text-neutral-600">{t('map.templates.hint')}</div>
-            <div className="grid grid-cols-2 gap-1">
-              {(
-                [
-                  ['central', '✳'],
-                  ['relational', '⇄'],
-                  ['timeline', '⇥'],
-                  ['hierarchy', '⌥'],
-                  ['brainstorm', '☁'],
-                  ['project', '⚑']
-                ] as const
-              ).map(([tpl, glyph]) => (
-                <button
-                  key={tpl}
-                  className="flex items-center gap-1.5 rounded-md border border-neutral-800 bg-neutral-900/60 px-2 py-1.5 text-left text-[10px] text-neutral-400 hover:border-neutral-600 hover:text-neutral-200"
-                  onClick={() =>
-                    activeRoomId &&
-                    void invoke('map:applyTemplate', activeRoomId, tpl).then(applyRoomData)
-                  }
-                >
-                  <span className="text-neutral-500">{glyph}</span>
-                  <span className="min-w-0 flex-1 leading-tight">{t(`map.template.${tpl}` as TKey)}</span>
-                </button>
-              ))}
-            </div>
+            <button
+              className="mb-1.5 flex w-full items-center justify-between text-left"
+              onClick={() => setTplOpen((v) => !v)}
+            >
+              <span className="text-[10px] tracking-wide text-neutral-500 uppercase">
+                {t('map.templates')}
+              </span>
+              <span className="text-[10px] text-neutral-600">{tplOpen ? '▾' : '▸'}</span>
+            </button>
+            {tplOpen && (
+              <>
+                <div className="mb-1.5 text-[10px] text-neutral-600">{t('map.templates.hint')}</div>
+                <div className="grid grid-cols-2 gap-1">
+                  {(
+                    [
+                      ['central', '✳'],
+                      ['relational', '⇄'],
+                      ['timeline', '⇥'],
+                      ['hierarchy', '⌥'],
+                      ['brainstorm', '☁'],
+                      ['project', '⚑']
+                    ] as const
+                  ).map(([tpl, glyph]) => (
+                    <button
+                      key={tpl}
+                      className="flex items-center gap-1.5 rounded-md border border-neutral-800 bg-neutral-900/60 px-2 py-1.5 text-left text-[10px] text-neutral-400 hover:border-neutral-600 hover:text-neutral-200"
+                      onClick={() =>
+                        activeRoomId &&
+                        void invoke('map:applyTemplate', activeRoomId, tpl).then(applyRoomData)
+                      }
+                    >
+                      <span className="text-neutral-500">{glyph}</span>
+                      <span className="min-w-0 flex-1 leading-tight">
+                        {t(`map.template.${tpl}` as TKey)}
+                      </span>
+                    </button>
+                  ))}
+                </div>
+              </>
+            )}
           </div>
 
           <div>

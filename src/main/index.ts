@@ -88,7 +88,7 @@ function createWindow(): void {
   registerDownloads(ctx)
   registerFind(ctx)
   registerVideo(ctx)
-  registerVault()
+  registerVault(() => ctx?.win ?? null)
   registerBackground(ctx)
   registerHistory(ctx)
   void initAdblock(ctx.config)
