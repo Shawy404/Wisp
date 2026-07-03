@@ -8,7 +8,7 @@
 
 **A browser built for research.** Rooms, clean search, notes and a concept map — all on your own disk.
 
-`v0.1.2-pre-alpha` · Linux & Windows · [Download a build](../../releases) · Built by [Shawy404](https://github.com/Shawy404)
+`v0.1.3-pre-alpha` · Linux & Windows · [Download a build](../../releases) · Built by [Shawy404](https://github.com/Shawy404)
 
 <img src="docs/media/map.png" width="820" alt="Wisp concept map" />
 
@@ -30,11 +30,19 @@ The name is from *will-o'-the-wisp*, the ghost light that leads travelers throug
 
 **Search that isn't just Google.** One search bar hits Semantic Scholar, Crossref, arXiv, Wikipedia, Openverse and the web at once, sorts the results into Academic / Overview / Images / Web, and lets you save the ones you want into the room with a click — no copy-pasting citations. A Wisp/Web toggle sits right next to it when you'd rather just search the web.
 
+<img src="docs/media/search.png" width="820" alt="Multi-source research search" />
+
+Everything you save lands in the room's sources, tagged and ready to cite:
+
 <img src="docs/media/sources.png" width="820" alt="Sources collected in a room" />
 
 **Notes and a concept map.** Notes are plain markdown (Obsidian-compatible), with `[[wikilinks]]`, inline images, and `![[src-id]]` to embed a source. The map is the same data as a graph: boxed nodes, photos for image sources, six ready-made templates to start from, undo/redo and version history, drag-to-link, editable edge labels, and auto-links when one note mentions another node by name.
 
 <img src="docs/media/notes.png" width="820" alt="Notes with wikilinks" />
+
+Start a map from a template instead of a blank canvas — central topic, timeline, hierarchy, brainstorm, project plan:
+
+<img src="docs/media/map-template.png" width="820" alt="A project-plan map built from a template" />
 
 **Clip anything.** Right-click a page, a text selection, or an image to save it into the room. Clip just a section and reopening it jumps back to the exact spot on the page, highlighted. On a YouTube page, clip the whole video or a time range — `yt-dlp` ships inside the app, nothing to install.
 
@@ -46,7 +54,7 @@ The name is from *will-o'-the-wisp*, the ghost light that leads travelers throug
 
 ## Install
 
-Grab a ready build from the [**Releases**](../../releases) page — an `AppImage` for Linux, an installer or portable `.exe` for Windows. No setup, no dependencies.
+Grab a ready build from the [**Releases**](../../releases) page — an `AppImage` for Linux, an installer or portable `.exe` for Windows. No setup, no dependencies. On Windows, Wisp keeps itself up to date: new releases download in the background and install when you restart.
 
 ### Or run it from source
 

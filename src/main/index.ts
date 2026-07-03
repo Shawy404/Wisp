@@ -15,6 +15,7 @@ import { registerDownloads } from './downloads'
 import { registerFind } from './find'
 import { registerVideo } from './video'
 import { registerVault } from './vault'
+import { registerUpdater } from './updater'
 import { registerBackground } from './background'
 import { registerHistory } from './history'
 import { initAdblock } from './adblock'
@@ -103,6 +104,7 @@ function createWindow(): void {
   registerFind(ctx)
   registerVideo(ctx)
   registerVault(() => ctx?.win ?? null)
+  registerUpdater(ctx)
   registerBackground(ctx)
   registerHistory(ctx)
   void initAdblock(ctx.config)

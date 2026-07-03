@@ -12,6 +12,11 @@ files:
   - build/icon.png
 asarUnpack:
   - node_modules/@mozilla/readability/**
+# Auto-update source: GitHub Releases of this repo.
+publish:
+  provider: github
+  owner: Shawy404
+  repo: Wisp
 linux:
   target:
     - AppImage

@@ -417,7 +417,11 @@ const tr = {
   'widgets.nothingPlaying': 'Şu an çalan yok',
   'widgets.freeMemory': 'Arka plan sekmelerini uyut — RAM boşalt',
   'widgets.slept': 'Arka plan sekmeleri uyutuldu',
-  'widgets.add': 'Widget ekle'
+  'widgets.add': 'Widget ekle',
+
+  'update.ready': 'Wisp {version} indirildi — yeniden başlatınca kurulur.',
+  'update.restart': 'Yeniden başlat',
+  'update.later': 'Sonra'
 }
 
 const en: typeof tr = {
@@ -835,7 +839,11 @@ const en: typeof tr = {
   'widgets.nothingPlaying': 'Nothing playing',
   'widgets.freeMemory': 'Sleep background tabs — free up RAM',
   'widgets.slept': 'Background tabs put to sleep',
-  'widgets.add': 'Add widget'
+  'widgets.add': 'Add widget',
+
+  'update.ready': 'Wisp {version} downloaded — restart to install.',
+  'update.restart': 'Restart',
+  'update.later': 'Later'
 }
 
 export const dictionaries: Record<Lang, typeof tr> = { tr, en }
