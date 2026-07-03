@@ -2,7 +2,7 @@
 
 # Wisp
 
-**v0.1.1-pre-alpha.** Early days, things will break, expect rough edges.
+**v0.1.2-pre-alpha.** Early days, things will break, expect rough edges.
 
 Wisp is a desktop browser for people who do research and are sick of it
 living in fifty tabs, a separate notes app, and a citation manager that
@@ -16,6 +16,27 @@ through marshland. The Japanese folklore version is *kitsunebi* (狐火),
 "fox fire."
 
 Built by Shawy404. © Shawy404, all rights reserved.
+
+## What's new in 0.1.2
+
+- **First-run tour** — pick your language, get a short skippable intro.
+- **Video clipping** — on a YouTube/Vimeo page, download the whole video or
+  just a time range (1:20–2:45) into the room. `yt-dlp` ships inside the
+  packaged builds, so nothing to install.
+- **Password vault** — app-wide, encrypted through the OS keychain, opened
+  with your system password. Submitting a login on any site offers to save
+  it; focusing a login field later suggests the saved account and fills it.
+- **Section clips** — right-click selected text to clip that section;
+  opening the source jumps back to the page with the section highlighted.
+- **Map overhaul** — boxed nodes, six ready-made templates, photo nodes
+  (drag an image file straight onto the canvas, resize from the menu),
+  double-click to open, rename anything, undo/redo, box-select with
+  shift+drag, per-edge line styles and labels, and auto-links when a note
+  mentions another node's name.
+- **Browser table stakes** — find in page (Ctrl+F), full-text room search
+  (Ctrl+Shift+F), a download manager, tab sleeping, real shortcuts that
+  work even while a page has focus (`?` shows the list), search result
+  pagination, and pages now see the browser as Wisp instead of Electron.
 
 ## What it does
 
@@ -51,14 +72,17 @@ it into `clips/` and tie it back to your sources.
 open or create the target), and `![[src-id]]` to embed a source right in
 a note.
 
-**Concept map.** One graph, three views of it. Edges come from wikilinks
-(green arrow), tag-based suggestions (dashed, free, deterministic), manual
-links (shift-click two nodes), or an on-demand AI pass that suggests
-connections (needs your own API key, only runs when you ask for it).
+**Concept map.** One graph, three views of it. Boxed nodes with photos for
+image sources, ready-made templates to start from, undo/redo, box
+selection. Edges come from wikilinks (green), name mentions (auto, faint
+blue), tag-based suggestions (dashed, deterministic), manual links
+(shift-click two nodes) with per-edge styles and labels, or an on-demand
+AI pass that suggests connections (needs your own API key, only runs when
+you ask for it).
 
 **Research tools.** Copy BibTeX/APA/MLA off a source card, split view for
-reading a source next to your notes, and a command palette (ctrl-K,
-prefix with `?` to search).
+reading a source next to your notes, and a command bar (ctrl-T, prefix
+with `?` to search).
 
 **Everything else.** Six themes (Dark, Midnight, Forest, Plum, Light,
 Sepia) with a custom accent color on top, a web-dev mode (DevTools plus a
@@ -68,37 +92,42 @@ JSON viewer for search responses), a focus timer, and profile labels.
 
 | Shortcut | Action |
 | --- | --- |
-| Ctrl+T | New tab |
+| Ctrl+T | Command bar — new tab, search, commands |
 | Ctrl+W | Close tab |
 | Ctrl+L | Address bar |
-| Ctrl+K | Command palette |
+| Ctrl+Tab / Ctrl+Shift+Tab | Cycle tabs |
+| Ctrl+1 … Ctrl+9 | Go to the Nth tab (9 = last) |
+| Ctrl+F | Find in page |
+| Ctrl+Shift+F | Full-text search across the room |
+| Ctrl+H | History |
+| `?` | Full shortcut list |
 | Shift-click (two nodes on the map) | Manual link |
-| Alt-click (a link on the map) | Delete manual/AI link |
+| Shift-drag / Ctrl+A (map) | Box-select / select all — Delete removes |
+| Ctrl+Z / Ctrl+Shift+Z (map) | Undo / redo |
 | Ctrl-click (a wikilink in a note) | Open or create the target note |
 
-## Running it
+## Installing & running
 
-### Linux
+You need [Node.js](https://nodejs.org) 20+ (which includes npm) and git.
+The same three commands work on both Linux and Windows:
 
 ```bash
 git clone https://github.com/Shawy404/Wisp.git
 cd Wisp
-npm install          # pulls deps + the Electron binary
-npm run dev           # dev mode, hot reload
-npm run build:linux   # AppImage, ends up in dist/
+npm install    # pulls all dependencies + the Electron binary
+npm run dev    # starts Wisp in dev mode, hot reload
 ```
 
-### Windows
+To build a real, installable app for yourself:
 
-```powershell
-git clone https://github.com/Shawy404/Wisp.git
-cd Wisp
-npm install
-npm run dev            # dev mode, hot reload
-npm run build:win      # installer + portable exe, ends up in dist/
+```bash
+npm run build:linux   # Linux: AppImage, lands in dist/
+npm run build:win     # Windows: installer + portable exe, lands in dist/
 ```
 
-Same codebase, no native/platform-specific bits, so both just work off
+The build step also downloads `yt-dlp` (for video clipping) and packages
+it inside the app, so end users never install anything by hand. No
+native/platform-specific bits otherwise — everything works straight off
 `npm install`. If npm can't reach GitHub to grab the Electron binary,
 point `ELECTRON_MIRROR` at a mirror before installing.
 
@@ -156,7 +185,7 @@ room's data, so editing one view updates the others.
 
 ## Up next
 
-- Double-click a map node to jump to the linked note/source.
 - Note preview (marked is already wired in, just needs a read-only render).
 - Per-room dev mode and per-room focus stats.
 - Persist `search:last` results to disk for cross-session search history.
+- Room export (markdown bundle + citation list).

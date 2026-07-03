@@ -13,16 +13,26 @@ export default function VerticalTabs({ collapsed }: { collapsed: boolean }): Rea
   const activeTabId = useApp((s) => s.activeTabId)
   const rooms = useApp((s) => s.rooms)
   const activeRoomId = useApp((s) => s.activeRoomId)
-  const { activateTab, closeTab, newTab, reorderTabs, pinTab, unpinTab } = useApp.getState()
+  const { activateTab, closeTab, newTab, reorderTabs, pinTab, unpinTab, setOverlay } =
+    useApp.getState()
   const t = useT()
   const dragId = useRef<string | null>(null)
 
   const pinned = rooms.find((r) => r.id === activeRoomId)?.pinned ?? []
 
+  // Picking a tab means "show me that page" — leave whatever panel is open.
+  const showTab = (id: string): void => {
+    activateTab(id)
+    if (useApp.getState().overlay !== 'none') setOverlay('none')
+  }
+
   const openPinned = (url: string): void => {
     const existing = tabs.find((t) => t.url === url)
-    if (existing) activateTab(existing.id)
-    else newTab(url)
+    if (existing) showTab(existing.id)
+    else {
+      newTab(url)
+      if (useApp.getState().overlay !== 'none') setOverlay('none')
+    }
   }
 
   const handleDrop = (targetId: string): void => {
@@ -82,6 +92,7 @@ export default function VerticalTabs({ collapsed }: { collapsed: boolean }): Rea
           className="flex h-5 w-5 items-center justify-center rounded text-neutral-500 hover:bg-neutral-800 hover:text-neutral-200"
           onClick={() => {
             newTab()
+            if (useApp.getState().overlay !== 'none') setOverlay('none')
             window.dispatchEvent(new CustomEvent('wisp:focus-address'))
           }}
           data-tip={t('tabs.newTab')}
@@ -97,7 +108,7 @@ export default function VerticalTabs({ collapsed }: { collapsed: boolean }): Rea
             onDragStart={() => (dragId.current = tab.id)}
             onDragOver={(e) => e.preventDefault()}
             onDrop={() => handleDrop(tab.id)}
-            onClick={() => activateTab(tab.id)}
+            onClick={() => showTab(tab.id)}
             onAuxClick={(e) => e.button === 1 && closeTab(tab.id)}
             title={tab.title || tab.url}
             className={`group flex cursor-default items-center gap-2 rounded-lg text-xs ${

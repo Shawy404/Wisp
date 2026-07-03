@@ -133,47 +133,27 @@ export function registerClip(ctx: WispContext): void {
             toast(t('main.clip.selectionNoteToast'))
           }
         })
-        // Clip a *picture* of the selection: screenshot its bounding box into
-        // the room. The saved excerpt doubles as a text fragment, so opening
-        // the source later lands on the page with the section highlighted.
+        // Clip just this section: an ordinary clip source, indistinguishable
+        // from a page clip in the list — but opening it (click, or double-click
+        // on the map) lands on the page with the section highlighted, because
+        // the saved excerpt rides along as a Chromium text fragment.
         template.push({
-          label: t('main.clip.shotLabel', { room: roomName }),
-          click: async () => {
-            try {
-              const rect = (await wc.executeJavaScript(
-                '(() => { const s = getSelection(); if (!s || s.rangeCount === 0) return null;' +
-                  ' const r = s.getRangeAt(0).getBoundingClientRect();' +
-                  ' return { x: r.x, y: r.y, width: r.width, height: r.height } })()',
-                true
-              )) as { x: number; y: number; width: number; height: number } | null
-              if (!rect || rect.width < 4 || rect.height < 4) return
-              const image = await wc.capturePage({
-                x: Math.max(0, Math.round(rect.x)),
-                y: Math.max(0, Math.round(rect.y)),
-                width: Math.ceil(rect.width),
-                height: Math.ceil(rect.height)
-              })
-              const excerpt = params.selectionText.trim()
-              const file = `sel-${stableId(pageUrl + excerpt)}.png`
-              fs.mkdirSync(store.clipsDir(roomId), { recursive: true })
-              fs.writeFileSync(join(store.clipsDir(roomId), file), image.toPNG())
-              const source: SourceItem = {
-                id: `src-${stableId(pageUrl + excerpt)}`,
-                kind: 'image',
-                title: pageTitle || pageUrl,
-                url: pageUrl,
-                excerpt,
-                clipFile: file,
-                tags: extractKeywords(excerpt, 5).map(tagSlug),
-                addedAt: new Date().toISOString(),
-                origin: 'clip'
-              }
-              addSources(roomId, [source])
-              notify(roomId)
-              toast(t('main.clip.shotToast'))
-            } catch {
-              /* tab navigated away mid-capture */
+          label: t('main.clip.sectionLabel', { room: roomName }),
+          click: () => {
+            const excerpt = params.selectionText.trim()
+            const source: SourceItem = {
+              id: `src-${stableId(pageUrl + excerpt)}`,
+              kind: 'clip',
+              title: pageTitle || pageUrl,
+              url: pageUrl,
+              excerpt,
+              tags: extractKeywords(excerpt, 5).map(tagSlug),
+              addedAt: new Date().toISOString(),
+              origin: 'clip'
             }
+            addSources(roomId, [source])
+            notify(roomId)
+            toast(t('main.clip.sectionToast'))
           }
         })
       }

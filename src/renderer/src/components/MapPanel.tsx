@@ -232,6 +232,8 @@ interface CtxMenu {
   isImage?: boolean
   edgeId?: string
   edgeKind?: string
+  /** >1 when the right-clicked element is part of a multi-selection. */
+  selCount?: number
 }
 
 interface Renaming {
@@ -473,12 +475,15 @@ export default function MapPanel(): React.JSX.Element {
     cy.current.on('cxttap', 'node', (evt) => {
       evt.originalEvent.preventDefault()
       const p = evt.renderedPosition
+      const target = evt.target as cytoscape.NodeSingular
+      const selected = cy.current!.$(':selected')
       setCtx({
         x: p.x,
         y: p.y,
-        nodeId: evt.target.id(),
-        nodeType: evt.target.data('type') as NodeType,
-        isImage: (evt.target as cytoscape.NodeSingular).hasClass('image')
+        nodeId: target.id(),
+        nodeType: target.data('type') as NodeType,
+        isImage: target.hasClass('image'),
+        selCount: target.selected() && selected.length > 1 ? selected.length : 0
       })
     })
     cy.current.on('cxttap', 'edge', (evt) => {
@@ -826,6 +831,18 @@ export default function MapPanel(): React.JSX.Element {
             style={{ left: ctx.x, top: ctx.y }}
             onClick={(e) => e.stopPropagation()}
           >
+            {/* Right-clicking inside a multi-selection acts on the whole set. */}
+            {(ctx.selCount ?? 0) > 1 && (
+              <button
+                className="block w-full px-3 py-1.5 text-left text-red-400 hover:bg-neutral-800"
+                onClick={() => {
+                  setCtx(null)
+                  void deleteSelection()
+                }}
+              >
+                {t('map.ctx.deleteSelected', { count: ctx.selCount! })}
+              </button>
+            )}
             {ctx.nodeId && ctx.nodeType && (
               <button
                 className="block w-full px-3 py-1.5 text-left text-neutral-200 hover:bg-neutral-800"
