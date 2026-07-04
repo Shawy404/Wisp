@@ -8,7 +8,7 @@
 
 **A browser built for research.** Rooms, clean search, notes and a concept map — all on your own disk.
 
-`v0.1.4-pre-alpha` · Linux & Windows · [Download a build](../../releases) · Built by [Shawy404](https://github.com/Shawy404)
+`v0.1.5-pre-alpha` · Linux & Windows · [Download a build](../../releases) · Built by [Shawy404](https://github.com/Shawy404)
 
 <img src="docs/media/map.png" width="820" alt="Wisp concept map" />
 
@@ -54,7 +54,7 @@ Start a map from a template instead of a blank canvas — central topic, timelin
 
 ## Install
 
-Grab a ready build from the [**Releases**](../../releases) page — an `AppImage` for Linux, an installer or portable `.exe` for Windows. No setup, no dependencies. On Windows, Wisp keeps itself up to date: new releases download in the background and install when you restart.
+Grab a ready build from the [**Releases**](../../releases) page — an `AppImage` for Linux, an installer or portable `.exe` for Windows. No setup, no dependencies. On Windows, Wisp tells you when a new release is out and downloads it inside the app when you choose to, then installs on restart.
 
 ### Or run it from source
 

@@ -15,6 +15,20 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: '0.1.5-pre-alpha',
+    date: '2026-07-04',
+    notes: {
+      tr: [
+        'Uygulamanın bazı kurulumlarda açılışta siyah ekranda kalmasına yol açan hata giderildi.',
+        'Güncellemeler artık uygulama içinde iniyor: bir ilerleme menüsü çıkıyor ve indirme bitince yeniden başlatınca kuruluyor.'
+      ],
+      en: [
+        'Fixed a bug that could leave the app stuck on a black screen at startup.',
+        'Updates now download inside the app with a progress menu, and install when you restart.'
+      ]
+    }
+  },
+  {
     version: '0.1.4-pre-alpha',
     date: '2026-07-04',
     notes: {

@@ -18,12 +18,12 @@ function notesToText(notes: unknown): string {
 
 /**
  * Auto-update against GitHub releases (electron-updater reads the `publish`
- * block in electron-builder.yml). Full support is Windows/NSIS: a new release
- * downloads in the background and installs on the next quit. The renderer gets
- * status events (version + release notes) and drives the update banner; the
- * user always chooses when to restart. Nothing installs silently. Background
- * checks respect the `autoUpdate` setting; the manual check in Settings works
- * regardless.
+ * block in electron-builder.yml). Nothing installs silently and nothing pops
+ * an installer window in the user's face: a new release is only *announced* in
+ * the background. The renderer's update banner then drives the whole flow —
+ * download on demand, with a live progress bar shown inside the app, and a
+ * silent install + relaunch when the user chooses to restart. Full install
+ * support is Windows/NSIS; on Linux the check works and points at the release.
  */
 export function registerUpdater(ctx: WispContext): void {
   const send = (channel: string, payload?: unknown): void => {
@@ -31,26 +31,42 @@ export function registerUpdater(ctx: WispContext): void {
   }
   const autoEnabled = (): boolean => ctx.config.autoUpdate !== false
 
-  autoUpdater.autoDownload = autoEnabled()
-  autoUpdater.autoInstallOnAppQuit = true
+  // Never pull bytes on our own — the in-app menu asks first. And never run the
+  // installer on quit; the user triggers the (silent) install explicitly.
+  autoUpdater.autoDownload = false
+  autoUpdater.autoInstallOnAppQuit = false
 
   autoUpdater.on('update-available', (info) =>
     send('update:available', { version: info.version, notes: notesToText(info.releaseNotes) })
   )
+  autoUpdater.on('download-progress', (p) =>
+    send('update:progress', { percent: p.percent, transferred: p.transferred, total: p.total, bytesPerSecond: p.bytesPerSecond })
+  )
   autoUpdater.on('update-downloaded', (info) =>
     send('update:ready', { version: info.version, notes: notesToText(info.releaseNotes) })
   )
-  autoUpdater.on('error', () => {
-    /* offline / no releases yet / dev build — silent, updates are optional */
+  autoUpdater.on('error', (err) => {
+    // Offline / no releases yet / dev build — surface it to the banner so a
+    // user-initiated download can show "failed" instead of hanging forever.
+    send('update:error', { message: err instanceof Error ? err.message : String(err) })
   })
 
-  // Restart into the freshly downloaded version (the banner's button).
-  ipcMain.handle('update:install', () => autoUpdater.quitAndInstall())
-  // Manual check from Settings; the user asked, so download even if the
-  // background auto-update toggle is off.
+  // Start the on-demand download (the banner's "Download" button). Progress
+  // streams over update:progress; completion fires update:ready.
+  ipcMain.handle('update:download', () => {
+    autoUpdater.downloadUpdate().catch((err) =>
+      send('update:error', { message: err instanceof Error ? err.message : String(err) })
+    )
+  })
+
+  // Install the downloaded update and relaunch. isSilent + isForceRunAfter so
+  // no NSIS wizard window appears — the app just closes and reopens updated.
+  ipcMain.handle('update:install', () => autoUpdater.quitAndInstall(true, true))
+
+  // Manual check from Settings; returns whether one is available (download is
+  // still user-driven, so this never pulls bytes by itself).
   ipcMain.handle('update:check', async () => {
     try {
-      autoUpdater.autoDownload = true
       const res = await autoUpdater.checkForUpdates()
       const updateAvailable =
         !!res?.updateInfo && res.updateInfo.version !== autoUpdater.currentVersion.version
@@ -61,16 +77,13 @@ export function registerUpdater(ctx: WispContext): void {
       }
     } catch {
       return { updateAvailable: false }
-    } finally {
-      autoUpdater.autoDownload = autoEnabled()
     }
   })
 
-  // Check shortly after launch, then hourly — but never in dev, and only
-  // while the setting is on (flipping it takes effect on the next tick).
+  // Check shortly after launch, then hourly — but never in dev, and only while
+  // the setting is on. This only *announces*; the download waits for the user.
   const check = (): void => {
     if (!autoEnabled()) return
-    autoUpdater.autoDownload = true
     void autoUpdater.checkForUpdates().catch(() => {})
   }
   if (!process.env.ELECTRON_RENDERER_URL && !process.env.WISP_SMOKE) {

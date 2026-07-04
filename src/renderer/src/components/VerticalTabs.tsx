@@ -9,6 +9,9 @@ interface MenuState {
   items: { label: string; danger?: boolean; run: () => void }[]
 }
 
+/** Stable empty fallback so the essentials selector keeps a constant reference. */
+const EMPTY_ESSENTIALS: PinnedTab[] = []
+
 /**
  * Sidebar tab area, top to bottom: essentials (global — they follow you into
  * every room), the room's pinned tabs, then the vertical tab list. Tabs:
@@ -21,7 +24,9 @@ export default function VerticalTabs({ collapsed }: { collapsed: boolean }): Rea
   const activeTabId = useApp((s) => s.activeTabId)
   const rooms = useApp((s) => s.rooms)
   const activeRoomId = useApp((s) => s.activeRoomId)
-  const essentials = useApp((s) => s.config?.essentials ?? [])
+  // Select the stored reference (may be undefined) — never `?? []` inside the
+  // selector, or zustand v5 sees a fresh array every render and loops forever.
+  const essentials = useApp((s) => s.config?.essentials) ?? EMPTY_ESSENTIALS
   const {
     activateTab,
     closeTab,
