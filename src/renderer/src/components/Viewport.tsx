@@ -57,6 +57,10 @@ export default function Viewport({ children }: { children?: React.ReactNode }): 
     const el = inner.current
     if (!el) return
     const report = (): void => {
+      // While a split-view pane owns the native view (live page), let it drive
+      // the bounds — reporting the full card here would yank the page back to
+      // fill the whole viewport mid-split.
+      if (useApp.getState().splitLiveRect) return
       const r = el.getBoundingClientRect()
       void invoke('viewport:bounds', { x: r.x, y: r.y, width: r.width, height: r.height })
     }
@@ -64,9 +68,14 @@ export default function Viewport({ children }: { children?: React.ReactNode }): 
     const ro = new ResizeObserver(report)
     ro.observe(el)
     window.addEventListener('resize', report)
+    // When the split's live pane releases the view, restore the full card.
+    const unsub = useApp.subscribe((s, prev) => {
+      if (prev.splitLiveRect && !s.splitLiveRect) report()
+    })
     return () => {
       ro.disconnect()
       window.removeEventListener('resize', report)
+      unsub()
     }
   }, [])
 

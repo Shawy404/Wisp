@@ -3,6 +3,7 @@ import { useEffect, useState } from 'react'
 import { THEMES } from '@shared/themes'
 import { CHANGELOG } from '@shared/changelog'
 import { invoke, useApp, useT } from '@/store'
+import { ALL_RAIL, railLocation } from './railItems'
 import type { SearchEngineId, WispConfig } from '@shared/types'
 
 const PRESET_ACCENTS = ['#7dd3a8', '#8ab4f8', '#f8b48a', '#c58af8', '#f87d9a', '#e8d47d']
@@ -30,7 +31,7 @@ const SLEEP_CHOICES = [5, 10, 20, 45, 0]
 
 export default function SettingsPanel(): React.JSX.Element {
   const config = useApp((s) => s.config)
-  const { setConfig } = useApp.getState()
+  const { setConfig, placeRailItem } = useApp.getState()
   const t = useT()
   const lang = config?.language ?? 'tr'
   const [allowlistText, setAllowlistText] = useState((config?.adblockAllowlist ?? []).join('\n'))
@@ -289,21 +290,26 @@ export default function SettingsPanel(): React.JSX.Element {
         </Section>
 
         <Section title={t('settings.rail')}>
-          <div className="mb-2 text-[11px] text-neutral-500">{t('settings.rail.hint')}</div>
-          <div className="flex items-center gap-2">
-            {(['sidebar', 'titlebar'] as const).map((loc) => (
-              <button
-                key={loc}
-                onClick={() => void setConfig({ railSystemGroup: loc })}
-                className={`rounded-md px-3 py-1.5 text-xs ${
-                  (config.railSystemGroup ?? 'sidebar') === loc
-                    ? 'bg-neutral-800 text-neutral-100'
-                    : 'text-neutral-500 hover:text-neutral-300'
-                }`}
-              >
-                {t(loc === 'sidebar' ? 'settings.rail.sidebar' : 'settings.rail.titlebar')}
-              </button>
-            ))}
+          <div className="mb-3 text-[11px] text-neutral-500">{t('settings.rail.hint')}</div>
+          <div className="flex flex-wrap items-center gap-2">
+            {ALL_RAIL.map((item) => {
+              const loc = railLocation(config, item.id)
+              const next = loc === 'sidebar' ? 'titlebar' : 'sidebar'
+              return (
+                <button
+                  key={item.id}
+                  onClick={() => void placeRailItem(item.id, next)}
+                  className="flex items-center gap-1.5 rounded-md border border-neutral-800 bg-neutral-900 px-2.5 py-1.5 text-xs text-neutral-300 hover:border-neutral-600"
+                  data-tip={t('settings.rail.move')}
+                >
+                  <span className="text-sm">{item.icon}</span>
+                  <span>{t(item.titleKey)}</span>
+                  <span className="ml-1 rounded bg-neutral-800 px-1.5 py-px text-[9px] text-neutral-500">
+                    {t(loc === 'sidebar' ? 'settings.rail.sidebar' : 'settings.rail.titlebar')}
+                  </span>
+                </button>
+              )
+            })}
           </div>
         </Section>
 
@@ -367,33 +373,37 @@ export default function SettingsPanel(): React.JSX.Element {
               </span>
             )}
           </div>
-          <div className="mt-4">
+        </Section>
+
+        {/* Its own section: every version and what changed in it. */}
+        <Section title={t('settings.changelog')}>
+          <div className="mb-3 text-[11px] text-neutral-500">{t('settings.changelog.hint')}</div>
+          <div className="space-y-3">
+            {(showLog ? CHANGELOG : CHANGELOG.slice(0, 2)).map((entry) => (
+              <div key={entry.version} className="rounded-md border border-neutral-800 bg-neutral-900/50 p-3">
+                <div className="mb-1.5 flex items-baseline gap-2">
+                  <span className="text-xs font-semibold text-neutral-100">{entry.version}</span>
+                  <span className="text-[10px] text-neutral-600">{entry.date}</span>
+                </div>
+                <ul className="space-y-1">
+                  {entry.notes[lang].map((note, i) => (
+                    <li key={i} className="flex gap-1.5 text-[11px] leading-relaxed text-neutral-400">
+                      <span className="text-accent">•</span>
+                      <span>{note}</span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            ))}
+          </div>
+          {CHANGELOG.length > 2 && (
             <button
-              className="text-[11px] text-neutral-500 hover:text-neutral-300"
+              className="mt-3 text-[11px] text-neutral-500 hover:text-neutral-300"
               onClick={() => setShowLog((v) => !v)}
             >
-              {showLog ? '▾' : '▸'} {t('settings.updates.log')}
+              {showLog ? t('settings.changelog.less') : t('settings.changelog.more', { count: CHANGELOG.length - 2 })}
             </button>
-            {showLog && (
-              <div className="mt-2 space-y-3">
-                {CHANGELOG.map((entry) => (
-                  <div key={entry.version} className="rounded-md border border-neutral-800 bg-neutral-900/50 p-3">
-                    <div className="mb-1 flex items-baseline gap-2">
-                      <span className="text-xs font-semibold text-neutral-100">{entry.version}</span>
-                      <span className="text-[10px] text-neutral-600">{entry.date}</span>
-                    </div>
-                    <ul className="space-y-0.5">
-                      {entry.notes[lang].map((note, i) => (
-                        <li key={i} className="text-[11px] leading-relaxed text-neutral-400">
-                          • {note}
-                        </li>
-                      ))}
-                    </ul>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
+          )}
         </Section>
 
         <Section title={t('settings.searchEngine')}>

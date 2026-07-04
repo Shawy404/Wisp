@@ -60,7 +60,13 @@ function createWindow(): void {
     }
   })
 
+  // Show on first paint so the boot splash is the first thing drawn. A fallback
+  // timer covers compositors where ready-to-show fires late (or not at all),
+  // so the window never stays hidden.
   win.on('ready-to-show', () => win.show())
+  setTimeout(() => {
+    if (!win.isDestroyed() && !win.isVisible()) win.show()
+  }, 1500)
 
   win.webContents.setWindowOpenHandler(({ url }) => {
     openExternalSafe(url)

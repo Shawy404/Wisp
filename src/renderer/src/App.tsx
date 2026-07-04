@@ -1,5 +1,5 @@
 // Wisp — © Shawy404. All rights reserved.
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useApp } from '@/store'
 import TitleBar from './components/TitleBar'
 import RoomSidebar from './components/RoomSidebar'
@@ -48,14 +48,20 @@ export default function App(): React.JSX.Element {
     }
   }, [config?.accent, config?.theme, config?.translucentUi, config?.windowTransparent, backgroundUrl])
 
-  // Boot splash: the wisp bobs while the shell loads, lingers a beat once
-  // ready so it never just blinks away, then fades out and unmounts.
+  // Boot splash: the wisp bobs while the shell loads. Its lifetime is anchored
+  // to a minimum wall-clock time from first mount, not to how fast init()
+  // resolves — otherwise on a fast machine the window can appear only after the
+  // splash has already timed out, and you'd never see it. It fades out once the
+  // app is ready AND that minimum has elapsed.
+  const MIN_SPLASH_MS = 1400
+  const mountedAt = useRef(Date.now())
   const [splashFading, setSplashFading] = useState(false)
   const [splashGone, setSplashGone] = useState(false)
   useEffect(() => {
     if (!ready) return
-    const fade = setTimeout(() => setSplashFading(true), 650)
-    const gone = setTimeout(() => setSplashGone(true), 1150)
+    const wait = Math.max(0, MIN_SPLASH_MS - (Date.now() - mountedAt.current))
+    const fade = setTimeout(() => setSplashFading(true), wait)
+    const gone = setTimeout(() => setSplashGone(true), wait + 500)
     return () => {
       clearTimeout(fade)
       clearTimeout(gone)

@@ -3,17 +3,20 @@ import { useEffect, useRef, useState } from 'react'
 import { useApp, useT, type Overlay } from '@/store'
 import VerticalTabs from './VerticalTabs'
 import SidebarWidgets from './SidebarWidgets'
-import { CONTENT_RAIL, SYSTEM_RAIL } from './railItems'
+import { RAIL_DND_TYPE, railItemsFor, type RailItem } from './railItems'
 
 export function RailButton(props: {
   title: string
   active?: boolean
   onClick: () => void
+  onDragStart?: (e: React.DragEvent) => void
   children: React.ReactNode
 }): React.JSX.Element {
   return (
     <button
-      className={`flex h-8 w-8 items-center justify-center rounded-lg text-base ${
+      draggable={!!props.onDragStart}
+      onDragStart={props.onDragStart}
+      className={`flex h-8 w-8 cursor-grab items-center justify-center rounded-lg text-base active:cursor-grabbing ${
         props.active
           ? 'bg-accent/15 text-accent'
           : 'text-neutral-500 hover:bg-neutral-800 hover:text-neutral-200'
@@ -31,8 +34,8 @@ const EXPANDED_W = 224
 /**
  * Sidebar: rooms as a dot row up top, pinned tabs and the vertical tab list
  * in the middle, panel rail at the bottom. Collapsible to an icon-only rail —
- * or, in compact mode (Zen-style), it tucks itself away entirely and glides
- * back when the pointer touches the strip along the left edge.
+ * or, in compact mode, it tucks itself away entirely and glides back when the
+ * pointer touches the strip along the left edge.
  */
 export default function RoomSidebar(): React.JSX.Element {
   const rooms = useApp((s) => s.rooms)
@@ -40,7 +43,9 @@ export default function RoomSidebar(): React.JSX.Element {
   const overlay = useApp((s) => s.overlay)
   const config = useApp((s) => s.config)
   const draggingTab = useApp((s) => s.draggingTab)
-  const { switchRoom, createRoom, deleteRoom, renameRoom, setOverlay } = useApp.getState()
+  const { switchRoom, createRoom, deleteRoom, renameRoom, setOverlay, placeRailItem } =
+    useApp.getState()
+  const [railDropHot, setRailDropHot] = useState(false)
   const t = useT()
   const [collapsed, setCollapsed] = useState(false)
   const [creating, setCreating] = useState(false)
@@ -78,7 +83,27 @@ export default function RoomSidebar(): React.JSX.Element {
 
   const room = rooms.find((r) => r.id === activeRoomId)
   const toggle = (o: Overlay): void => setOverlay(overlay === o ? 'none' : o)
-  const systemInTitlebar = config?.railSystemGroup === 'titlebar'
+
+  // Rail buttons placed on the sidebar, split by group so the divider only
+  // shows between clusters that are actually present here.
+  const railItems = railItemsFor(config, 'sidebar')
+  const contentItems = railItems.filter((i) => i.group === 'content')
+  const systemItems = railItems.filter((i) => i.group === 'system')
+  const startRailDrag = (e: React.DragEvent, item: RailItem): void => {
+    e.dataTransfer.setData(RAIL_DND_TYPE, item.id)
+    e.dataTransfer.effectAllowed = 'move'
+  }
+  const RailBtn = (item: RailItem): React.JSX.Element => (
+    <RailButton
+      key={item.id}
+      title={t(item.titleKey)}
+      active={overlay === item.id}
+      onClick={() => toggle(item.id)}
+      onDragStart={(e) => startRailDrag(e, item)}
+    >
+      {item.icon}
+    </RailButton>
+  )
 
   const hidden = compact && !revealed
   const width = compact
@@ -234,37 +259,28 @@ export default function RoomSidebar(): React.JSX.Element {
         {/* Mini widget'lar: müzik + bellek (daraltılmış rayda gizli) */}
         {(!collapsed || compact) && <SidebarWidgets />}
 
-        {/* Panel rayı: içerik grubu | sistem grubu | daraltma */}
+        {/* Panel rayı: içerik grubu | sistem grubu | daraltma. Butonlar
+            sürüklenip üst çubuğa bırakılabilir; bu ray da bir bırakma alanı. */}
         <div
-          className={`flex items-center border-t border-neutral-800/60 py-1.5 ${
-            collapsed && !compact ? 'flex-col gap-1' : 'justify-around px-1'
-          }`}
+          className={`flex items-center border-t py-1.5 transition-colors ${
+            railDropHot ? 'border-accent/50 bg-accent/10' : 'border-neutral-800/60'
+          } ${collapsed && !compact ? 'flex-col gap-1' : 'justify-around px-1'}`}
+          onDragOver={(e) => {
+            if (e.dataTransfer.types.includes(RAIL_DND_TYPE)) {
+              e.preventDefault()
+              setRailDropHot(true)
+            }
+          }}
+          onDragLeave={() => setRailDropHot(false)}
+          onDrop={(e) => {
+            const id = e.dataTransfer.getData(RAIL_DND_TYPE)
+            setRailDropHot(false)
+            if (id) void placeRailItem(id, 'sidebar')
+          }}
         >
-          {CONTENT_RAIL.map((item) => (
-            <RailButton
-              key={item.overlay}
-              title={t(item.titleKey)}
-              active={overlay === item.overlay}
-              onClick={() => toggle(item.overlay)}
-            >
-              {item.icon}
-            </RailButton>
-          ))}
-          {!systemInTitlebar && (
-            <>
-              <Divider />
-              {SYSTEM_RAIL.map((item) => (
-                <RailButton
-                  key={item.overlay}
-                  title={t(item.titleKey)}
-                  active={overlay === item.overlay}
-                  onClick={() => toggle(item.overlay)}
-                >
-                  {item.icon}
-                </RailButton>
-              ))}
-            </>
-          )}
+          {contentItems.map(RailBtn)}
+          {contentItems.length > 0 && systemItems.length > 0 && <Divider />}
+          {systemItems.map(RailBtn)}
           {!compact && (
             <>
               <Divider />

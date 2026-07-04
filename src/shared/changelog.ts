@@ -19,12 +19,20 @@ export const CHANGELOG: ChangelogEntry[] = [
     date: '2026-07-04',
     notes: {
       tr: [
-        'Uygulamanın bazı kurulumlarda açılışta siyah ekranda kalmasına yol açan hata giderildi.',
-        'Güncellemeler artık uygulama içinde iniyor: bir ilerleme menüsü çıkıyor ve indirme bitince yeniden başlatınca kuruluyor.'
+        'Uygulamanın açılışta siyah ekranda kalmasına yol açan hata giderildi.',
+        'Güncellemeler artık uygulamanın içinde iniyor: kurulum penceresi açılmadan, wisp animasyonlu bir ilerleme menüsüyle iner ve yeniden başlatınca kurulur. Güncellemek tamamen senin seçimin.',
+        'Açılış animasyonu artık her açılışta güvenilir biçimde görünüyor.',
+        'Panel butonlarını (ayarlar, indirilenler, şifreler vb.) tutup kenar çubuğu ile üst çubuk arasında sürükleyebiliyorsun; ayarlardan da yerleri değişiyor.',
+        'Split view yenilendi: her iki pano da ayrı ayrı Sayfa / Okuyucu / Not / Kaynaklar gösterebiliyor. Bir sekmeyi kenara sürükleyince canlı sayfa bir yanda, not diğer yanda açılıyor.',
+        'Ayarlara her sürümde ne değiştiğini gösteren sürüm notları bölümü eklendi.'
       ],
       en: [
         'Fixed a bug that could leave the app stuck on a black screen at startup.',
-        'Updates now download inside the app with a progress menu, and install when you restart.'
+        'Updates now download inside the app: a wisp-animated progress menu, no installer window, and it installs on restart. Updating is entirely your choice.',
+        'The startup animation now shows reliably on every launch.',
+        'Panel buttons (settings, downloads, vault, and the rest) can be dragged between the sidebar rail and the title bar; you can also move them from settings.',
+        'Split view reworked: each pane independently shows Page / Reader / Note / Sources. Drag a tab to an edge to get the live page on one side and a note on the other.',
+        'Added a release-notes section in settings that lists what changed in each version.'
       ]
     }
   },

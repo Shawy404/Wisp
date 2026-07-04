@@ -47,8 +47,15 @@ interface AppState {
   setDraggingTab: (dragging: boolean) => void
   /** Which side of the split view shows the page/reader pane. */
   splitSide: 'left' | 'right'
-  /** Drag-to-split: focus the tab and open split view with the reader on `side`. */
+  /** Drag-to-split: focus the tab and open split view with the page on `side`. */
   requestSplit: (tabId: string, side: 'left' | 'right') => void
+  /**
+   * When a split-view pane shows the live page, it hands its on-screen rect
+   * here so the native web view can be positioned into exactly that pane.
+   * Null means no pane is live (the native view stays hidden behind overlays).
+   */
+  splitLiveRect: { x: number; y: number; width: number; height: number } | null
+  setSplitLiveRect: (rect: AppState['splitLiveRect']) => void
 
   init: () => Promise<void>
   refreshRoomData: (roomId?: string) => Promise<void>
@@ -70,6 +77,8 @@ interface AppState {
   /** Essentials live in the global config — they follow you into every room. */
   addEssential: (url: string, title: string, favicon?: string) => Promise<void>
   removeEssential: (url: string) => Promise<void>
+  /** Drag-and-drop: move a rail button to the sidebar or the title bar. */
+  placeRailItem: (id: string, location: 'sidebar' | 'titlebar') => Promise<void>
 
   newTab: (url?: string) => void
   closeTab: (id: string) => void
@@ -105,6 +114,9 @@ export const useApp = create<AppState>((set, get) => ({
     set({ splitSide: side })
     get().setOverlay('split')
   },
+
+  splitLiveRect: null,
+  setSplitLiveRect: (rect) => set({ splitLiveRect: rect }),
 
   init: async () => {
     window.wisp.on('tabs:state', (state) => {
@@ -225,6 +237,12 @@ export const useApp = create<AppState>((set, get) => ({
   removeEssential: async (url) => {
     const current = get().config?.essentials ?? []
     await get().setConfig({ essentials: current.filter((e) => e.url !== url) })
+  },
+
+  placeRailItem: async (id, location) => {
+    const current = get().config?.railPlacement ?? {}
+    if (current[id] === location) return
+    await get().setConfig({ railPlacement: { ...current, [id]: location } })
   },
 
   newTab: (url) => void invoke('tabs:new', url ?? 'about:blank'),

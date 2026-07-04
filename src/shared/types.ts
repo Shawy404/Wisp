@@ -160,7 +160,7 @@ export interface WispConfig {
   backgroundOpacity?: number
   /** Background blur in px (default 0). */
   backgroundBlur?: number
-  /** Zen-style glass: make the UI surfaces translucent so the background shows through. */
+  /** Glass: make the UI surfaces translucent so the background shows through. */
   translucentUi?: boolean
   /** Real window transparency (compositor glass) — needs an app restart. */
   windowTransparent?: boolean
@@ -170,7 +170,7 @@ export interface WispConfig {
   onboarded?: boolean
   /** Which sidebar mini-widgets are visible (default: all). */
   sidebarWidgets?: { music?: boolean; ram?: boolean }
-  /** Zen-style compact mode: the sidebar hides itself and reveals on hover. */
+  /** Compact mode: the sidebar hides itself and reveals on hover. */
   compactSidebar?: boolean
   /** Width in px of the hover strip that reveals the compact sidebar (default 10). */
   compactRevealPx?: number
@@ -182,8 +182,12 @@ export interface WispConfig {
   autoUpdate?: boolean
   /** Minutes before an inactive background tab is unloaded; 0 = never (default 20). */
   tabSleepMinutes?: number
-  /** Where the system rail group (split/downloads/vault/settings) lives. */
-  railSystemGroup?: 'sidebar' | 'titlebar'
+  /**
+   * Per-button rail placement: overlay id → which bar its button lives on.
+   * Buttons are drag-and-drop between the sidebar rail and the title bar;
+   * anything unset falls back to the sidebar.
+   */
+  railPlacement?: Record<string, 'sidebar' | 'titlebar'>
 }
 
 /** What's playing in some tab, for the sidebar music widget. */

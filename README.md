@@ -36,7 +36,7 @@ Everything you save lands in the room's sources, tagged and ready to cite:
 
 <img src="docs/media/sources.png" width="820" alt="Sources collected in a room" />
 
-**Notes and a concept map.** Notes are plain markdown (Obsidian-compatible), with `[[wikilinks]]`, inline images, and `![[src-id]]` to embed a source. The map is the same data as a graph: boxed nodes, photos for image sources, six ready-made templates to start from, undo/redo and version history, drag-to-link, editable edge labels, and auto-links when one note mentions another node by name.
+**Notes and a concept map.** Notes are plain markdown files, with `[[wikilinks]]`, inline images, and `![[src-id]]` to embed a source. The map is the same data as a graph: boxed nodes, photos for image sources, six ready-made templates to start from, undo/redo and version history, drag-to-link, editable edge labels, and auto-links when one note mentions another node by name.
 
 <img src="docs/media/notes.png" width="820" alt="Notes with wikilinks" />
 
@@ -102,7 +102,7 @@ Everything is local — nothing leaves your machine beyond the searches you run.
   vault.json               passwords (encrypted via the OS keychain)
   rooms/<room>/
     room.json              metadata + open tabs
-    notes/*.md             notes (Obsidian-compatible)
+    notes/*.md             notes (plain markdown)
     sources.json           collected sources
     map.json               concept nodes + links
     map-history.json       map version snapshots
