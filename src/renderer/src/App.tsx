@@ -1,6 +1,6 @@
 // Wisp — © Shawy404. All rights reserved.
 import { lazy, Suspense, useEffect, useRef, useState } from 'react'
-import { useApp } from '@/store'
+import { invoke, useApp } from '@/store'
 import TitleBar from './components/TitleBar'
 import RoomSidebar from './components/RoomSidebar'
 import Viewport from './components/Viewport'
@@ -79,6 +79,15 @@ export default function App(): React.JSX.Element {
       clearTimeout(gone)
     }
   }, [ready])
+
+  // A restored tab's native page view is drawn on top of the renderer, so it
+  // would cover the splash — keep the page hidden until the splash is gone, then
+  // hand visibility back to the overlay logic. Re-asserted on `ready` because
+  // restoring tabs re-attaches (and re-shows) the active view mid-splash.
+  useEffect(() => {
+    if (!splashGone) void invoke('viewport:visible', false)
+    else void invoke('viewport:visible', useApp.getState().overlay === 'none')
+  }, [ready, splashGone])
 
   const splash = !splashGone && (
     // Opaque hardcoded background so it never shows through, even with window
