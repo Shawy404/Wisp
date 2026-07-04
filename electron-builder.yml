@@ -12,6 +12,10 @@ files:
   - build/icon.png
 asarUnpack:
   - node_modules/@mozilla/readability/**
+# Uncompressed AppImage squashfs: the launcher mounts it near-instantly and the
+# OS reads pages on demand instead of decompressing the whole image up front.
+# Bigger file, much faster cold start — startup speed wins for a desktop app.
+compression: store
 # Auto-update source: GitHub Releases of this repo.
 publish:
   provider: github

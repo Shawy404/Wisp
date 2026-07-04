@@ -8,8 +8,62 @@
       http-equiv="Content-Security-Policy"
       content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; connect-src 'self'"
     />
+    <style>
+      /*
+       * Static boot splash — painted on the very first frame, before the app's
+       * JavaScript has even parsed. This is what fills the gap between the
+       * window appearing and React mounting, so launch shows the wisp instead
+       * of an empty/transparent window. React draws its own matching splash on
+       * top, then main.tsx removes this one.
+       */
+      #boot-splash {
+        position: fixed;
+        inset: 0;
+        z-index: 90;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: 20px;
+        background: #0e0e12;
+      }
+      #boot-splash .orb {
+        width: 46px;
+        height: 46px;
+        border-radius: 50% 50% 45% 45%;
+        background: radial-gradient(circle at 35% 30%, #7dd3a8, #2f6b53);
+        box-shadow: 0 0 22px rgba(125, 211, 168, 0.5);
+        animation: boot-bob 1.4s ease-in-out infinite alternate, boot-glow 2s ease-in-out infinite;
+      }
+      #boot-splash .name {
+        font: 600 24px/1 system-ui, -apple-system, sans-serif;
+        letter-spacing: -0.02em;
+        color: #7dd3a8;
+      }
+      @keyframes boot-bob {
+        from {
+          transform: translateY(5px) scale(1.02, 0.98);
+        }
+        to {
+          transform: translateY(-6px) scale(0.98, 1.02);
+        }
+      }
+      @keyframes boot-glow {
+        0%,
+        100% {
+          box-shadow: 0 0 16px rgba(125, 211, 168, 0.4);
+        }
+        50% {
+          box-shadow: 0 0 30px rgba(125, 211, 168, 0.75);
+        }
+      }
+    </style>
   </head>
   <body class="bg-neutral-950 text-neutral-100">
+    <div id="boot-splash">
+      <div class="orb"></div>
+      <div class="name">Wisp</div>
+    </div>
     <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>
   </body>
