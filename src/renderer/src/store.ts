@@ -42,6 +42,13 @@ interface AppState {
   /** Data URL of the current background image (null = none). */
   backgroundUrl: string | null
   setBackgroundUrl: (url: string | null) => void
+  /** True while a sidebar tab is being dragged — the viewport shows split drop zones. */
+  draggingTab: boolean
+  setDraggingTab: (dragging: boolean) => void
+  /** Which side of the split view shows the page/reader pane. */
+  splitSide: 'left' | 'right'
+  /** Drag-to-split: focus the tab and open split view with the reader on `side`. */
+  requestSplit: (tabId: string, side: 'left' | 'right') => void
 
   init: () => Promise<void>
   refreshRoomData: (roomId?: string) => Promise<void>
@@ -60,6 +67,9 @@ interface AppState {
   switchRoom: (id: string) => Promise<void>
   pinTab: (url: string, title: string, favicon?: string) => Promise<void>
   unpinTab: (url: string) => Promise<void>
+  /** Essentials live in the global config — they follow you into every room. */
+  addEssential: (url: string, title: string, favicon?: string) => Promise<void>
+  removeEssential: (url: string) => Promise<void>
 
   newTab: (url?: string) => void
   closeTab: (id: string) => void
@@ -85,6 +95,16 @@ export const useApp = create<AppState>((set, get) => ({
   backgroundUrl: null,
 
   setBackgroundUrl: (url) => set({ backgroundUrl: url }),
+
+  draggingTab: false,
+  setDraggingTab: (dragging) => set({ draggingTab: dragging }),
+
+  splitSide: 'left',
+  requestSplit: (tabId, side) => {
+    get().activateTab(tabId)
+    set({ splitSide: side })
+    get().setOverlay('split')
+  },
 
   init: async () => {
     window.wisp.on('tabs:state', (state) => {
@@ -193,6 +213,18 @@ export const useApp = create<AppState>((set, get) => ({
     if (!roomId) return
     await invoke('rooms:unpin', roomId, url)
     set({ rooms: await invoke<RoomMeta[]>('rooms:list') })
+  },
+
+  addEssential: async (url, title, favicon) => {
+    if (!url) return
+    const current = get().config?.essentials ?? []
+    if (current.some((e) => e.url === url)) return
+    await get().setConfig({ essentials: [...current, { url, title, favicon }] })
+  },
+
+  removeEssential: async (url) => {
+    const current = get().config?.essentials ?? []
+    await get().setConfig({ essentials: current.filter((e) => e.url !== url) })
   },
 
   newTab: (url) => void invoke('tabs:new', url ?? 'about:blank'),

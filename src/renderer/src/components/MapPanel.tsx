@@ -1,7 +1,7 @@
 // Wisp — © Shawy404. All rights reserved.
 import { useEffect, useMemo, useRef, useState } from 'react'
 import cytoscape, { type Core, type ElementDefinition } from 'cytoscape'
-import type { AiEdgeSuggestion, MapData } from '@shared/types'
+import type { MapData } from '@shared/types'
 import type { TKey } from '@shared/i18n'
 import { buildGraph, type Graph } from '@shared/graph'
 import { highlightUrl } from '@shared/address'
@@ -264,9 +264,6 @@ export default function MapPanel(): React.JSX.Element {
   const cy = useRef<Core | null>(null)
   const linkFrom = useRef<string | null>(null)
 
-  const [suggestions, setSuggestions] = useState<AiEdgeSuggestion[]>([])
-  const [aiState, setAiState] = useState<'idle' | 'loading' | 'error'>('idle')
-  const [aiError, setAiError] = useState('')
   const [addingConcept, setAddingConcept] = useState(false)
   const [conceptName, setConceptName] = useState('')
   const [hint, setHint] = useState('')
@@ -680,30 +677,6 @@ export default function MapPanel(): React.JSX.Element {
     await applyRoomData()
   }
 
-  const runSuggest = async (): Promise<void> => {
-    if (!activeRoomId) return
-    setAiState('loading')
-    setAiError('')
-    const res = await invoke<{ suggestions: AiEdgeSuggestion[]; error?: string }>(
-      'map:suggestLinks',
-      activeRoomId
-    )
-    if (res.error) {
-      setAiState('error')
-      setAiError(res.error)
-    } else {
-      setAiState('idle')
-      setSuggestions(res.suggestions)
-    }
-  }
-
-  const acceptSuggestion = async (s: AiEdgeSuggestion): Promise<void> => {
-    if (!activeRoomId) return
-    await invoke('map:addEdge', activeRoomId, s.from, s.to, 'ai-suggested', s.label)
-    setSuggestions((prev) => prev.filter((x) => !(x.from === s.from && x.to === s.to)))
-    await useApp.getState().refreshRoomData()
-  }
-
   const addConcept = async (): Promise<void> => {
     if (!activeRoomId || !conceptName.trim()) return
     await invoke('map:addConcept', activeRoomId, conceptName.trim())
@@ -711,8 +684,6 @@ export default function MapPanel(): React.JSX.Element {
     setAddingConcept(false)
     await useApp.getState().refreshRoomData()
   }
-
-  const labelFor = (id: string): string => graph.nodes.find((n) => n.id === id)?.label ?? id
 
   const TypeChip = ({ type, label }: { type: NodeType; label: string }): React.JSX.Element => (
     <button
@@ -1093,42 +1064,7 @@ export default function MapPanel(): React.JSX.Element {
       </div>
 
       <div className="flex w-64 flex-col border-l border-neutral-800">
-        <div className="border-b border-neutral-800 p-3">
-          <button
-            className="w-full rounded-md bg-accent/15 px-3 py-2 text-xs font-medium text-accent hover:bg-accent/25 disabled:opacity-40"
-            onClick={() => void runSuggest()}
-            disabled={aiState === 'loading'}
-          >
-            {aiState === 'loading' ? t('map.suggesting') : t('map.suggestLinks')}
-          </button>
-          {aiState === 'error' && <div className="mt-2 text-[10px] text-red-400">{aiError}</div>}
-        </div>
-
         <div className="flex-1 overflow-y-auto p-3">
-          {suggestions.length > 0 && (
-            <div className="mb-3">
-              <div className="mb-1.5 text-[10px] tracking-wide text-neutral-500 uppercase">
-                {t('map.aiSuggestions')}
-              </div>
-              <div className="space-y-1.5">
-                {suggestions.map((s, i) => (
-                  <div key={i} className="rounded-md border border-neutral-800 bg-neutral-900/60 p-2">
-                    <div className="text-[11px] text-neutral-300">
-                      <span className="text-accent">{labelFor(s.from)}</span> → {labelFor(s.to)}
-                    </div>
-                    <div className="mt-0.5 text-[10px] text-neutral-500">{s.label}</div>
-                    <button
-                      className="mt-1 rounded bg-neutral-800 px-2 py-0.5 text-[10px] text-neutral-300 hover:bg-neutral-700"
-                      onClick={() => void acceptSuggestion(s)}
-                    >
-                      {t('map.makePermanent')}
-                    </button>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
-
           {/* Library: sources collected but not yet placed on the map. */}
           <div className="mb-3">
             <div className="mb-1.5 text-[10px] tracking-wide text-neutral-500 uppercase">

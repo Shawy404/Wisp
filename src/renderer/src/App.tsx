@@ -1,5 +1,5 @@
 // Wisp — © Shawy404. All rights reserved.
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import { useApp } from '@/store'
 import TitleBar from './components/TitleBar'
 import RoomSidebar from './components/RoomSidebar'
@@ -48,16 +48,35 @@ export default function App(): React.JSX.Element {
     }
   }, [config?.accent, config?.theme, config?.translucentUi, config?.windowTransparent, backgroundUrl])
 
-  if (!ready) {
-    return (
-      <div className="flex h-full items-center justify-center">
-        <div className="text-2xl font-semibold text-accent">Wisp</div>
+  // Boot splash: the wisp bobs while the shell loads, lingers a beat once
+  // ready so it never just blinks away, then fades out and unmounts.
+  const [splashFading, setSplashFading] = useState(false)
+  const [splashGone, setSplashGone] = useState(false)
+  useEffect(() => {
+    if (!ready) return
+    const fade = setTimeout(() => setSplashFading(true), 650)
+    const gone = setTimeout(() => setSplashGone(true), 1150)
+    return () => {
+      clearTimeout(fade)
+      clearTimeout(gone)
+    }
+  }, [ready])
+
+  const splash = !splashGone && (
+    <div className={`wisp-splash ${splashFading ? 'is-done' : ''}`}>
+      <div className="wisp-orb">
+        <span className="wisp-eye" />
+        <span className="wisp-eye" />
       </div>
-    )
-  }
+      <div className="wisp-splash-name">Wisp</div>
+    </div>
+  )
+
+  if (!ready) return <div className="h-full">{splash}</div>
 
   return (
     <div className="relative flex h-full flex-col">
+      {splash}
       {backgroundUrl &&
         (() => {
           // The built-in icon shows as a centered watermark; a custom image fills.

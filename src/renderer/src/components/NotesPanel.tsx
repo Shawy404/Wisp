@@ -1,7 +1,8 @@
 // Wisp — © Shawy404. All rights reserved.
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import type { NoteInfo } from '@shared/types'
 import { noteSlug } from '@shared/wikilink'
+import { findBacklinks, findUnlinkedMentions, linkFirstMention } from '@shared/graph'
 import { invoke, useApp, useT } from '@/store'
 import NoteEditor from '../editor/NoteEditor'
 
@@ -70,6 +71,21 @@ export default function NotesPanel(): React.JSX.Element {
   const insertSourceEmbed = (sourceId: string): void => {
     // Embeds are stored as ![[src-id]] and rendered as cards in the map view.
     window.dispatchEvent(new CustomEvent('wisp:insert-embed', { detail: sourceId }))
+  }
+
+  // Obsidian-style link section under the editor: who links here, plus notes
+  // that name this one without a [[link]] — offered as one-click conversions.
+  const backlinks = useMemo(() => (active ? findBacklinks(notes, active) : []), [notes, active])
+  const unlinked = useMemo(() => (active ? findUnlinkedMentions(notes, active) : []), [notes, active])
+
+  const linkMention = async (noteId: string): Promise<void> => {
+    if (!activeRoomId || !active) return
+    const other = notes.find((n) => n.id === noteId)
+    if (!other) return
+    const linked = linkFirstMention(other.body, active.title)
+    if (!linked) return
+    await invoke('notes:save', activeRoomId, noteId, linked)
+    await useApp.getState().refreshRoomData()
   }
 
   return (
@@ -179,6 +195,63 @@ export default function NotesPanel(): React.JSX.Element {
                 onChange={handleChange}
               />
             </div>
+            {(backlinks.length > 0 || unlinked.length > 0) && (
+              <div className="max-h-44 shrink-0 overflow-y-auto border-t border-neutral-800 px-4 py-2">
+                {backlinks.length > 0 && (
+                  <div className="mb-2">
+                    <div className="mb-1 text-[10px] font-semibold tracking-wider text-neutral-500 uppercase">
+                      {t('notes.backlinks', { count: backlinks.length })}
+                    </div>
+                    <div className="space-y-0.5">
+                      {backlinks.map((b) => (
+                        <button
+                          key={b.noteId}
+                          className="flex w-full items-baseline gap-2 rounded px-1.5 py-1 text-left hover:bg-neutral-850"
+                          onClick={() => setActiveId(b.noteId)}
+                        >
+                          <span className="shrink-0 text-[11px] text-accent">{b.title}</span>
+                          <span className="min-w-0 flex-1 truncate text-[10px] text-neutral-600">
+                            {b.snippet}
+                          </span>
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
+                {unlinked.length > 0 && (
+                  <div>
+                    <div className="mb-1 text-[10px] font-semibold tracking-wider text-neutral-500 uppercase">
+                      {t('notes.mentions', { count: unlinked.length })}
+                    </div>
+                    <div className="space-y-0.5">
+                      {unlinked.map((m) => (
+                        <div
+                          key={m.noteId}
+                          className="group flex items-baseline gap-2 rounded px-1.5 py-1 hover:bg-neutral-850"
+                        >
+                          <button
+                            className="shrink-0 text-[11px] text-neutral-300 hover:text-accent"
+                            onClick={() => setActiveId(m.noteId)}
+                          >
+                            {m.title}
+                          </button>
+                          <span className="min-w-0 flex-1 truncate text-[10px] text-neutral-600">
+                            {m.snippet}
+                          </span>
+                          <button
+                            className="shrink-0 rounded bg-accent/10 px-1.5 py-px text-[10px] text-accent opacity-0 group-hover:opacity-100 hover:bg-accent/25"
+                            onClick={() => void linkMention(m.noteId)}
+                            data-tip={t('notes.linkTip')}
+                          >
+                            {t('notes.link')}
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
           </>
         ) : (
           <div className="flex flex-1 items-center justify-center text-sm text-neutral-600">

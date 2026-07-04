@@ -1,5 +1,5 @@
 // Wisp — © Shawy404. All rights reserved.
-import { useEffect, useRef } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { invoke, useApp, useT } from '@/store'
 
 /**
@@ -18,9 +18,39 @@ const QUICK_LINKS = [
   { name: 'Translate', url: 'https://translate.google.com' }
 ]
 
+/** One half of the drag-to-split target. Lights up while a tab hovers over it. */
+function SplitZone({ side }: { side: 'left' | 'right' }): React.JSX.Element {
+  const t = useT()
+  const [hot, setHot] = useState(false)
+  return (
+    <div
+      className={`absolute inset-y-2 z-20 flex w-[30%] items-center justify-center rounded-xl border-2 border-dashed transition-all duration-150 ${
+        side === 'left' ? 'left-2' : 'right-2'
+      } ${hot ? 'scale-[1.02] border-accent bg-accent/15' : 'border-neutral-700 bg-neutral-900/40'}`}
+      onDragOver={(e) => {
+        e.preventDefault()
+        e.dataTransfer.dropEffect = 'move'
+        setHot(true)
+      }}
+      onDragLeave={() => setHot(false)}
+      onDrop={(e) => {
+        e.preventDefault()
+        setHot(false)
+        const tabId = e.dataTransfer.getData('wisp/tab-id')
+        if (tabId) useApp.getState().requestSplit(tabId, side)
+      }}
+    >
+      <span className={`text-xs font-medium ${hot ? 'text-accent' : 'text-neutral-500'}`}>
+        {t(side === 'left' ? 'split.dropLeft' : 'split.dropRight')}
+      </span>
+    </div>
+  )
+}
+
 export default function Viewport({ children }: { children?: React.ReactNode }): React.JSX.Element {
   const inner = useRef<HTMLDivElement>(null)
   const tabs = useApp((s) => s.tabs)
+  const draggingTab = useApp((s) => s.draggingTab)
   const t = useT()
 
   useEffect(() => {
@@ -67,6 +97,17 @@ export default function Viewport({ children }: { children?: React.ReactNode }): 
           </div>
         )}
         {children}
+        {/* Drag-to-split: while a sidebar tab is being dragged the native view
+            is hidden, so these zones are visible and can accept the drop. */}
+        {draggingTab && (
+          <div className="absolute inset-0 z-20 bg-neutral-950/60">
+            <SplitZone side="left" />
+            <SplitZone side="right" />
+            <div className="pointer-events-none absolute inset-x-0 top-1/2 -translate-y-1/2 text-center text-[11px] text-neutral-500">
+              {t('split.dropHint')}
+            </div>
+          </div>
+        )}
       </div>
     </div>
   )

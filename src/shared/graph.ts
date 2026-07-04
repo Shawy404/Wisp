@@ -222,3 +222,75 @@ export function buildGraph(data: RoomData, opts: GraphOptions = {}): Graph {
 export function graphNodeSummaries(graph: Graph): { id: string; label: string; tags: string[] }[] {
   return graph.nodes.map((n) => ({ id: n.id, label: n.label, tags: n.tags }))
 }
+
+// ---- Backlinks & unlinked mentions (the notes panel's "linked to this") ----
+
+export interface NoteReference {
+  noteId: string
+  title: string
+  /** Text around the first reference, for a one-line preview. */
+  snippet: string
+}
+
+function snippetAround(body: string, index: number, matchLen: number): string {
+  const start = Math.max(0, index - 40)
+  const end = Math.min(body.length, index + matchLen + 40)
+  const text = body.slice(start, end).replace(/\s+/g, ' ').trim()
+  return `${start > 0 ? '…' : ''}${text}${end < body.length ? '…' : ''}`
+}
+
+/** Notes that explicitly [[wikilink]] to `target` — the reverse of the link index. */
+export function findBacklinks(notes: NoteInfo[], target: NoteInfo): NoteReference[] {
+  const hits: NoteReference[] = []
+  for (const n of notes) {
+    if (n.id === target.id) continue
+    const linked = extractWikilinks(n.body).some((l) => noteSlug(l) === target.id)
+    if (!linked) continue
+    const idx = n.body.indexOf('[[')
+    hits.push({ noteId: n.id, title: n.title, snippet: snippetAround(n.body, Math.max(0, idx), 4) })
+  }
+  return hits
+}
+
+/**
+ * Notes whose text names `target` without linking to it — candidates for a
+ * one-click [[link]]. Same whole-word matching the map's mention edges use,
+ * and the same 3-char floor so short titles don't match everything.
+ */
+export function findUnlinkedMentions(notes: NoteInfo[], target: NoteInfo): NoteReference[] {
+  const label = target.title.toLowerCase().trim()
+  if (label.length < 3) return []
+  const linkedIds = new Set(findBacklinks(notes, target).map((h) => h.noteId))
+  const hits: NoteReference[] = []
+  for (const n of notes) {
+    if (n.id === target.id || linkedIds.has(n.id)) continue
+    const hay = n.body.toLowerCase()
+    if (!mentions(hay, label)) continue
+    const idx = hay.indexOf(label)
+    hits.push({ noteId: n.id, title: n.title, snippet: snippetAround(n.body, idx, label.length) })
+  }
+  return hits
+}
+
+/**
+ * Turn the first plain mention of `title` in `body` into a wikilink. Keeps the
+ * text as written: an exact-case match becomes [[Title]], anything else keeps
+ * its casing via an alias ([[Title|the title]]). Returns null when the title
+ * only appears inside existing [[...]] targets.
+ */
+export function linkFirstMention(body: string, title: string): string | null {
+  const label = title.trim()
+  if (label.length < 3) return null
+  const re = new RegExp(
+    `(^|[^\\p{L}\\p{N}])(${escapeRegExp(label)})($|[^\\p{L}\\p{N}])`,
+    'iu'
+  )
+  // Mask existing wikilinks so the match can't land inside one.
+  const masked = body.replace(/!?\[\[[^\]]*\]\]/g, (m) => ' '.repeat(m.length))
+  const m = re.exec(masked)
+  if (!m || m.index === undefined) return null
+  const matchStart = m.index + m[1].length
+  const matched = body.slice(matchStart, matchStart + label.length)
+  const link = matched === label ? `[[${label}]]` : `[[${label}|${matched}]]`
+  return body.slice(0, matchStart) + link + body.slice(matchStart + label.length)
+}

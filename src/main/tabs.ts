@@ -25,7 +25,7 @@ interface Bounds {
 let nextTabId = 1
 
 /** Background tabs unload after this long to free memory; waking reloads them. */
-const SLEEP_AFTER_MS = 20 * 60 * 1000
+const DEFAULT_SLEEP_MINUTES = 20
 const SLEEP_CHECK_MS = 60 * 1000
 
 /**
@@ -62,6 +62,8 @@ export class TabManager {
   private currentRoom: string | null = null
   private bounds: Bounds = { x: 0, y: 0, width: 0, height: 0 }
   private visible = true
+  /** How long a background tab may idle before unloading; 0 disables sleeping. */
+  private sleepAfterMs = DEFAULT_SLEEP_MINUTES * 60 * 1000
   /** Called whenever a room's tab set changes, for persistence. */
   onPersist: (roomId: string, urls: string[], activeIndex: number) => void = () => {}
   /** Called on navigation and title/favicon updates, for the room's history. */
@@ -246,6 +248,11 @@ export class TabManager {
     return this.sleepIdleTabs(true)
   }
 
+  /** Settings-driven idle timeout (minutes); 0 = never sleep automatically. */
+  setSleepMinutes(minutes: number): void {
+    this.sleepAfterMs = Math.max(0, minutes) * 60 * 1000
+  }
+
   state(): { roomId: string | null; tabs: TabInfo[]; activeTabId: string | null } {
     const roomId = this.currentRoom
     const ids = roomId ? (this.order.get(roomId) ?? []) : []
@@ -318,7 +325,7 @@ export class TabManager {
     let slept = 0
     for (const entry of this.tabs.values()) {
       if (!entry.view || entry.id === activeId) continue
-      if (!force && now - entry.lastActiveAt < SLEEP_AFTER_MS) continue
+      if (!force && (this.sleepAfterMs === 0 || now - entry.lastActiveAt < this.sleepAfterMs)) continue
       const wc = entry.view.webContents
       if (wc.isCurrentlyAudible()) continue
       // Keep the freshest url/title before dropping the contents.

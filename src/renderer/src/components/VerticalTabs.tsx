@@ -1,22 +1,53 @@
 // Wisp — © Shawy404. All rights reserved.
-import { useRef } from 'react'
-import { useApp, useT } from '@/store'
+import { useEffect, useRef, useState } from 'react'
+import type { PinnedTab } from '@shared/types'
+import { invoke, useApp, useT } from '@/store'
+
+interface MenuState {
+  x: number
+  y: number
+  items: { label: string; danger?: boolean; run: () => void }[]
+}
 
 /**
- * Sidebar tab area: a pinned-tabs grid on top (saved places that survive
- * closing the tab) and the vertical tab list below. Tabs: favicon + title,
- * close on hover, drag to reorder, middle-click to close, pin on hover.
- * The + button opens the command bar (Ctrl+T) instead of a blank tab.
+ * Sidebar tab area, top to bottom: essentials (global — they follow you into
+ * every room), the room's pinned tabs, then the vertical tab list. Tabs:
+ * favicon + title, close on hover, drag to reorder — or drag onto the
+ * viewport's edges to open split view. Right-click anything for pin /
+ * essentials actions. The + button opens the command bar (Ctrl+T).
  */
 export default function VerticalTabs({ collapsed }: { collapsed: boolean }): React.JSX.Element {
   const tabs = useApp((s) => s.tabs)
   const activeTabId = useApp((s) => s.activeTabId)
   const rooms = useApp((s) => s.rooms)
   const activeRoomId = useApp((s) => s.activeRoomId)
-  const { activateTab, closeTab, newTab, reorderTabs, pinTab, unpinTab, setOverlay } =
-    useApp.getState()
+  const essentials = useApp((s) => s.config?.essentials ?? [])
+  const {
+    activateTab,
+    closeTab,
+    newTab,
+    reorderTabs,
+    pinTab,
+    unpinTab,
+    addEssential,
+    removeEssential,
+    setOverlay,
+    setDraggingTab
+  } = useApp.getState()
   const t = useT()
   const dragId = useRef<string | null>(null)
+  const [menu, setMenu] = useState<MenuState | null>(null)
+
+  useEffect(() => {
+    if (!menu) return
+    const close = (): void => setMenu(null)
+    window.addEventListener('click', close)
+    window.addEventListener('contextmenu', close, true)
+    return () => {
+      window.removeEventListener('click', close)
+      window.removeEventListener('contextmenu', close, true)
+    }
+  }, [menu])
 
   const pinned = rooms.find((r) => r.id === activeRoomId)?.pinned ?? []
 
@@ -26,7 +57,7 @@ export default function VerticalTabs({ collapsed }: { collapsed: boolean }): Rea
     if (useApp.getState().overlay !== 'none') setOverlay('none')
   }
 
-  const openPinned = (url: string): void => {
+  const openSaved = (url: string): void => {
     const existing = tabs.find((t) => t.url === url)
     if (existing) showTab(existing.id)
     else {
@@ -47,38 +78,87 @@ export default function VerticalTabs({ collapsed }: { collapsed: boolean }): Rea
     reorderTabs(ids)
   }
 
-  return (
-    <div className="flex min-h-0 flex-1 flex-col">
-      {pinned.length > 0 && (
-        <div
-          className={`grid gap-1.5 border-b border-neutral-800/60 p-2 ${
-            collapsed ? 'grid-cols-1 justify-items-center' : 'grid-cols-4'
+  const openMenu = (e: React.MouseEvent, items: MenuState['items']): void => {
+    e.preventDefault()
+    e.stopPropagation()
+    setMenu({ x: e.clientX, y: e.clientY, items })
+  }
+
+  /** Icon grid shared by the essentials and pinned sections. */
+  const SavedGrid = ({
+    items,
+    essential
+  }: {
+    items: PinnedTab[]
+    essential: boolean
+  }): React.JSX.Element => (
+    <div
+      className={`grid gap-1.5 p-2 ${collapsed ? 'grid-cols-1 justify-items-center' : 'grid-cols-4'}`}
+    >
+      {items.map((p) => (
+        <button
+          key={p.url}
+          onClick={() => openSaved(p.url)}
+          onContextMenu={(e) =>
+            openMenu(
+              e,
+              essential
+                ? [
+                    {
+                      label: t('tabs.menu.pinHere'),
+                      run: () => {
+                        void pinTab(p.url, p.title, p.favicon)
+                        void removeEssential(p.url)
+                      }
+                    },
+                    { label: t('tabs.menu.removeEssential'), danger: true, run: () => void removeEssential(p.url) }
+                  ]
+                : [
+                    {
+                      label: t('tabs.menu.moveToEssentials'),
+                      run: () => {
+                        void addEssential(p.url, p.title, p.favicon)
+                        void unpinTab(p.url)
+                      }
+                    },
+                    { label: t('tabs.unpin'), danger: true, run: () => void unpinTab(p.url) }
+                  ]
+            )
+          }
+          title={p.title}
+          className={`flex h-9 w-9 items-center justify-center rounded-lg border bg-neutral-900 hover:border-neutral-600 ${
+            essential ? 'border-accent/30' : 'border-neutral-800'
           }`}
         >
-          {pinned.map((p) => (
-            <div key={p.url} className="group relative">
-              <button
-                onClick={() => openPinned(p.url)}
-                title={p.title}
-                className="flex h-9 w-9 items-center justify-center rounded-lg border border-neutral-800 bg-neutral-900 hover:border-neutral-600"
-              >
-                {p.favicon ? (
-                  <img src={p.favicon} className="h-4 w-4 rounded-sm" alt="" />
-                ) : (
-                  <span className="text-[10px] text-neutral-400">
-                    {p.title.slice(0, 2).toUpperCase()}
-                  </span>
-                )}
-              </button>
-              <button
-                className="absolute -top-1 -right-1 hidden h-3.5 w-3.5 items-center justify-center rounded-full bg-neutral-700 text-[8px] text-neutral-200 group-hover:flex hover:bg-red-500"
-                onClick={() => void unpinTab(p.url)}
-                data-tip={t('tabs.unpin')}
-              >
-                ×
-              </button>
-            </div>
-          ))}
+          {p.favicon ? (
+            <img src={p.favicon} className="h-4 w-4 rounded-sm" alt="" />
+          ) : (
+            <span className="text-[10px] text-neutral-400">{p.title.slice(0, 2).toUpperCase()}</span>
+          )}
+        </button>
+      ))}
+    </div>
+  )
+
+  const sectionLabel = (key: 'tabs.essentials' | 'tabs.pinned'): React.JSX.Element | null =>
+    collapsed ? null : (
+      <div className="px-3 pt-2 text-[9px] font-semibold tracking-wider text-neutral-600 uppercase">
+        {t(key)}
+      </div>
+    )
+
+  return (
+    <div className="flex min-h-0 flex-1 flex-col">
+      {essentials.length > 0 && (
+        <div className="border-b border-neutral-800/60">
+          {sectionLabel('tabs.essentials')}
+          <SavedGrid items={essentials} essential />
+        </div>
+      )}
+      {pinned.length > 0 && (
+        <div className="border-b border-neutral-800/60">
+          {sectionLabel('tabs.pinned')}
+          <SavedGrid items={pinned} essential={false} />
         </div>
       )}
 
@@ -105,11 +185,33 @@ export default function VerticalTabs({ collapsed }: { collapsed: boolean }): Rea
           <div
             key={tab.id}
             draggable
-            onDragStart={() => (dragId.current = tab.id)}
+            onDragStart={(e) => {
+              dragId.current = tab.id
+              e.dataTransfer.setData('wisp/tab-id', tab.id)
+              e.dataTransfer.effectAllowed = 'move'
+              // The native page view would cover the split drop zones, so it
+              // hides for the duration of the drag; dragend restores it.
+              setDraggingTab(true)
+              void invoke('viewport:visible', false)
+            }}
+            onDragEnd={() => {
+              setDraggingTab(false)
+              void invoke('viewport:visible', useApp.getState().overlay === 'none')
+            }}
             onDragOver={(e) => e.preventDefault()}
             onDrop={() => handleDrop(tab.id)}
             onClick={() => showTab(tab.id)}
             onAuxClick={(e) => e.button === 1 && closeTab(tab.id)}
+            onContextMenu={(e) =>
+              openMenu(e, [
+                { label: t('tabs.menu.pin'), run: () => void pinTab(tab.url, tab.title || tab.url, tab.favicon) },
+                {
+                  label: t('tabs.menu.addEssential'),
+                  run: () => void addEssential(tab.url, tab.title || tab.url, tab.favicon)
+                },
+                { label: t('tabs.menu.close'), danger: true, run: () => closeTab(tab.id) }
+              ])
+            }
             title={tab.title || tab.url}
             className={`group flex cursor-default items-center gap-2 rounded-lg text-xs ${
               collapsed ? 'justify-center p-2' : 'px-2.5 py-2'
@@ -165,6 +267,29 @@ export default function VerticalTabs({ collapsed }: { collapsed: boolean }): Rea
           <div className="px-2 py-4 text-center text-[10px] text-neutral-600">{t('tabs.empty')}</div>
         )}
       </div>
+
+      {menu && (
+        <div
+          className="fixed z-50 w-44 rounded-md border border-neutral-700 bg-neutral-900 py-1 text-xs shadow-xl"
+          style={{ left: Math.min(menu.x, window.innerWidth - 184), top: Math.min(menu.y, window.innerHeight - menu.items.length * 30 - 12) }}
+          onClick={(e) => e.stopPropagation()}
+        >
+          {menu.items.map((item) => (
+            <button
+              key={item.label}
+              className={`block w-full px-3 py-1.5 text-left hover:bg-neutral-800 ${
+                item.danger ? 'text-red-400' : 'text-neutral-300'
+              }`}
+              onClick={() => {
+                item.run()
+                setMenu(null)
+              }}
+            >
+              {item.label}
+            </button>
+          ))}
+        </div>
+      )}
     </div>
   )
 }

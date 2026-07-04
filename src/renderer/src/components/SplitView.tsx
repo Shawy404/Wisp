@@ -15,14 +15,16 @@ interface ReaderArticle {
 }
 
 /**
- * Split view: reader-cleaned page or the source list on the left, note
- * editor on the right.
+ * Split view: reader-cleaned page or the source list on one side, note editor
+ * on the other. Which side the reader takes follows how the view was opened —
+ * dragging a tab to the viewport's right edge puts the page pane on the right.
  */
 export default function SplitView(): React.JSX.Element {
   const sources = useApp((s) => s.sources)
   const notes = useApp((s) => s.notes)
   const activeRoomId = useApp((s) => s.activeRoomId)
   const activeTabId = useApp((s) => s.activeTabId)
+  const splitSide = useApp((s) => s.splitSide)
   const t = useT()
   const [left, setLeft] = useState<'reader' | 'sources'>(activeTabId ? 'reader' : 'sources')
   const [article, setArticle] = useState<ReaderArticle | null>(null)
@@ -64,8 +66,16 @@ export default function SplitView(): React.JSX.Element {
   }
 
   return (
-    <div className="absolute inset-0 flex overflow-hidden bg-neutral-950">
-      <div className="flex min-w-0 flex-1 flex-col border-r border-neutral-800">
+    <div
+      className={`absolute inset-0 flex overflow-hidden bg-neutral-950 ${
+        splitSide === 'right' ? 'flex-row-reverse' : ''
+      }`}
+    >
+      <div
+        className={`flex min-w-0 flex-1 flex-col border-neutral-800 ${
+          splitSide === 'right' ? 'border-l' : 'border-r'
+        }`}
+      >
         <div className="flex items-center gap-1 border-b border-neutral-800 px-3 py-2">
           <button
             className={`rounded px-2 py-1 text-[11px] ${left === 'reader' ? 'bg-neutral-800 text-neutral-100' : 'text-neutral-500 hover:text-neutral-300'}`}

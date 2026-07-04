@@ -92,6 +92,7 @@ function createWindow(): void {
   })
 
   ctx = { win, tabs: new TabManager(win), config }
+  ctx.tabs.setSleepMinutes(config.tabSleepMinutes ?? 20)
   registerCoreIpc(ctx)
   registerSearchIpc(ctx)
   registerReaderIpc(ctx)

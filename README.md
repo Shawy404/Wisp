@@ -8,7 +8,7 @@
 
 **A browser built for research.** Rooms, clean search, notes and a concept map — all on your own disk.
 
-`v0.1.3-pre-alpha` · Linux & Windows · [Download a build](../../releases) · Built by [Shawy404](https://github.com/Shawy404)
+`v0.1.4-pre-alpha` · Linux & Windows · [Download a build](../../releases) · Built by [Shawy404](https://github.com/Shawy404)
 
 <img src="docs/media/map.png" width="820" alt="Wisp concept map" />
 
@@ -94,7 +94,7 @@ On the map: shift-click two nodes to link, shift-drag or `Ctrl+A` to select, `De
 
 Electron + React + TypeScript + Tailwind, built with electron-vite. Cytoscape drives the map, CodeMirror the notes, `@mozilla/readability` the reader, `@ghostery/adblocker-electron` the blocking. The main process owns tabs (`WebContentsView`), search and the filesystem; the renderer is UI only, behind a preload bridge with `contextIsolation` on.
 
-Everything is local. The only thing that ever leaves your machine is the optional AI link suggestion, and only when you ask for it — and only node titles and tags. Your data lives here (override with `WISP_HOME`):
+Everything is local — nothing leaves your machine beyond the searches you run. Your data lives here (override with `WISP_HOME`):
 
 ```
 ~/Wisp/

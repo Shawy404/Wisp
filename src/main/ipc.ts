@@ -1,4 +1,5 @@
 // Wisp — © Shawy404. All rights reserved.
+import * as fs from 'fs'
 import { app, BrowserWindow, ipcMain } from 'electron'
 import type { PinnedTab, RoomMeta, WispConfig } from '@shared/types'
 import * as store from './storage'
@@ -47,8 +48,10 @@ export function registerCoreIpc(ctx: WispContext): void {
     ctx.config = { ...ctx.config, ...patch }
     store.saveConfig(ctx.config)
     if ('adblock' in patch || 'adblockAllowlist' in patch) setAdblock(ctx.config)
+    if ('tabSleepMinutes' in patch) tabs.setSleepMinutes(ctx.config.tabSleepMinutes ?? 20)
     return ctx.config
   })
+  ipcMain.handle('app:version', () => app.getVersion())
 
   ipcMain.handle('rooms:list', () => store.listRooms())
   ipcMain.handle('rooms:create', (_e, name: string) => {
@@ -122,10 +125,30 @@ export function registerCoreIpc(ctx: WispContext): void {
     const state = tabs.mediaState()
     if (state) tabs.activateTab(state.tabId)
   })
+  // One field out of /proc-style "Field:   1234 kB" files, in KB.
+  const readProcKB = (file: string, field: string): number | null => {
+    try {
+      const m = new RegExp(`^${field}:\\s+(\\d+)`, 'm').exec(fs.readFileSync(file, 'utf8'))
+      return m ? Number(m[1]) : null
+    } catch {
+      return null
+    }
+  }
   ipcMain.handle('stats:memory', () => {
-    const appBytes = app.getAppMetrics().reduce((sum, m) => sum + m.memory.workingSetSize, 0) * 1024
+    // workingSetSize counts shared pages once per process, so summing it over
+    // the half-dozen Chromium processes overstates the app badly. PSS splits
+    // shared pages fairly; fall back to WSS where /proc isn't available.
+    let appBytes = 0
+    for (const m of app.getAppMetrics()) {
+      const pss =
+        process.platform === 'linux' ? readProcKB(`/proc/${m.pid}/smaps_rollup`, 'Pss') : null
+      appBytes += (pss ?? m.memory.workingSetSize) * 1024
+    }
+    // "free" excludes reclaimable page cache, which makes the system look far
+    // fuller than it is — MemAvailable is the number `free -h` calls available.
     const sys = process.getSystemMemoryInfo()
-    return { app: appBytes, sysUsed: (sys.total - sys.free) * 1024, sysTotal: sys.total * 1024 }
+    const availKB = readProcKB('/proc/meminfo', 'MemAvailable') ?? sys.free
+    return { app: appBytes, sysUsed: (sys.total - availKB) * 1024, sysTotal: sys.total * 1024 }
   })
   ipcMain.handle('tabs:freeMemory', () => tabs.sleepBackgroundNow())
 

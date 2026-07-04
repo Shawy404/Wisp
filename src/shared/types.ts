@@ -80,6 +80,7 @@ export interface NoteInfo {
   updatedAt: string
 }
 
+/** 'ai-suggested' is legacy — old map.json files may still carry such edges. */
 export type EdgeKind = 'manual' | 'wikilink' | 'tag' | 'ai-suggested' | 'mention'
 
 export type EdgeStyle = 'solid' | 'dashed' | 'dotted'
@@ -143,7 +144,6 @@ export interface WispConfig {
   accent: string
   adblock: boolean
   adblockAllowlist: string[]
-  anthropicApiKey?: string
   lastRoomId?: string
   /** Remembered per-site permission decisions (host → permission → verdict). */
   sitePermissions?: Record<string, Record<string, 'allow' | 'deny'>>
@@ -170,6 +170,20 @@ export interface WispConfig {
   onboarded?: boolean
   /** Which sidebar mini-widgets are visible (default: all). */
   sidebarWidgets?: { music?: boolean; ram?: boolean }
+  /** Zen-style compact mode: the sidebar hides itself and reveals on hover. */
+  compactSidebar?: boolean
+  /** Width in px of the hover strip that reveals the compact sidebar (default 10). */
+  compactRevealPx?: number
+  /** Delay in ms before the revealed sidebar tucks away again (default 400). */
+  compactHideDelayMs?: number
+  /** Tabs kept in every room, independent of room state. */
+  essentials?: PinnedTab[]
+  /** Background update checks + auto-download (default on). */
+  autoUpdate?: boolean
+  /** Minutes before an inactive background tab is unloaded; 0 = never (default 20). */
+  tabSleepMinutes?: number
+  /** Where the system rail group (split/downloads/vault/settings) lives. */
+  railSystemGroup?: 'sidebar' | 'titlebar'
 }
 
 /** What's playing in some tab, for the sidebar music widget. */
@@ -205,12 +219,6 @@ export interface SearchResults {
   errors: string[]
   /** Raw API responses, for the dev-mode JSON viewer. */
   raw?: Record<string, unknown>
-}
-
-export interface AiEdgeSuggestion {
-  from: string
-  to: string
-  label: string
 }
 
 /** One entry in the download manager (file downloads and yt-dlp video clips). */

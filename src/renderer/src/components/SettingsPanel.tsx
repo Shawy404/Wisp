@@ -1,6 +1,7 @@
 // Wisp — © Shawy404. All rights reserved.
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { THEMES } from '@shared/themes'
+import { CHANGELOG } from '@shared/changelog'
 import { invoke, useApp, useT } from '@/store'
 import type { SearchEngineId, WispConfig } from '@shared/types'
 
@@ -24,15 +25,37 @@ function Section(props: { title: string; children: React.ReactNode }): React.JSX
   )
 }
 
+/** Tab sleep choices, in minutes; 0 = never unload. */
+const SLEEP_CHOICES = [5, 10, 20, 45, 0]
+
 export default function SettingsPanel(): React.JSX.Element {
   const config = useApp((s) => s.config)
   const { setConfig } = useApp.getState()
   const t = useT()
-  const [apiKey, setApiKey] = useState(config?.anthropicApiKey ?? '')
+  const lang = config?.language ?? 'tr'
   const [allowlistText, setAllowlistText] = useState((config?.adblockAllowlist ?? []).join('\n'))
   // Window transparency is decided at window creation → offer a relaunch
   // right after the toggle changes.
   const [needsRestart, setNeedsRestart] = useState(false)
+  const [version, setVersion] = useState('')
+  const [checkState, setCheckState] = useState<'idle' | 'checking' | 'upToDate' | 'found'>('idle')
+  const [foundVersion, setFoundVersion] = useState('')
+  const [showLog, setShowLog] = useState(false)
+
+  useEffect(() => {
+    void invoke<string>('app:version').then(setVersion)
+  }, [])
+
+  const checkUpdates = async (): Promise<void> => {
+    setCheckState('checking')
+    const res = await invoke<{ updateAvailable: boolean; version?: string }>('update:check')
+    if (res.updateAvailable && res.version) {
+      setFoundVersion(res.version)
+      setCheckState('found')
+    } else {
+      setCheckState('upToDate')
+    }
+  }
 
   const pickBackground = async (): Promise<void> => {
     const res = await invoke<{ dataUrl: string | null; config: WispConfig } | null>('bg:pick')
@@ -219,6 +242,160 @@ export default function SettingsPanel(): React.JSX.Element {
           </div>
         </Section>
 
+        <Section title={t('settings.compact')}>
+          <label className="flex items-center gap-2 text-xs text-neutral-300">
+            <input
+              type="checkbox"
+              checked={config.compactSidebar ?? false}
+              onChange={(e) => void setConfig({ compactSidebar: e.target.checked })}
+            />
+            {t('settings.compact.toggle')}
+          </label>
+          <div className="mt-1 ml-6 text-[11px] text-neutral-600">{t('settings.compact.hint')}</div>
+          {config.compactSidebar && (
+            <div className="mt-3 ml-6 space-y-3">
+              <div>
+                <div className="mb-1 flex justify-between text-[11px] text-neutral-500">
+                  <span>{t('settings.compact.reveal')}</span>
+                  <span>{config.compactRevealPx ?? 10}px</span>
+                </div>
+                <input
+                  type="range"
+                  min={4}
+                  max={24}
+                  step={1}
+                  value={config.compactRevealPx ?? 10}
+                  onChange={(e) => void setConfig({ compactRevealPx: Number(e.target.value) })}
+                  className="w-full accent-accent"
+                />
+              </div>
+              <div>
+                <div className="mb-1 flex justify-between text-[11px] text-neutral-500">
+                  <span>{t('settings.compact.delay')}</span>
+                  <span>{config.compactHideDelayMs ?? 400}ms</span>
+                </div>
+                <input
+                  type="range"
+                  min={100}
+                  max={1200}
+                  step={50}
+                  value={config.compactHideDelayMs ?? 400}
+                  onChange={(e) => void setConfig({ compactHideDelayMs: Number(e.target.value) })}
+                  className="w-full accent-accent"
+                />
+              </div>
+            </div>
+          )}
+        </Section>
+
+        <Section title={t('settings.rail')}>
+          <div className="mb-2 text-[11px] text-neutral-500">{t('settings.rail.hint')}</div>
+          <div className="flex items-center gap-2">
+            {(['sidebar', 'titlebar'] as const).map((loc) => (
+              <button
+                key={loc}
+                onClick={() => void setConfig({ railSystemGroup: loc })}
+                className={`rounded-md px-3 py-1.5 text-xs ${
+                  (config.railSystemGroup ?? 'sidebar') === loc
+                    ? 'bg-neutral-800 text-neutral-100'
+                    : 'text-neutral-500 hover:text-neutral-300'
+                }`}
+              >
+                {t(loc === 'sidebar' ? 'settings.rail.sidebar' : 'settings.rail.titlebar')}
+              </button>
+            ))}
+          </div>
+        </Section>
+
+        <Section title={t('settings.memory')}>
+          <div className="mb-2 text-[11px] text-neutral-500">{t('settings.memory.hint')}</div>
+          <div className="flex flex-wrap items-center gap-2">
+            {SLEEP_CHOICES.map((min) => (
+              <button
+                key={min}
+                onClick={() => void setConfig({ tabSleepMinutes: min })}
+                className={`rounded-md px-3 py-1.5 text-xs ${
+                  (config.tabSleepMinutes ?? 20) === min
+                    ? 'bg-neutral-800 text-neutral-100'
+                    : 'text-neutral-500 hover:text-neutral-300'
+                }`}
+              >
+                {min === 0 ? t('settings.memory.never') : t('settings.memory.minutes', { min })}
+              </button>
+            ))}
+          </div>
+          <button
+            className="mt-3 rounded-md bg-neutral-800 px-3 py-1.5 text-xs text-neutral-200 hover:bg-neutral-700"
+            onClick={() =>
+              void invoke('tabs:freeMemory').then(() =>
+                window.dispatchEvent(
+                  new CustomEvent('wisp:toast-local', { detail: t('widgets.slept') })
+                )
+              )
+            }
+          >
+            {t('settings.memory.sleepNow')}
+          </button>
+        </Section>
+
+        <Section title={t('settings.updates')}>
+          <div className="mb-2 text-[11px] text-neutral-500">
+            {t('settings.updates.current', { version: version || '…' })}
+          </div>
+          <label className="flex items-center gap-2 text-xs text-neutral-300">
+            <input
+              type="checkbox"
+              checked={config.autoUpdate ?? true}
+              onChange={(e) => void setConfig({ autoUpdate: e.target.checked })}
+            />
+            {t('settings.updates.auto')}
+          </label>
+          <div className="mt-3 flex items-center gap-3">
+            <button
+              className="rounded-md bg-accent/15 px-3 py-1.5 text-xs text-accent hover:bg-accent/25 disabled:opacity-40"
+              onClick={() => void checkUpdates()}
+              disabled={checkState === 'checking'}
+            >
+              {checkState === 'checking' ? t('settings.updates.checking') : t('settings.updates.check')}
+            </button>
+            {checkState === 'upToDate' && (
+              <span className="text-[11px] text-neutral-500">{t('settings.updates.upToDate')}</span>
+            )}
+            {checkState === 'found' && (
+              <span className="text-[11px] text-accent">
+                {t('settings.updates.found', { version: foundVersion })}
+              </span>
+            )}
+          </div>
+          <div className="mt-4">
+            <button
+              className="text-[11px] text-neutral-500 hover:text-neutral-300"
+              onClick={() => setShowLog((v) => !v)}
+            >
+              {showLog ? '▾' : '▸'} {t('settings.updates.log')}
+            </button>
+            {showLog && (
+              <div className="mt-2 space-y-3">
+                {CHANGELOG.map((entry) => (
+                  <div key={entry.version} className="rounded-md border border-neutral-800 bg-neutral-900/50 p-3">
+                    <div className="mb-1 flex items-baseline gap-2">
+                      <span className="text-xs font-semibold text-neutral-100">{entry.version}</span>
+                      <span className="text-[10px] text-neutral-600">{entry.date}</span>
+                    </div>
+                    <ul className="space-y-0.5">
+                      {entry.notes[lang].map((note, i) => (
+                        <li key={i} className="text-[11px] leading-relaxed text-neutral-400">
+                          • {note}
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        </Section>
+
         <Section title={t('settings.searchEngine')}>
           <div className="mb-2 text-[11px] text-neutral-500">{t('settings.searchEngine.hint')}</div>
           <div className="flex items-center gap-2">
@@ -307,26 +484,6 @@ export default function SettingsPanel(): React.JSX.Element {
             />
             {t('settings.devMode.toggle')}
           </label>
-        </Section>
-
-        <Section title={t('settings.ai')}>
-          <div className="mb-1 text-[11px] text-neutral-500">{t('settings.ai.hint')}</div>
-          <div className="flex gap-2">
-            <input
-              type="password"
-              value={apiKey}
-              onChange={(e) => setApiKey(e.target.value)}
-              placeholder="sk-ant-…"
-              className="flex-1 rounded-md border border-neutral-800 bg-neutral-900 px-3 py-2 text-xs text-neutral-200 outline-none focus:border-accent/60"
-              spellCheck={false}
-            />
-            <button
-              className="rounded-md bg-accent/15 px-3 py-2 text-xs text-accent hover:bg-accent/25"
-              onClick={() => void setConfig({ anthropicApiKey: apiKey.trim() || undefined })}
-            >
-              {t('settings.ai.save')}
-            </button>
-          </div>
         </Section>
 
         <Section title={t('settings.profile')}>
