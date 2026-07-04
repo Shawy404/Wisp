@@ -1,5 +1,5 @@
 // Wisp — © Shawy404. All rights reserved.
-import { app, BrowserWindow } from 'electron'
+import { app, BrowserWindow, ipcMain } from 'electron'
 import { join } from 'path'
 import { loadConfig } from './storage'
 import { TabManager } from './tabs'
@@ -33,6 +33,42 @@ if (loadConfig().windowTransparent) {
 
 let ctx: WispContext | null = null
 
+/**
+ * A tiny frameless splash window showing the animated wisp. It's a self-
+ * contained data URL (no bundle, no preload) so it paints the instant the
+ * process is up — the whole point is that it's cheap and appears immediately.
+ */
+function createSplash(): BrowserWindow {
+  const html = `<!doctype html><meta charset="utf-8"><style>
+html,body{margin:0;height:100%;background:transparent;overflow:hidden;user-select:none}
+.card{position:fixed;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px;background:#0e0e12;border-radius:22px;border:1px solid #23232a}
+.orb{width:54px;height:54px;border-radius:50% 50% 45% 45%;background:radial-gradient(circle at 35% 30%,#7dd3a8,#2f6b53);box-shadow:0 0 24px rgba(125,211,168,.55);animation:b 1.4s ease-in-out infinite alternate,g 2s ease-in-out infinite}
+.n{font:600 22px/1 system-ui,-apple-system,sans-serif;letter-spacing:-.02em;color:#7dd3a8}
+.s{font:400 11px/1 system-ui,sans-serif;color:#6b6b73}
+@keyframes b{from{transform:translateY(6px) scale(1.02,.98)}to{transform:translateY(-7px) scale(.98,1.02)}}
+@keyframes g{0%,100%{box-shadow:0 0 16px rgba(125,211,168,.4)}50%{box-shadow:0 0 34px rgba(125,211,168,.85)}}
+</style><div class="card"><div class="orb"></div><div class="n">Wisp</div><div class="s">starting…</div></div>`
+  const splash = new BrowserWindow({
+    width: 260,
+    height: 260,
+    frame: false,
+    transparent: true,
+    resizable: false,
+    movable: false,
+    alwaysOnTop: true,
+    center: true,
+    skipTaskbar: true,
+    show: false,
+    backgroundColor: '#00000000',
+    webPreferences: { contextIsolation: true, nodeIntegration: false }
+  })
+  splash.loadURL('data:text/html;base64,' + Buffer.from(html).toString('base64'))
+  splash.once('ready-to-show', () => {
+    if (!splash.isDestroyed()) splash.show()
+  })
+  return splash
+}
+
 function createWindow(): void {
   const config = loadConfig()
   // Real compositor transparency (Zen-style glass): the window itself has no
@@ -60,13 +96,33 @@ function createWindow(): void {
     }
   })
 
-  // Show on first paint so the boot splash is the first thing drawn. A fallback
-  // timer covers compositors where ready-to-show fires late (or not at all),
-  // so the window never stays hidden.
-  win.on('ready-to-show', () => win.show())
-  setTimeout(() => {
-    if (!win.isDestroyed() && !win.isVisible()) win.show()
-  }, 1500)
+  // Opera-style launch: a tiny, instant splash window shows the wisp while the
+  // heavy main window loads hidden in the background; once the renderer signals
+  // it's mounted (or a fallback fires) the main window appears all at once and
+  // the splash closes. Skipped under the screenshot/smoke tooling, which drives
+  // the main window directly.
+  const useSplash = !process.env.WISP_SMOKE && !process.env.WISP_SHOT
+  const splash = useSplash ? createSplash() : null
+  let shown = false
+  const reveal = (): void => {
+    if (shown || win.isDestroyed()) return
+    shown = true
+    win.show()
+    if (splash && !splash.isDestroyed()) splash.close()
+  }
+  // The renderer calls invoke('app:ready') once mounted. Re-register cleanly in
+  // case the window is recreated (macOS activate). A hard fallback still reveals
+  // the window if that signal never arrives, so we never hang on the splash.
+  ipcMain.removeHandler('app:ready')
+  ipcMain.handle('app:ready', () => reveal())
+  if (useSplash) {
+    setTimeout(reveal, 8000)
+  } else {
+    win.on('ready-to-show', () => win.show())
+    setTimeout(() => {
+      if (!win.isDestroyed() && !win.isVisible()) win.show()
+    }, 1500)
+  }
 
   win.webContents.setWindowOpenHandler(({ url }) => {
     openExternalSafe(url)

@@ -1,6 +1,6 @@
 // Wisp — © Shawy404. All rights reserved.
-import { lazy, Suspense, useEffect, useRef, useState } from 'react'
-import { useApp } from '@/store'
+import { lazy, Suspense, useEffect, useRef } from 'react'
+import { invoke, useApp } from '@/store'
 import TitleBar from './components/TitleBar'
 import RoomSidebar from './components/RoomSidebar'
 import Viewport from './components/Viewport'
@@ -53,47 +53,22 @@ export default function App(): React.JSX.Element {
     }
   }, [config?.accent, config?.theme, config?.translucentUi, config?.windowTransparent, backgroundUrl])
 
-  // Boot splash: the wisp bobs while the shell loads. Its lifetime is anchored
-  // to a minimum wall-clock time from first mount, not to how fast init()
-  // resolves — otherwise on a fast machine the window can appear only after the
-  // splash has already timed out, and you'd never see it. It fades out once the
-  // app is ready AND that minimum has elapsed.
-  const MIN_SPLASH_MS = 1400
+  // The main window stays hidden behind the native splash window until we say
+  // we're ready. Signal that once the shell is up — held to a small minimum so
+  // the splash is a deliberate beat, never a flash — then the whole app reveals
+  // at once (Opera-style).
   const mountedAt = useRef(Date.now())
-  const [splashFading, setSplashFading] = useState(false)
-  const [splashGone, setSplashGone] = useState(false)
   useEffect(() => {
     if (!ready) return
-    const wait = Math.max(0, MIN_SPLASH_MS - (Date.now() - mountedAt.current))
-    const fade = setTimeout(() => setSplashFading(true), wait)
-    const gone = setTimeout(() => setSplashGone(true), wait + 500)
-    return () => {
-      clearTimeout(fade)
-      clearTimeout(gone)
-    }
+    const wait = Math.max(0, 700 - (Date.now() - mountedAt.current))
+    const id = setTimeout(() => void invoke('app:ready'), wait)
+    return () => clearTimeout(id)
   }, [ready])
 
-  const splash = !splashGone && (
-    // Solid opaque background hardcoded (not a theme var) so the splash never
-    // shows through — even with window transparency on, the animation is what
-    // fills the launch, not a see-through window.
-    <div
-      className={`wisp-splash ${splashFading ? 'is-done' : ''}`}
-      style={{ background: '#0e0e12' }}
-    >
-      <div className="wisp-orb">
-        <span className="wisp-eye" />
-        <span className="wisp-eye" />
-      </div>
-      <div className="wisp-splash-name">Wisp</div>
-    </div>
-  )
-
-  if (!ready) return <div className="h-full">{splash}</div>
+  if (!ready) return <div className="h-full bg-neutral-950" />
 
   return (
     <div className="relative flex h-full flex-col">
-      {splash}
       {backgroundUrl &&
         (() => {
           // The built-in icon shows as a centered watermark; a custom image fills.

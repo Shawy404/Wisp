@@ -14,7 +14,3 @@ ReactDOM.createRoot(document.getElementById('root') as HTMLElement).render(
     <App />
   </React.StrictMode>
 )
-
-// The React boot splash has taken over — drop the static one from index.html
-// on the next frame so it doesn't linger underneath.
-requestAnimationFrame(() => document.getElementById('boot-splash')?.remove())
