@@ -76,6 +76,8 @@ interface AppState {
   /** Essentials live in the global config — they follow you into every room. */
   addEssential: (url: string, title: string, favicon?: string) => Promise<void>
   removeEssential: (url: string) => Promise<void>
+  /** Hide an essential in one room only (it stays everywhere else). */
+  excludeEssentialFromRoom: (url: string, roomId: string) => Promise<void>
   /** Drag-and-drop: move a rail button to the sidebar or the title bar. */
   placeRailItem: (id: string, location: 'sidebar' | 'titlebar') => Promise<void>
 
@@ -236,6 +238,17 @@ export const useApp = create<AppState>((set, get) => ({
   removeEssential: async (url) => {
     const current = get().config?.essentials ?? []
     await get().setConfig({ essentials: current.filter((e) => e.url !== url) })
+  },
+
+  excludeEssentialFromRoom: async (url, roomId) => {
+    const current = get().config?.essentials ?? []
+    await get().setConfig({
+      essentials: current.map((e) =>
+        e.url === url
+          ? { ...e, excludedRooms: [...new Set([...(e.excludedRooms ?? []), roomId])] }
+          : e
+      )
+    })
   },
 
   placeRailItem: async (id, location) => {

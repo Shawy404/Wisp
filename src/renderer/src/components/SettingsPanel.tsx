@@ -427,6 +427,12 @@ export default function SettingsPanel(): React.JSX.Element {
               </span>
             )}
           </div>
+          <button
+            className="mt-3 text-[11px] text-neutral-500 hover:text-neutral-300"
+            onClick={() => window.dispatchEvent(new CustomEvent('wisp:demo-update'))}
+          >
+            {t('settings.updates.preview')}
+          </button>
         </Section>
 
         {/* Its own section: every version and what changed in it. */}

@@ -1,6 +1,6 @@
 // Wisp — © Shawy404. All rights reserved.
 import { useEffect, useRef, useState } from 'react'
-import type { PinnedTab } from '@shared/types'
+import type { EssentialTab, PinnedTab } from '@shared/types'
 import { invoke, useApp, useT } from '@/store'
 
 interface MenuState {
@@ -10,7 +10,7 @@ interface MenuState {
 }
 
 /** Stable empty fallback so the essentials selector keeps a constant reference. */
-const EMPTY_ESSENTIALS: PinnedTab[] = []
+const EMPTY_ESSENTIALS: EssentialTab[] = []
 
 /**
  * Sidebar tab area, top to bottom: essentials (global — they follow you into
@@ -36,6 +36,7 @@ export default function VerticalTabs({ collapsed }: { collapsed: boolean }): Rea
     unpinTab,
     addEssential,
     removeEssential,
+    excludeEssentialFromRoom,
     setOverlay,
     setDraggingTab
   } = useApp.getState()
@@ -97,9 +98,13 @@ export default function VerticalTabs({ collapsed }: { collapsed: boolean }): Rea
   // first with an accent ring, then this room's own pins. A url that is both
   // only shows once — as an essential. Right-click still lets you convert or
   // remove either kind.
-  const roomOnlyPinned = pinned.filter((p) => !essentials.some((e) => e.url === p.url))
+  // Essentials show in every room except the ones they've been hidden in.
+  const roomEssentials = essentials.filter(
+    (e) => !activeRoomId || !(e.excludedRooms ?? []).includes(activeRoomId)
+  )
+  const roomOnlyPinned = pinned.filter((p) => !roomEssentials.some((e) => e.url === p.url))
   const savedItems: (PinnedTab & { essential: boolean })[] = [
-    ...essentials.map((p) => ({ ...p, essential: true })),
+    ...roomEssentials.map((p) => ({ ...p, essential: true })),
     ...roomOnlyPinned.map((p) => ({ ...p, essential: false }))
   ]
 
@@ -125,13 +130,14 @@ export default function VerticalTabs({ collapsed }: { collapsed: boolean }): Rea
                     p.essential
                       ? [
                           {
-                            label: t('tabs.menu.pinHere'),
-                            run: () => {
-                              void pinTab(p.url, p.title, p.favicon)
-                              void removeEssential(p.url)
-                            }
+                            label: t('tabs.menu.removeFromRoom'),
+                            run: () => activeRoomId && void excludeEssentialFromRoom(p.url, activeRoomId)
                           },
-                          { label: t('tabs.menu.removeEssential'), danger: true, run: () => void removeEssential(p.url) }
+                          {
+                            label: t('tabs.menu.removeEssential'),
+                            danger: true,
+                            run: () => void removeEssential(p.url)
+                          }
                         ]
                       : [
                           {

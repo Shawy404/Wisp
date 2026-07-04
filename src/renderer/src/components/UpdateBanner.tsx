@@ -9,6 +9,8 @@ interface UpdateState {
   version: string
   notes: string
   phase: Phase
+  /** A demo run driven from Settings — fakes progress instead of downloading. */
+  demo?: boolean
 }
 
 interface Progress {
@@ -62,11 +64,21 @@ export default function UpdateBanner(): React.JSX.Element | null {
       setError((info as { message?: string }).message ?? '')
       setUpdate((prev) => (prev && prev.phase === 'downloading' ? { ...prev, phase: 'error' } : prev))
     })
+    // Settings → "Preview update" fires this so the whole banner→download→ready
+    // animation can be seen without waiting for a real release.
+    const onDemo = (): void => {
+      setProgress(null)
+      setError('')
+      setDismissed(false)
+      setUpdate({ version: '0.1.7 (demo)', notes: '', phase: 'available', demo: true })
+    }
+    window.addEventListener('wisp:demo-update', onDemo)
     return () => {
       offAvailable()
       offProgress()
       offReady()
       offError()
+      window.removeEventListener('wisp:demo-update', onDemo)
     }
   }, [])
 
@@ -87,6 +99,26 @@ export default function UpdateBanner(): React.JSX.Element | null {
     setError('')
     setProgress({ percent: 0, transferred: 0, total: 0, bytesPerSecond: 0 })
     setUpdate((prev) => (prev ? { ...prev, phase: 'downloading' } : prev))
+    if (update?.demo) {
+      // Fake a ~4s download so the animation can be watched end to end.
+      const total = 158 * 1024 ** 2
+      let pct = 0
+      const timer = setInterval(() => {
+        pct = Math.min(100, pct + 4 + Math.random() * 6)
+        setProgress({
+          percent: pct,
+          transferred: (pct / 100) * total,
+          total,
+          bytesPerSecond: (12 + Math.random() * 8) * 1024 ** 2
+        })
+        if (pct >= 100) {
+          clearInterval(timer)
+          setProgress(null)
+          setUpdate({ version: '0.1.7 (demo)', notes: '', phase: 'ready', demo: true })
+        }
+      }, 250)
+      return
+    }
     void invoke('update:download')
   }
 
@@ -164,9 +196,9 @@ export default function UpdateBanner(): React.JSX.Element | null {
                 </button>
                 <button
                   className="rounded-md bg-accent/80 px-3 py-1.5 text-xs font-medium text-neutral-950 hover:bg-accent"
-                  onClick={() => void invoke('update:install')}
+                  onClick={() => (update.demo ? setDismissed(true) : void invoke('update:install'))}
                 >
-                  {t('update.restart')}
+                  {update.demo ? t('update.demoDone') : t('update.restart')}
                 </button>
               </div>
             </>

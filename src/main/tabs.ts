@@ -364,8 +364,6 @@ export class TabManager {
     })
     // Match the rounded corners of the renderer's viewport card.
     if (typeof view.setBorderRadius === 'function') view.setBorderRadius(12)
-    // Allow trackpad pinch-to-zoom on pages (visual zoom).
-    view.webContents.setVisualZoomLevelLimits(1, 3).catch(() => {})
     entry.view = view
     this.wireEvents(entry)
     for (const hook of this.viewHooks) hook(view, entry.id)
@@ -454,12 +452,6 @@ export class TabManager {
       entry.title = wc.getTitle() || entry.title
       this.broadcast()
     }
-    // Ctrl + mouse wheel zooms the page (Chromium reports the intent; we apply
-    // it). Trackpad pinch is handled by the visual-zoom limits set on creation.
-    wc.on('zoom-changed', (_e, dir) => {
-      const next = Math.max(-3, Math.min(5, wc.getZoomLevel() + (dir === 'in' ? 0.5 : -0.5)))
-      wc.setZoomLevel(next)
-    })
     const visit = (): void => {
       const url = wc.getURL()
       if (/^https?:/i.test(url)) {

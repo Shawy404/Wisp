@@ -21,6 +21,12 @@ export interface PinnedTab {
   favicon?: string
 }
 
+/** An essential: a pinned tab shown in every room, minus rooms it's hidden in. */
+export interface EssentialTab extends PinnedTab {
+  /** Room ids where the user removed this essential (hidden there only). */
+  excludedRooms?: string[]
+}
+
 /** Persisted per-room metadata (rooms/<slug>/room.json). */
 export interface RoomMeta {
   id: string
@@ -176,8 +182,8 @@ export interface WispConfig {
   compactRevealPx?: number
   /** Delay in ms before the revealed sidebar tucks away again (default 400). */
   compactHideDelayMs?: number
-  /** Tabs kept in every room, independent of room state. */
-  essentials?: PinnedTab[]
+  /** Tabs kept in every room, independent of room state (per-room hideable). */
+  essentials?: EssentialTab[]
   /** Background update checks + auto-download (default on). */
   autoUpdate?: boolean
   /** Minutes before an inactive background tab is unloaded; 0 = never (default 20). */
