@@ -1,28 +1,32 @@
 // Wisp — © Shawy404. All rights reserved.
-import { useEffect, useRef, useState } from 'react'
+import { lazy, Suspense, useEffect, useRef, useState } from 'react'
 import { useApp } from '@/store'
 import TitleBar from './components/TitleBar'
 import RoomSidebar from './components/RoomSidebar'
 import Viewport from './components/Viewport'
-import SearchPanel from './components/SearchPanel'
-import SourcesPanel from './components/SourcesPanel'
-import ReaderPanel from './components/ReaderPanel'
-import NotesPanel from './components/NotesPanel'
-import MapPanel from './components/MapPanel'
-import HistoryPanel from './components/HistoryPanel'
-import DownloadsPanel from './components/DownloadsPanel'
-import RoomSearchPanel from './components/RoomSearchPanel'
-import ShortcutsPanel from './components/ShortcutsPanel'
-import VaultPanel from './components/VaultPanel'
-import Onboarding from './components/Onboarding'
-import SplitView from './components/SplitView'
 import CommandPalette from './components/CommandPalette'
-import SettingsPanel from './components/SettingsPanel'
 import BottomBar from './components/BottomBar'
 import Toast from './components/Toast'
 import PermissionPrompt from './components/PermissionPrompt'
 import VaultOffer from './components/VaultOffer'
 import UpdateBanner from './components/UpdateBanner'
+
+// Overlay panels are only shown on demand, and the heavy ones pull in big
+// libraries (cytoscape for the map, CodeMirror for notes). Loading them lazily
+// keeps the initial bundle — and so the cold-start parse time — much smaller.
+const SearchPanel = lazy(() => import('./components/SearchPanel'))
+const SourcesPanel = lazy(() => import('./components/SourcesPanel'))
+const ReaderPanel = lazy(() => import('./components/ReaderPanel'))
+const NotesPanel = lazy(() => import('./components/NotesPanel'))
+const MapPanel = lazy(() => import('./components/MapPanel'))
+const HistoryPanel = lazy(() => import('./components/HistoryPanel'))
+const DownloadsPanel = lazy(() => import('./components/DownloadsPanel'))
+const RoomSearchPanel = lazy(() => import('./components/RoomSearchPanel'))
+const ShortcutsPanel = lazy(() => import('./components/ShortcutsPanel'))
+const VaultPanel = lazy(() => import('./components/VaultPanel'))
+const SplitView = lazy(() => import('./components/SplitView'))
+const SettingsPanel = lazy(() => import('./components/SettingsPanel'))
+const Onboarding = lazy(() => import('./components/Onboarding'))
 
 export default function App(): React.JSX.Element {
   const ready = useApp((s) => s.ready)
@@ -114,18 +118,20 @@ export default function App(): React.JSX.Element {
       <div className="flex min-h-0 flex-1">
         <RoomSidebar />
         <Viewport>
-          {overlay === 'search' && <SearchPanel />}
-          {overlay === 'sources' && <SourcesPanel />}
-          {overlay === 'reader' && <ReaderPanel />}
-          {overlay === 'notes' && <NotesPanel />}
-          {overlay === 'map' && <MapPanel />}
-          {overlay === 'history' && <HistoryPanel />}
-          {overlay === 'downloads' && <DownloadsPanel />}
-          {overlay === 'roomsearch' && <RoomSearchPanel />}
-          {overlay === 'shortcuts' && <ShortcutsPanel />}
-          {overlay === 'vault' && <VaultPanel />}
-          {overlay === 'split' && <SplitView />}
-          {overlay === 'settings' && <SettingsPanel />}
+          <Suspense fallback={null}>
+            {overlay === 'search' && <SearchPanel />}
+            {overlay === 'sources' && <SourcesPanel />}
+            {overlay === 'reader' && <ReaderPanel />}
+            {overlay === 'notes' && <NotesPanel />}
+            {overlay === 'map' && <MapPanel />}
+            {overlay === 'history' && <HistoryPanel />}
+            {overlay === 'downloads' && <DownloadsPanel />}
+            {overlay === 'roomsearch' && <RoomSearchPanel />}
+            {overlay === 'shortcuts' && <ShortcutsPanel />}
+            {overlay === 'vault' && <VaultPanel />}
+            {overlay === 'split' && <SplitView />}
+            {overlay === 'settings' && <SettingsPanel />}
+          </Suspense>
           <CommandPalette />
           <Toast />
         </Viewport>
@@ -133,7 +139,11 @@ export default function App(): React.JSX.Element {
       <BottomBar />
       </div>
       {/* First run: language + a short skippable tour, above everything. */}
-      {config && !config.onboarded && <Onboarding />}
+      {config && !config.onboarded && (
+        <Suspense fallback={null}>
+          <Onboarding />
+        </Suspense>
+      )}
     </div>
   )
 }
