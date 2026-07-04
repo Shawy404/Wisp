@@ -159,6 +159,12 @@ export default function CommandPalette(): React.JSX.Element | null {
     if (index >= filtered.length) setIndex(0)
   }, [filtered, index])
 
+  // Keep the highlighted row scrolled into view as you arrow through a long list.
+  const listRef = useRef<HTMLDivElement>(null)
+  useEffect(() => {
+    listRef.current?.querySelector<HTMLElement>(`[data-idx="${index}"]`)?.scrollIntoView({ block: 'nearest' })
+  }, [index])
+
   if (!open) return null
 
   return (
@@ -175,23 +181,26 @@ export default function CommandPalette(): React.JSX.Element | null {
           value={query}
           onChange={(e) => setQuery(e.target.value)}
           onKeyDown={(e) => {
-            if (e.key === 'ArrowDown') {
+            const n = filtered.length
+            if (e.key === 'ArrowDown' || (e.key === 'Tab' && !e.shiftKey)) {
               e.preventDefault()
-              setIndex((i) => Math.min(i + 1, filtered.length - 1))
-            } else if (e.key === 'ArrowUp') {
+              if (n) setIndex((i) => (i + 1) % n) // wrap around to the top
+            } else if (e.key === 'ArrowUp' || (e.key === 'Tab' && e.shiftKey)) {
               e.preventDefault()
-              setIndex((i) => Math.max(i - 1, 0))
+              if (n) setIndex((i) => (i - 1 + n) % n)
             } else if (e.key === 'Enter') {
+              e.preventDefault()
               filtered[index]?.run()
             }
           }}
           placeholder={t('palette.placeholder')}
           className="w-full border-b border-neutral-800 bg-transparent px-4 py-3 text-sm text-neutral-100 outline-none placeholder:text-neutral-600"
         />
-        <div className="max-h-80 overflow-y-auto py-1">
+        <div ref={listRef} className="max-h-80 overflow-y-auto py-1">
           {filtered.map((cmd, i) => (
             <button
               key={cmd.id}
+              data-idx={i}
               onMouseEnter={() => setIndex(i)}
               onClick={() => cmd.run()}
               className={`flex w-full items-center gap-2 px-4 py-2 text-left text-sm ${

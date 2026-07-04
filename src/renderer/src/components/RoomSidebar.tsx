@@ -69,6 +69,17 @@ export default function RoomSidebar(): React.JSX.Element {
     }
   }, [compact])
 
+  // Dragging a tab fires drag events, not mouseenter, so the hover-reveal never
+  // triggers — pop the compact sidebar open for the whole drag so you can drop
+  // onto it (rooms, rail) or drag a tab out toward the viewport edges.
+  useEffect(() => {
+    if (compact && draggingTab) {
+      cancelHide()
+      setRevealed(true)
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [compact, draggingTab])
+
   const cancelHide = (): void => {
     if (hideTimer.current) {
       clearTimeout(hideTimer.current)

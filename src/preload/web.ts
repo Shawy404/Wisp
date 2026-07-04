@@ -13,42 +13,6 @@ import { ipcRenderer } from 'electron'
  * into its own inputs.
  */
 
-// ------------------------------------------------------------------- zoom --
-// Ctrl + mouse wheel and trackpad pinch (Chromium delivers pinch as a
-// ctrl+wheel event) zoom the page, anchored to the cursor like a real browser.
-// Done here in the page so we know the pointer position; CSS `zoom` scales the
-// layout and we compensate the scroll so the point under the cursor holds still.
-let pageZoom = 1
-window.addEventListener(
-  'wheel',
-  (e) => {
-    if (!e.ctrlKey) return
-    e.preventDefault()
-    const old = pageZoom
-    const factor = e.deltaY < 0 ? 1.1 : 1 / 1.1
-    pageZoom = Math.min(5, Math.max(0.3, old * factor))
-    if (pageZoom === old) return
-    // The document point currently under the cursor (in unzoomed CSS px)…
-    const docX = (e.clientX + window.scrollX) / old
-    const docY = (e.clientY + window.scrollY) / old
-    ;(document.documentElement.style as CSSStyleDeclaration & { zoom: string }).zoom = String(pageZoom)
-    // …should stay under the cursor after the zoom changes.
-    window.scrollTo(docX * pageZoom - e.clientX, docY * pageZoom - e.clientY)
-  },
-  { passive: false, capture: true }
-)
-// Ctrl+0 resets zoom.
-window.addEventListener(
-  'keydown',
-  (e) => {
-    if ((e.ctrlKey || e.metaKey) && e.key === '0') {
-      pageZoom = 1
-      ;(document.documentElement.style as CSSStyleDeclaration & { zoom: string }).zoom = '1'
-    }
-  },
-  true
-)
-
 // ---------------------------------------------------------------- capture --
 window.addEventListener(
   'submit',
