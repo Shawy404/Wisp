@@ -1,6 +1,6 @@
 // Wisp — © Shawy404. All rights reserved.
-import { lazy, Suspense, useEffect, useRef } from 'react'
-import { invoke, useApp } from '@/store'
+import { lazy, Suspense, useEffect, useRef, useState } from 'react'
+import { useApp } from '@/store'
 import TitleBar from './components/TitleBar'
 import RoomSidebar from './components/RoomSidebar'
 import Viewport from './components/Viewport'
@@ -61,23 +61,45 @@ export default function App(): React.JSX.Element {
     }
   }, [config?.accent, config?.theme, config?.translucentUi, config?.windowTransparent, backgroundUrl])
 
-  // The main window stays hidden behind the native splash window until we say
-  // we're ready. Hold the splash for a deliberate minimum so people actually see
-  // the animation and the warmed-up panels finish loading, then reveal the whole
-  // app at once (Opera-style). The main process has an 8s hard fallback.
-  const MIN_SPLASH_MS = 3200
+  // Full-window boot splash: the wisp animates over the whole app for a
+  // deliberate ~3.5s (so people actually see it and the warmed-up panels finish
+  // loading), then fades out and unmounts. Anchored to first mount, not to how
+  // fast init() resolves, so the timing is stable on any machine.
+  const MIN_SPLASH_MS = 3500
   const mountedAt = useRef(Date.now())
+  const [splashFading, setSplashFading] = useState(false)
+  const [splashGone, setSplashGone] = useState(false)
   useEffect(() => {
     if (!ready) return
     const wait = Math.max(0, MIN_SPLASH_MS - (Date.now() - mountedAt.current))
-    const id = setTimeout(() => void invoke('app:ready'), wait)
-    return () => clearTimeout(id)
+    const fade = setTimeout(() => setSplashFading(true), wait)
+    const gone = setTimeout(() => setSplashGone(true), wait + 500)
+    return () => {
+      clearTimeout(fade)
+      clearTimeout(gone)
+    }
   }, [ready])
 
-  if (!ready) return <div className="h-full bg-neutral-950" />
+  const splash = !splashGone && (
+    // Opaque hardcoded background so it never shows through, even with window
+    // transparency on — the animation fills the launch.
+    <div
+      className={`wisp-splash ${splashFading ? 'is-done' : ''}`}
+      style={{ background: '#0e0e12' }}
+    >
+      <div className="wisp-orb">
+        <span className="wisp-eye" />
+        <span className="wisp-eye" />
+      </div>
+      <div className="wisp-splash-name">Wisp</div>
+    </div>
+  )
+
+  if (!ready) return <div className="h-full bg-neutral-950">{splash}</div>
 
   return (
     <div className="relative flex h-full flex-col">
+      {splash}
       {backgroundUrl &&
         (() => {
           // The built-in icon shows as a centered watermark; a custom image fills.

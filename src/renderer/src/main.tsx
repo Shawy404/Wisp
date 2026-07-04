@@ -14,3 +14,7 @@ ReactDOM.createRoot(document.getElementById('root') as HTMLElement).render(
     <App />
   </React.StrictMode>
 )
+
+// React's own full-window splash has taken over — drop the static index.html
+// one on the next frame so it doesn't linger underneath.
+requestAnimationFrame(() => document.getElementById('boot-splash')?.remove())
