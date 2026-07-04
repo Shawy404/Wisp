@@ -10,7 +10,9 @@
 
 `v0.1.6-pre-alpha` · Linux & Windows · [Download a build](../../releases) · Built by [Shawy404](https://github.com/Shawy404)
 
-<img src="docs/media/map.png" width="820" alt="Wisp concept map" />
+<img src="docs/media/map.png" width="820" alt="Wisp concept map of a neuroscience topic, with figures dropped in" />
+
+<sub>A room's concept map — concepts, notes and dropped-in figures, all linked. Here: the basics of a neuron.</sub>
 
 </div>
 
@@ -30,7 +32,9 @@ The name is from *will-o'-the-wisp*, the ghost light that leads travelers throug
 
 **Search that isn't just Google.** One search bar hits Semantic Scholar, Crossref, arXiv, Wikipedia, Openverse and the web at once, sorts the results into Academic / Overview / Images / Web, and lets you save the ones you want into the room with a click — no copy-pasting citations. A Wisp/Web toggle sits right next to it when you'd rather just search the web.
 
-<img src="docs/media/search.png" width="820" alt="Multi-source research search" />
+<img src="docs/media/search.png" width="820" alt="Multi-source research search for a scientific topic" />
+
+<sub>One query, every source at once — save the ones you want with a click.</sub>
 
 Everything you save lands in the room's sources, tagged and ready to cite:
 
