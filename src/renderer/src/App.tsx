@@ -36,6 +36,14 @@ export default function App(): React.JSX.Element {
 
   useEffect(() => {
     void useApp.getState().init()
+    // Use the splash time productively: warm the heavy, code-split panels
+    // (cytoscape map, CodeMirror editor) in the background so the first time you
+    // open one after launch it's already parsed and opens instantly.
+    void import('./components/MapPanel')
+    void import('./components/NotesPanel')
+    void import('./components/SplitView')
+    void import('./components/SearchPanel')
+    void import('./components/SettingsPanel')
   }, [])
 
   // Live theme: accent drives every `text-accent`/`bg-accent` via the CSS var,
@@ -54,13 +62,14 @@ export default function App(): React.JSX.Element {
   }, [config?.accent, config?.theme, config?.translucentUi, config?.windowTransparent, backgroundUrl])
 
   // The main window stays hidden behind the native splash window until we say
-  // we're ready. Signal that once the shell is up — held to a small minimum so
-  // the splash is a deliberate beat, never a flash — then the whole app reveals
-  // at once (Opera-style).
+  // we're ready. Hold the splash for a deliberate minimum so people actually see
+  // the animation and the warmed-up panels finish loading, then reveal the whole
+  // app at once (Opera-style). The main process has an 8s hard fallback.
+  const MIN_SPLASH_MS = 3200
   const mountedAt = useRef(Date.now())
   useEffect(() => {
     if (!ready) return
-    const wait = Math.max(0, 700 - (Date.now() - mountedAt.current))
+    const wait = Math.max(0, MIN_SPLASH_MS - (Date.now() - mountedAt.current))
     const id = setTimeout(() => void invoke('app:ready'), wait)
     return () => clearTimeout(id)
   }, [ready])
