@@ -45,12 +45,16 @@ export default function VerticalTabs({ collapsed }: { collapsed: boolean }): Rea
 
   useEffect(() => {
     if (!menu) return
+    // The native page view draws above all DOM, so a menu overlapping it would
+    // be hidden — tuck the page away while the menu is open, restore on close.
+    void invoke('viewport:visible', false)
     const close = (): void => setMenu(null)
     window.addEventListener('click', close)
     window.addEventListener('contextmenu', close, true)
     return () => {
       window.removeEventListener('click', close)
       window.removeEventListener('contextmenu', close, true)
+      void invoke('viewport:visible', useApp.getState().overlay === 'none')
     }
   }, [menu])
 
@@ -130,7 +134,8 @@ export default function VerticalTabs({ collapsed }: { collapsed: boolean }): Rea
                   ]
             )
           }
-          title={p.title}
+          data-tip={`${p.title}${essential ? ` · ${t('tabs.essentials')}` : ''}`}
+          data-tip-pos="bottom"
           className={`flex h-9 w-9 items-center justify-center rounded-lg border bg-neutral-900 hover:border-neutral-600 ${
             essential ? 'border-accent/30' : 'border-neutral-800'
           }`}

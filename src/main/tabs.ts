@@ -62,6 +62,8 @@ export class TabManager {
   private currentRoom: string | null = null
   private bounds: Bounds = { x: 0, y: 0, width: 0, height: 0 }
   private visible = true
+  /** Tab ids currently shown side by side in split view (0, 1 or 2). */
+  private splitTabs: string[] = []
   /** How long a background tab may idle before unloading; 0 disables sleeping. */
   private sleepAfterMs = DEFAULT_SLEEP_MINUTES * 60 * 1000
   /** Called whenever a room's tab set changes, for persistence. */
@@ -85,6 +87,7 @@ export class TabManager {
   /** Switch the window to a room, restoring persisted tabs on first visit. */
   setRoom(roomId: string, persistedUrls: string[], persistedActiveIndex: number): void {
     if (this.currentRoom === roomId) return
+    this.clearSplit()
     this.detachCurrent()
     this.currentRoom = roomId
     if (!this.loadedRooms.has(roomId)) {
@@ -197,6 +200,9 @@ export class TabManager {
 
   setBounds(bounds: Bounds): void {
     this.bounds = bounds
+    // Split mode owns view placement; don't let the normal single-view bounds
+    // yank a pane back to full size.
+    if (this.splitTabs.length) return
     const view = this.activeView()
     if (view && this.visible) view.setBounds(this.bounds)
   }
@@ -204,10 +210,61 @@ export class TabManager {
   /** Hide the web view while a UI overlay (map, notes, palette…) is open. */
   setVisible(visible: boolean): void {
     this.visible = visible
+    if (this.splitTabs.length) return
     const view = this.activeView()
     if (!view) return
     view.setVisible(visible)
     if (visible) view.setBounds(this.bounds)
+  }
+
+  /**
+   * Split view: show one or two tabs side by side, each at its own rect. Passing
+   * an empty list returns to the normal single active view. This is the only
+   * place two web views are attached at once, so both live pages are real and
+   * interactive — not screenshots.
+   */
+  setSplit(panes: { tabId: string; rect: Bounds }[]): void {
+    this.clearSplit()
+    if (panes.length === 0) {
+      this.attachActive()
+      const view = this.activeView()
+      if (view) view.setVisible(this.visible)
+      return
+    }
+    // Take the normal active view off-screen; the panes below drive placement.
+    this.detachCurrent()
+    const round = (b: Bounds): Bounds => ({
+      x: Math.round(b.x),
+      y: Math.round(b.y),
+      width: Math.round(b.width),
+      height: Math.round(b.height)
+    })
+    for (const p of panes) {
+      const entry = this.tabs.get(p.tabId)
+      if (!entry) continue
+      if (!entry.view) this.createView(entry)
+      if (!entry.view) continue
+      entry.lastActiveAt = Date.now()
+      this.win.contentView.addChildView(entry.view)
+      entry.view.setBounds(round(p.rect))
+      entry.view.setVisible(true)
+      this.splitTabs.push(p.tabId)
+    }
+    this.broadcast()
+  }
+
+  private clearSplit(): void {
+    for (const id of this.splitTabs) {
+      const view = this.tabs.get(id)?.view
+      if (view) {
+        try {
+          this.win.contentView.removeChildView(view)
+        } catch {
+          /* not attached */
+        }
+      }
+    }
+    this.splitTabs = []
   }
 
   activeTabId(): string | null {
@@ -324,7 +381,7 @@ export class TabManager {
     const activeId = this.activeTabId()
     let slept = 0
     for (const entry of this.tabs.values()) {
-      if (!entry.view || entry.id === activeId) continue
+      if (!entry.view || entry.id === activeId || this.splitTabs.includes(entry.id)) continue
       if (!force && (this.sleepAfterMs === 0 || now - entry.lastActiveAt < this.sleepAfterMs)) continue
       const wc = entry.view.webContents
       if (wc.isCurrentlyAudible()) continue
@@ -347,6 +404,7 @@ export class TabManager {
   private destroyTab(id: string): void {
     const entry = this.tabs.get(id)
     if (!entry) return
+    this.splitTabs = this.splitTabs.filter((t) => t !== id)
     if (entry.view) {
       try {
         this.win.contentView.removeChildView(entry.view)

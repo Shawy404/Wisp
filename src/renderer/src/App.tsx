@@ -18,6 +18,7 @@ import Onboarding from './components/Onboarding'
 import SplitView from './components/SplitView'
 import CommandPalette from './components/CommandPalette'
 import SettingsPanel from './components/SettingsPanel'
+import BottomBar from './components/BottomBar'
 import Toast from './components/Toast'
 import PermissionPrompt from './components/PermissionPrompt'
 import VaultOffer from './components/VaultOffer'
@@ -69,7 +70,13 @@ export default function App(): React.JSX.Element {
   }, [ready])
 
   const splash = !splashGone && (
-    <div className={`wisp-splash ${splashFading ? 'is-done' : ''}`}>
+    // Solid opaque background hardcoded (not a theme var) so the splash never
+    // shows through — even with window transparency on, the animation is what
+    // fills the launch, not a see-through window.
+    <div
+      className={`wisp-splash ${splashFading ? 'is-done' : ''}`}
+      style={{ background: '#0e0e12' }}
+    >
       <div className="wisp-orb">
         <span className="wisp-eye" />
         <span className="wisp-eye" />
@@ -123,6 +130,7 @@ export default function App(): React.JSX.Element {
           <Toast />
         </Viewport>
       </div>
+      <BottomBar />
       </div>
       {/* First run: language + a short skippable tour, above everything. */}
       {config && !config.onboarded && <Onboarding />}

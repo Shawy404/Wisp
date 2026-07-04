@@ -15,6 +15,30 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: '0.1.6-pre-alpha',
+    date: '2026-07-04',
+    notes: {
+      tr: [
+        'Split view artık iki farklı canlı sayfayı yan yana gösterebiliyor: her panoyu ayrı ayrı Sayfa / Okuyucu / Not / Kaynaklar yap ve canlı panoda hangi sekmenin görüneceğini seç.',
+        'Ayarlara arama kutusu ve sekmeli kategoriler (Görünüm, Genel, Arama, Gizlilik, Bellek, Güncellemeler) eklendi.',
+        'Ayarlar butonu her zaman erişilebilir olması için pencerenin sağ alt köşesine taşındı.',
+        'Açılış animasyonu daha güvenilir ve opak; pencere şeffafken bile görünüyor.',
+        'Sekmelere sağ tık menüsü ve ipuçları artık sayfanın üstünde görünüyor, arkasında kaybolmuyor.',
+        'Panel butonları kenar çubuğu ile üst çubuk arasında sürüklenebiliyor; ayarlardan da taşınabiliyor.',
+        'Arayüzdeki başka marka isimleri temizlendi.'
+      ],
+      en: [
+        'Split view can now show two different live pages side by side: set each pane to Page / Reader / Note / Sources and pick which tab a live pane shows.',
+        'Settings gained a search box and tabbed categories (Appearance, General, Search, Privacy, Memory, Updates).',
+        'The settings button moved to the bottom-right corner so it is always reachable.',
+        'The startup animation is more reliable and opaque; it shows even with window transparency on.',
+        "Tab right-click menus and hints now render above the page instead of vanishing behind it.",
+        'Panel buttons can be dragged between the sidebar rail and the title bar; you can also move them from settings.',
+        'Cleared other brand names from the interface.'
+      ]
+    }
+  },
+  {
     version: '0.1.5-pre-alpha',
     date: '2026-07-04',
     notes: {

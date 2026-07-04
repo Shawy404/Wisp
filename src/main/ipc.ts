@@ -162,6 +162,14 @@ export function registerCoreIpc(ctx: WispContext): void {
   })
   ipcMain.handle('viewport:visible', (_e, visible: boolean) => tabs.setVisible(visible))
 
+  // Split view: show one or two live tabs side by side at the given rects.
+  ipcMain.handle(
+    'split:show',
+    (_e, panes: { tabId: string; rect: { x: number; y: number; width: number; height: number } }[]) =>
+      tabs.setSplit(panes)
+  )
+  ipcMain.handle('split:hide', () => tabs.setSplit([]))
+
   // Web-dev mode: open DevTools for the active tab's page (detached window).
   ipcMain.handle('tabs:devtools', () => {
     ctx.tabs.activeView()?.webContents.openDevTools({ mode: 'detach' })

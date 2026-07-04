@@ -50,12 +50,11 @@ interface AppState {
   /** Drag-to-split: focus the tab and open split view with the page on `side`. */
   requestSplit: (tabId: string, side: 'left' | 'right') => void
   /**
-   * When a split-view pane shows the live page, it hands its on-screen rect
-   * here so the native web view can be positioned into exactly that pane.
-   * Null means no pane is live (the native view stays hidden behind overlays).
+   * True while split view is positioning live web views itself, so the normal
+   * viewport bounds/visibility logic stands back and doesn't fight it.
    */
-  splitLiveRect: { x: number; y: number; width: number; height: number } | null
-  setSplitLiveRect: (rect: AppState['splitLiveRect']) => void
+  splitLive: boolean
+  setSplitLive: (live: boolean) => void
 
   init: () => Promise<void>
   refreshRoomData: (roomId?: string) => Promise<void>
@@ -115,8 +114,8 @@ export const useApp = create<AppState>((set, get) => ({
     get().setOverlay('split')
   },
 
-  splitLiveRect: null,
-  setSplitLiveRect: (rect) => set({ splitLiveRect: rect }),
+  splitLive: false,
+  setSplitLive: (live) => set({ splitLive: live }),
 
   init: async () => {
     window.wisp.on('tabs:state', (state) => {

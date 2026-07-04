@@ -20,6 +20,8 @@ export interface RailItem {
  * divider drawn between the two clusters while they share the sidebar. History
  * is deliberately absent — it lives on Ctrl+H and in the command palette.
  */
+// Note: settings is deliberately NOT here — it has its own fixed button in the
+// bottom bar's right corner, always reachable over any page.
 export const ALL_RAIL: RailItem[] = [
   { id: 'search', titleKey: 'sidebar.search', icon: '⌕', group: 'content' },
   { id: 'sources', titleKey: 'sidebar.sources', icon: '▤', group: 'content' },
@@ -27,8 +29,7 @@ export const ALL_RAIL: RailItem[] = [
   { id: 'map', titleKey: 'sidebar.map', icon: '❋', group: 'content' },
   { id: 'split', titleKey: 'sidebar.split', icon: '◫', group: 'system' },
   { id: 'downloads', titleKey: 'sidebar.downloads', icon: '⇣', group: 'system' },
-  { id: 'vault', titleKey: 'sidebar.vault', icon: '⚿', group: 'system' },
-  { id: 'settings', titleKey: 'sidebar.settings', icon: '⚙', group: 'system' }
+  { id: 'vault', titleKey: 'sidebar.vault', icon: '⚿', group: 'system' }
 ]
 
 /** Where a given rail button lives, honouring the config (default: sidebar). */

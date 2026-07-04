@@ -15,7 +15,7 @@ interface ReaderArticle {
   words: number
 }
 
-/** What a split pane can show. 'live' is the actual interactive web page. */
+/** What a split pane can show. 'live' is a real, interactive web page. */
 type PaneMode = 'live' | 'reader' | 'note' | 'sources'
 
 const MODE_KEY: Record<PaneMode, TKey> = {
@@ -26,32 +26,46 @@ const MODE_KEY: Record<PaneMode, TKey> = {
 }
 
 /**
- * Split view: two independent panes, each showing the live page, the reader,
- * a note, or the room's sources — pick per pane from its header. Dragging a tab
- * to a viewport edge opens this with the live page on that side and a note on
- * the other, so you can read a page and take notes side by side. Only one pane
- * can be the live page at a time (there's a single active web view); its rect
- * is handed to the main process, which positions the native page into exactly
- * that pane while the other pane is drawn here.
+ * Split view: two independent panes, each showing a live page, the reader, a
+ * note, or the room's sources — pick per pane from its header. Both panes can
+ * be live pages at once (a different tab in each), so you can read two pages
+ * side by side, or a page next to a note. Each live pane hands its rect and
+ * chosen tab to the main process, which attaches that tab's real web view into
+ * exactly that pane. A tab can only be live in one pane at a time — there's a
+ * single web view per tab.
  */
 export default function SplitView(): React.JSX.Element {
   const sources = useApp((s) => s.sources)
   const notes = useApp((s) => s.notes)
+  const tabs = useApp((s) => s.tabs)
   const activeRoomId = useApp((s) => s.activeRoomId)
   const activeTabId = useApp((s) => s.activeTabId)
   const splitSide = useApp((s) => s.splitSide)
   const t = useT()
 
-  // Default layout: the page side (from a drag, or wherever the tab is) shows
-  // the live page; the other side takes notes. With no open tab, fall back to
-  // reader/sources so the panes still show something useful.
-  const pageSide = splitSide
+  const pickTab = useCallback(
+    (otherTabId: string | null): string | null => {
+      if (activeTabId && activeTabId !== otherTabId) return activeTabId
+      return tabs.find((tb) => tb.id !== otherTabId)?.id ?? activeTabId ?? null
+    },
+    [activeTabId, tabs]
+  )
+
+  // Default layout: put the active tab on the side it was dragged to and a
+  // different tab on the other side, so with two or more tabs open you get two
+  // live pages side by side straight away. A side with no tab falls back to a
+  // note (or reader when there's nothing at all).
+  const otherTab = tabs.find((tb) => tb.id !== activeTabId)?.id ?? null
+  const initLeftTab = splitSide === 'right' ? otherTab : activeTabId
+  const initRightTab = splitSide === 'right' ? activeTabId : otherTab
   const [leftMode, setLeftMode] = useState<PaneMode>(
-    pageSide === 'left' ? (activeTabId ? 'live' : 'reader') : 'note'
+    initLeftTab ? 'live' : activeTabId || otherTab ? 'note' : 'reader'
   )
   const [rightMode, setRightMode] = useState<PaneMode>(
-    pageSide === 'right' ? (activeTabId ? 'live' : 'reader') : 'note'
+    initRightTab ? 'live' : activeTabId || otherTab ? 'note' : 'reader'
   )
+  const [leftTab, setLeftTab] = useState<string | null>(initLeftTab)
+  const [rightTab, setRightTab] = useState<string | null>(initRightTab)
 
   const [article, setArticle] = useState<ReaderArticle | null>(null)
   const [readerLoading, setReaderLoading] = useState(false)
@@ -67,7 +81,6 @@ export default function SplitView(): React.JSX.Element {
     if (!noteId && notes.length) setNoteId(notes[0].id)
   }, [notes, noteId])
 
-  // Pull the reader article only when some pane actually shows it.
   useEffect(() => {
     if (!needsReader || !activeTabId) return
     setReaderLoading(true)
@@ -77,52 +90,55 @@ export default function SplitView(): React.JSX.Element {
     })
   }, [needsReader, activeTabId])
 
-  // Setting one pane to 'live' takes the live page away from the other — there
-  // is only one active web view to position.
   const setMode = (side: 'left' | 'right', mode: PaneMode): void => {
     if (side === 'left') {
       setLeftMode(mode)
-      if (mode === 'live' && rightMode === 'live') setRightMode('note')
+      if (mode === 'live') setLeftTab((cur) => (cur && cur !== rightTab ? cur : pickTab(rightTab)))
     } else {
       setRightMode(mode)
-      if (mode === 'live' && leftMode === 'live') setLeftMode('note')
+      if (mode === 'live') setRightTab((cur) => (cur && cur !== leftTab ? cur : pickTab(leftTab)))
     }
   }
 
-  // Hand the live pane's rect to the main process so the native page view lands
-  // exactly there; clear it (and hide the view) when neither pane is live.
-  const liveSide = leftMode === 'live' ? 'left' : rightMode === 'live' ? 'right' : null
-  const pushLiveRect = useCallback((): void => {
-    const el = liveSide === 'left' ? leftContent.current : liveSide === 'right' ? rightContent.current : null
-    if (!el) {
-      useApp.getState().setSplitLiveRect(null)
+  // Hand each live pane's tab + rect to the main process so the real web views
+  // land in the panes; when neither pane is live, release them.
+  const pushSplit = useCallback((): void => {
+    const panes: { tabId: string; rect: { x: number; y: number; width: number; height: number } }[] = []
+    const add = (mode: PaneMode, tabId: string | null, el: HTMLDivElement | null): void => {
+      if (mode !== 'live' || !tabId || !el) return
+      if (panes.some((p) => p.tabId === tabId)) return // one web view per tab
+      const r = el.getBoundingClientRect()
+      panes.push({ tabId, rect: { x: r.x, y: r.y, width: r.width, height: r.height } })
+    }
+    add(leftMode, leftTab, leftContent.current)
+    add(rightMode, rightTab, rightContent.current)
+    if (panes.length === 0) {
+      useApp.getState().setSplitLive(false)
+      void invoke('split:hide')
       void invoke('viewport:visible', false)
-      return
+    } else {
+      useApp.getState().setSplitLive(true)
+      void invoke('split:show', panes)
     }
-    const r = el.getBoundingClientRect()
-    const rect = { x: r.x, y: r.y, width: r.width, height: r.height }
-    useApp.getState().setSplitLiveRect(rect)
-    void invoke('viewport:bounds', rect)
-    void invoke('viewport:visible', true)
-  }, [liveSide])
+  }, [leftMode, rightMode, leftTab, rightTab])
 
   useEffect(() => {
-    pushLiveRect()
-    if (!liveSide) return
-    const el = liveSide === 'left' ? leftContent.current : rightContent.current
-    const ro = el ? new ResizeObserver(pushLiveRect) : null
-    if (el && ro) ro.observe(el)
-    window.addEventListener('resize', pushLiveRect)
+    pushSplit()
+    const els = [leftContent.current, rightContent.current].filter(Boolean) as HTMLDivElement[]
+    const ro = new ResizeObserver(pushSplit)
+    els.forEach((el) => ro.observe(el))
+    window.addEventListener('resize', pushSplit)
     return () => {
-      ro?.disconnect()
-      window.removeEventListener('resize', pushLiveRect)
+      ro.disconnect()
+      window.removeEventListener('resize', pushSplit)
     }
-  }, [liveSide, pushLiveRect])
+  }, [pushSplit])
 
-  // Leaving split view releases the native page view back to the full viewport.
+  // Leaving split view releases the web views back to the single viewport.
   useEffect(() => {
     return () => {
-      useApp.getState().setSplitLiveRect(null)
+      useApp.getState().setSplitLive(false)
+      void invoke('split:hide')
     }
   }, [])
 
@@ -144,21 +160,50 @@ export default function SplitView(): React.JSX.Element {
     setNoteId(note.id)
   }
 
-  const ModePicker = ({ side, mode }: { side: 'left' | 'right'; mode: PaneMode }): React.JSX.Element => (
-    <div className="flex items-center gap-1">
-      {(['live', 'reader', 'note', 'sources'] as PaneMode[]).map((m) => (
-        <button
-          key={m}
-          className={`rounded px-2 py-1 text-[11px] ${
-            mode === m ? 'bg-neutral-800 text-neutral-100' : 'text-neutral-500 hover:text-neutral-300'
-          }`}
-          onClick={() => setMode(side, m)}
-        >
-          {t(MODE_KEY[m])}
-        </button>
-      ))}
-    </div>
-  )
+  const PaneHeader = ({ side }: { side: 'left' | 'right' }): React.JSX.Element => {
+    const mode = side === 'left' ? leftMode : rightMode
+    const liveTab = side === 'left' ? leftTab : rightTab
+    const otherLiveTab = side === 'left' ? rightTab : leftTab
+    const otherLive = side === 'left' ? rightMode === 'live' : leftMode === 'live'
+    return (
+      <div className="flex items-center gap-2 border-b border-neutral-800 px-3 py-2">
+        <div className="flex items-center gap-1">
+          {(['live', 'reader', 'note', 'sources'] as PaneMode[]).map((m) => (
+            <button
+              key={m}
+              className={`rounded px-2 py-1 text-[11px] ${
+                mode === m ? 'bg-neutral-800 text-neutral-100' : 'text-neutral-500 hover:text-neutral-300'
+              }`}
+              onClick={() => setMode(side, m)}
+            >
+              {t(MODE_KEY[m])}
+            </button>
+          ))}
+        </div>
+        {mode === 'live' && tabs.length > 0 && (
+          <select
+            value={liveTab ?? ''}
+            onChange={(e) => (side === 'left' ? setLeftTab(e.target.value) : setRightTab(e.target.value))}
+            className="max-w-[40%] rounded border border-neutral-800 bg-neutral-900 px-2 py-1 text-[11px] text-neutral-200 outline-none"
+          >
+            {tabs.map((tb) => (
+              <option key={tb.id} value={tb.id} disabled={otherLive && tb.id === otherLiveTab}>
+                {tb.title || tb.url}
+              </option>
+            ))}
+          </select>
+        )}
+        {side === 'right' && (
+          <button
+            className="ml-auto rounded px-2 py-1 text-[11px] text-neutral-400 hover:bg-neutral-800"
+            onClick={() => useApp.getState().setOverlay('none')}
+          >
+            {t('splitView.close')}
+          </button>
+        )}
+      </div>
+    )
+  }
 
   const PaneBody = ({
     mode,
@@ -168,11 +213,10 @@ export default function SplitView(): React.JSX.Element {
     contentRef: React.RefObject<HTMLDivElement | null>
   }): React.JSX.Element => {
     if (mode === 'live') {
-      // The native page view is positioned over this element by the main
-      // process; the placeholder only shows if there's no page to place.
+      // The main process positions the real web view over this element.
       return (
         <div ref={contentRef} className="relative h-full w-full">
-          {!activeTabId && (
+          {tabs.length === 0 && (
             <div className="flex h-full items-center justify-center text-xs text-neutral-600">
               {t('splitView.noPage')}
             </div>
@@ -256,39 +300,20 @@ export default function SplitView(): React.JSX.Element {
     )
   }
 
-  const Pane = ({
-    side,
-    mode,
-    contentRef,
-    border
-  }: {
-    side: 'left' | 'right'
-    mode: PaneMode
-    contentRef: React.RefObject<HTMLDivElement | null>
-    border: string
-  }): React.JSX.Element => (
-    <div className={`flex min-w-0 flex-1 flex-col ${border}`}>
-      <div className="flex items-center gap-2 border-b border-neutral-800 px-3 py-2">
-        <ModePicker side={side} mode={mode} />
-        {side === 'right' && (
-          <button
-            className="ml-auto rounded px-2 py-1 text-[11px] text-neutral-400 hover:bg-neutral-800"
-            onClick={() => useApp.getState().setOverlay('none')}
-          >
-            {t('splitView.close')}
-          </button>
-        )}
-      </div>
-      <div className="min-h-0 flex-1">
-        <PaneBody mode={mode} contentRef={contentRef} />
-      </div>
-    </div>
-  )
-
   return (
     <div className="absolute inset-0 flex overflow-hidden bg-neutral-950">
-      <Pane side="left" mode={leftMode} contentRef={leftContent} border="border-r border-neutral-800" />
-      <Pane side="right" mode={rightMode} contentRef={rightContent} border="" />
+      <div className="flex min-w-0 flex-1 flex-col border-r border-neutral-800">
+        <PaneHeader side="left" />
+        <div className="min-h-0 flex-1">
+          <PaneBody mode={leftMode} contentRef={leftContent} />
+        </div>
+      </div>
+      <div className="flex min-w-0 flex-1 flex-col">
+        <PaneHeader side="right" />
+        <div className="min-h-0 flex-1">
+          <PaneBody mode={rightMode} contentRef={rightContent} />
+        </div>
+      </div>
     </div>
   )
 }
