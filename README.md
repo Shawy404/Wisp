@@ -123,4 +123,4 @@ Everything is local — nothing leaves your machine beyond the searches you run.
 
 ## License
 
-© Shawy404. All rights reserved.
+MIT — free and open for everyone. See [LICENSE](LICENSE). Wisp is not for sale and never will be; use it, fork it, ship it.

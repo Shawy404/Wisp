@@ -93,82 +93,69 @@ export default function VerticalTabs({ collapsed }: { collapsed: boolean }): Rea
     setMenu({ x: e.clientX, y: e.clientY, items })
   }
 
-  /** Icon grid shared by the essentials and pinned sections. */
-  const SavedGrid = ({
-    items,
-    essential
-  }: {
-    items: PinnedTab[]
-    essential: boolean
-  }): React.JSX.Element => (
-    <div
-      className={`grid gap-1.5 p-2 ${collapsed ? 'grid-cols-1 justify-items-center' : 'grid-cols-4'}`}
-    >
-      {items.map((p) => (
-        <button
-          key={p.url}
-          onClick={() => openSaved(p.url)}
-          onContextMenu={(e) =>
-            openMenu(
-              e,
-              essential
-                ? [
-                    {
-                      label: t('tabs.menu.pinHere'),
-                      run: () => {
-                        void pinTab(p.url, p.title, p.favicon)
-                        void removeEssential(p.url)
-                      }
-                    },
-                    { label: t('tabs.menu.removeEssential'), danger: true, run: () => void removeEssential(p.url) }
-                  ]
-                : [
-                    {
-                      label: t('tabs.menu.moveToEssentials'),
-                      run: () => {
-                        void addEssential(p.url, p.title, p.favicon)
-                        void unpinTab(p.url)
-                      }
-                    },
-                    { label: t('tabs.unpin'), danger: true, run: () => void unpinTab(p.url) }
-                  ]
-            )
-          }
-          data-tip={`${p.title}${essential ? ` · ${t('tabs.essentials')}` : ''}`}
-          data-tip-pos="bottom"
-          className={`flex h-9 w-9 items-center justify-center rounded-lg border bg-neutral-900 hover:border-neutral-600 ${
-            essential ? 'border-accent/30' : 'border-neutral-800'
-          }`}
-        >
-          {p.favicon ? (
-            <img src={p.favicon} className="h-4 w-4 rounded-sm" alt="" />
-          ) : (
-            <span className="text-[10px] text-neutral-400">{p.title.slice(0, 2).toUpperCase()}</span>
-          )}
-        </button>
-      ))}
-    </div>
-  )
-
-  const sectionLabel = (key: 'tabs.essentials' | 'tabs.pinned'): React.JSX.Element | null =>
-    collapsed ? null : (
-      <div className="px-3 pt-2 text-[9px] font-semibold tracking-wider text-neutral-600 uppercase">
-        {t(key)}
-      </div>
-    )
+  // One combined "pinned" strip: essentials (global, follow every room) sit
+  // first with an accent ring, then this room's own pins. A url that is both
+  // only shows once — as an essential. Right-click still lets you convert or
+  // remove either kind.
+  const roomOnlyPinned = pinned.filter((p) => !essentials.some((e) => e.url === p.url))
+  const savedItems: (PinnedTab & { essential: boolean })[] = [
+    ...essentials.map((p) => ({ ...p, essential: true })),
+    ...roomOnlyPinned.map((p) => ({ ...p, essential: false }))
+  ]
 
   return (
     <div className="flex min-h-0 flex-1 flex-col">
-      {essentials.length > 0 && (
+      {savedItems.length > 0 && (
         <div className="border-b border-neutral-800/60">
-          {sectionLabel('tabs.essentials')}
-          <SavedGrid items={essentials} essential />
-        </div>
-      )}
-      {pinned.length > 0 && (
-        <div className="border-b border-neutral-800/60">
-          {sectionLabel('tabs.pinned')}
-          <SavedGrid items={pinned} essential={false} />
+          {!collapsed && (
+            <div className="px-3 pt-2 text-[9px] font-semibold tracking-wider text-neutral-600 uppercase">
+              {t('tabs.pinned')}
+            </div>
+          )}
+          <div
+            className={`grid gap-1.5 p-2 ${collapsed ? 'grid-cols-1 justify-items-center' : 'grid-cols-4'}`}
+          >
+            {savedItems.map((p) => (
+              <button
+                key={p.url}
+                onClick={() => openSaved(p.url)}
+                onContextMenu={(e) =>
+                  openMenu(
+                    e,
+                    p.essential
+                      ? [
+                          {
+                            label: t('tabs.menu.pinHere'),
+                            run: () => {
+                              void pinTab(p.url, p.title, p.favicon)
+                              void removeEssential(p.url)
+                            }
+                          },
+                          { label: t('tabs.menu.removeEssential'), danger: true, run: () => void removeEssential(p.url) }
+                        ]
+                      : [
+                          {
+                            label: t('tabs.menu.moveToEssentials'),
+                            run: () => void addEssential(p.url, p.title, p.favicon)
+                          },
+                          { label: t('tabs.unpin'), danger: true, run: () => void unpinTab(p.url) }
+                        ]
+                  )
+                }
+                data-tip={`${p.title}${p.essential ? ` · ${t('tabs.essentials')}` : ''}`}
+                data-tip-pos="bottom"
+                className={`flex h-9 w-9 items-center justify-center rounded-lg border bg-neutral-900 hover:border-neutral-600 ${
+                  p.essential ? 'border-accent/40' : 'border-neutral-800'
+                }`}
+              >
+                {p.favicon ? (
+                  <img src={p.favicon} className="h-4 w-4 rounded-sm" alt="" />
+                ) : (
+                  <span className="text-[10px] text-neutral-400">{p.title.slice(0, 2).toUpperCase()}</span>
+                )}
+              </button>
+            ))}
+          </div>
         </div>
       )}
 

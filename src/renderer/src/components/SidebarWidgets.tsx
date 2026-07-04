@@ -55,30 +55,24 @@ export default function SidebarWidgets(): React.JSX.Element | null {
 
   return (
     <div className="space-y-1.5 border-t border-neutral-800/60 p-2">
-      {show.music && (
+      {/* Only shown while something is actually playing (or paused-in-place) —
+          no idle "nothing playing" row cluttering the sidebar. */}
+      {show.music && media && (
         <div className="group rounded-lg border border-neutral-800 bg-neutral-900/50 px-2 py-1.5">
           <div className="flex items-center gap-1.5">
             <span className="text-[11px] text-neutral-500">♪</span>
             <button
               className="min-w-0 flex-1 truncate text-left text-[10px] text-neutral-400 hover:text-neutral-200"
-              onClick={() => media && void invoke('media:focus')}
-              title={media?.title}
+              onClick={() => void invoke('media:focus')}
+              title={media.title}
             >
-              {media ? media.title : t('widgets.nothingPlaying')}
+              {media.title}
             </button>
-            {media && (
-              <button
-                className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-accent/15 text-[10px] text-accent hover:bg-accent/25"
-                onClick={() => void invoke('media:toggle')}
-              >
-                {media.playing ? '❚❚' : '▶'}
-              </button>
-            )}
             <button
-              className="hidden shrink-0 text-neutral-600 group-hover:inline hover:text-neutral-300"
-              onClick={() => setShown('music', false)}
+              className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-accent/15 text-[10px] text-accent hover:bg-accent/25"
+              onClick={() => void invoke('media:toggle')}
             >
-              ×
+              {media.playing ? '❚❚' : '▶'}
             </button>
           </div>
         </div>

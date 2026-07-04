@@ -37,6 +37,9 @@ function nameFromEvent(e: KeyboardEvent): string | null {
   if (e.key === '?' && !e.ctrlKey && !e.altKey && !e.metaKey && !isEditable(e.target)) {
     return 'shortcuts'
   }
+  // F5 (and Ctrl+R) reloads the active page.
+  if (e.key === 'F5' && !e.ctrlKey && !e.altKey && !e.metaKey) return 'reload'
+  if (e.key.toLowerCase() === 'r' && e.ctrlKey && !e.altKey && !e.metaKey) return 'reload'
   return null
 }
 

@@ -13,7 +13,7 @@
     "build:win": "npm run fetch:bin && electron-vite build && electron-builder --win"
   },
   "author": "Shawy404",
-  "license": "UNLICENSED",
+  "license": "MIT",
   "dependencies": {
     "@ghostery/adblocker-electron": "^2.18.1",
     "@mozilla/readability": "^0.6.0",
