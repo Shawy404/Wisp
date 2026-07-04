@@ -567,6 +567,42 @@ export default function SettingsPanel(): React.JSX.Element {
           </div>
         </Section>
 
+        <Section
+          cat="general"
+          terms={`${t('settings.help')} split view drag wikilink kısayol shortcut nasıl how`}
+          title={t('settings.help')}
+        >
+          <ul className="space-y-2 text-[11px] leading-relaxed text-neutral-400">
+            <li>· {t('settings.help.rooms')}</li>
+            <li>· {t('settings.help.search')}</li>
+            <li>· {t('settings.help.split')}</li>
+            <li>· {t('settings.help.notes')}</li>
+            <li>· {t('settings.help.map')}</li>
+            <li>· {t('settings.help.essentials')}</li>
+            <li>· {t('settings.help.keys')}</li>
+          </ul>
+          <div className="mt-4 flex flex-wrap gap-2">
+            <button
+              className="rounded-md bg-neutral-800 px-3 py-1.5 text-xs text-neutral-200 hover:bg-neutral-700"
+              onClick={() => {
+                useApp.getState().newTab('https://github.com/Shawy404/Wisp')
+                useApp.getState().setOverlay('none')
+              }}
+            >
+              {t('settings.help.github')}
+            </button>
+            <button
+              className="rounded-md px-3 py-1.5 text-xs text-neutral-500 hover:text-neutral-300"
+              onClick={() => {
+                useApp.getState().newTab('https://github.com/Shawy404/Wisp/issues/new')
+                useApp.getState().setOverlay('none')
+              }}
+            >
+              {t('settings.help.issue')}
+            </button>
+          </div>
+        </Section>
+
         <div className="py-4 text-center text-[10px] text-neutral-700">{t('settings.footer')}</div>
       </div>
     </div>

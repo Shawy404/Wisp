@@ -151,11 +151,14 @@ export function buildGraph(data: RoomData, opts: GraphOptions = {}): Graph {
         if (mentions(hay, target.label)) pushEdge(from, target.id, 'mention')
       }
     }
-    const concepts = targets.filter((t) => t.id.startsWith('concept:'))
+    // A source whose title names a concept *or a note* links to it — e.g. an
+    // image titled "Neuron diagram" links to the "Neuron" note, not just a
+    // "Neuron" concept.
     for (const s of data.sources) {
       if (!nodeIds.has(s.id)) continue
-      const hay = s.title.toLowerCase()
-      for (const target of concepts) {
+      const hay = `${s.title} ${(s.tags ?? []).join(' ')}`.toLowerCase()
+      for (const target of targets) {
+        if (target.id === s.id) continue
         if (mentions(hay, target.label)) pushEdge(s.id, target.id, 'mention')
       }
     }

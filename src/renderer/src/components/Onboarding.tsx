@@ -3,12 +3,15 @@ import { useEffect, useState } from 'react'
 import { invoke, useApp, useT } from '@/store'
 import type { TKey } from '@shared/i18n'
 
+const GITHUB_URL = 'https://github.com/Shawy404/Wisp'
+
 const STEPS: { glyph: string; title: TKey; body: TKey }[] = [
   { glyph: '◉', title: 'onboard.rooms.title', body: 'onboard.rooms.body' },
   { glyph: '⌕', title: 'onboard.search.title', body: 'onboard.search.body' },
   { glyph: '✂', title: 'onboard.clip.title', body: 'onboard.clip.body' },
   { glyph: '❋', title: 'onboard.map.title', body: 'onboard.map.body' },
-  { glyph: '⌨', title: 'onboard.keys.title', body: 'onboard.keys.body' }
+  { glyph: '⌨', title: 'onboard.keys.title', body: 'onboard.keys.body' },
+  { glyph: '★', title: 'onboard.welcome.title', body: 'onboard.welcome.body' }
 ]
 
 /**
@@ -31,6 +34,14 @@ export default function Onboarding(): React.JSX.Element {
 
   const finish = (): void => {
     void useApp.getState().setConfig({ onboarded: true })
+  }
+  // Send the newcomer to the repo in a Wisp tab — Wisp is a browser, so no need
+  // to yank them out to another app.
+  const openGithubAndFinish = (): void => {
+    const app = useApp.getState()
+    app.newTab(GITHUB_URL)
+    app.setOverlay('none')
+    finish()
   }
   const pickLanguage = (lang: 'tr' | 'en'): void => {
     void useApp.getState().setConfig({ language: lang })
@@ -108,12 +119,20 @@ export default function Onboarding(): React.JSX.Element {
                   {t('onboard.next')}
                 </button>
               ) : (
-                <button
-                  className="rounded-md bg-accent/15 px-5 py-1.5 text-xs font-medium text-accent hover:bg-accent/25"
-                  onClick={finish}
-                >
-                  {t('onboard.done')}
-                </button>
+                <div className="flex items-center gap-2">
+                  <button
+                    className="rounded-md px-3 py-1.5 text-xs text-neutral-400 hover:text-neutral-200"
+                    onClick={finish}
+                  >
+                    {t('onboard.done')}
+                  </button>
+                  <button
+                    className="rounded-md bg-accent/15 px-5 py-1.5 text-xs font-medium text-accent hover:bg-accent/25"
+                    onClick={openGithubAndFinish}
+                  >
+                    {t('onboard.github')}
+                  </button>
+                </div>
               )}
             </div>
           </>
