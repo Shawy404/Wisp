@@ -1,4 +1,4 @@
-// Wisp — © Shawy404. All rights reserved.
+// Wisp. © Shawy404, MIT.
 import { ipcMain, dialog } from 'electron'
 import * as fs from 'fs'
 import { join, extname } from 'path'

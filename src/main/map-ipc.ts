@@ -1,4 +1,4 @@
-// Wisp — © Shawy404. All rights reserved.
+// Wisp. © Shawy404, MIT.
 import { ipcMain } from 'electron'
 import type { ConceptNode, EdgeStyle, MapData, MapEdge, SourceItem } from '@shared/types'
 import { stableId } from '@shared/tags'

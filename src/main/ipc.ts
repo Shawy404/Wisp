@@ -1,4 +1,4 @@
-// Wisp — © Shawy404. All rights reserved.
+// Wisp. © Shawy404, MIT.
 import * as fs from 'fs'
 import { app, BrowserWindow, ipcMain } from 'electron'
 import type { PinnedTab, RoomMeta, WispConfig } from '@shared/types'

@@ -1,4 +1,4 @@
-// Wisp — © Shawy404. All rights reserved.
+// Wisp. © Shawy404, MIT.
 import { useEffect, useState } from 'react'
 import type { TKey } from '@shared/i18n'
 import { invoke, useT } from '@/store'

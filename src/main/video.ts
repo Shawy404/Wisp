@@ -1,4 +1,4 @@
-// Wisp — © Shawy404. All rights reserved.
+// Wisp. © Shawy404, MIT.
 import * as fs from 'fs'
 import { spawn, execFile } from 'child_process'
 import { basename, join } from 'path'

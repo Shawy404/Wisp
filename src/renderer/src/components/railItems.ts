@@ -1,4 +1,4 @@
-// Wisp — © Shawy404. All rights reserved.
+// Wisp. © Shawy404, MIT.
 import type { Overlay } from '@/store'
 import type { TKey } from '@shared/i18n'
 import type { WispConfig } from '@shared/types'

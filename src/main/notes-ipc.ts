@@ -1,4 +1,4 @@
-// Wisp — © Shawy404. All rights reserved.
+// Wisp. © Shawy404, MIT.
 import * as fs from 'fs'
 import { join } from 'path'
 import { ipcMain } from 'electron'

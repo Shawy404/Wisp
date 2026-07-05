@@ -1,4 +1,4 @@
-// Wisp — © Shawy404. All rights reserved.
+// Wisp. © Shawy404, MIT.
 import React from 'react'
 import ReactDOM from 'react-dom/client'
 import App from './App'

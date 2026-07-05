@@ -1,4 +1,4 @@
-// Wisp — © Shawy404. All rights reserved.
+// Wisp. © Shawy404, MIT.
 import { useEffect, useRef, useState } from 'react'
 import { useApp, useT, type Overlay } from '@/store'
 import VerticalTabs from './VerticalTabs'

@@ -1,4 +1,4 @@
-// Wisp — © Shawy404. All rights reserved.
+// Wisp. © Shawy404, MIT.
 
 /**
  * Pull every [[wikilink]] target out of markdown (target only, alias dropped).

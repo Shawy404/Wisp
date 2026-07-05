@@ -1,4 +1,4 @@
-// Wisp — © Shawy404. All rights reserved.
+// Wisp. © Shawy404, MIT.
 import type { SourceItem } from './types'
 
 export type CitationFormat = 'bibtex' | 'apa' | 'mla'

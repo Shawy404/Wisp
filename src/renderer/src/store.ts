@@ -1,4 +1,4 @@
-// Wisp — © Shawy404. All rights reserved.
+// Wisp. © Shawy404, MIT.
 import { create } from 'zustand'
 import type { MapData, NoteInfo, RoomData, RoomMeta, SourceItem, TabInfo, WispConfig } from '@shared/types'
 import { translate, type TKey } from '@shared/i18n'

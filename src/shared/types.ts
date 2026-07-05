@@ -1,4 +1,4 @@
-// Wisp — © Shawy404. All rights reserved.
+// Wisp. © Shawy404, MIT.
 
 /** A tab inside a room. Owned by the main process, mirrored to the renderer. */
 export interface TabInfo {

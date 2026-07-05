@@ -1,4 +1,4 @@
-// Wisp — © Shawy404. All rights reserved.
+// Wisp. © Shawy404, MIT.
 import type { SearchEngineId } from './types'
 
 /** Address-bar web searches land on a regular engine, like any browser. */

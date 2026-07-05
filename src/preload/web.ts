@@ -1,4 +1,4 @@
-// Wisp — © Shawy404. All rights reserved.
+// Wisp. © Shawy404, MIT.
 /// <reference lib="dom" />
 import { ipcRenderer, webFrame } from 'electron'
 

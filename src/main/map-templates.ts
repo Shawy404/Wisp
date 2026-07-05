@@ -1,4 +1,4 @@
-// Wisp — © Shawy404. All rights reserved.
+// Wisp. © Shawy404, MIT.
 import type { ConceptNode, MapEdge } from '@shared/types'
 import { stableId } from '@shared/tags'
 

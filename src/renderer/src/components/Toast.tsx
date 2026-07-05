@@ -1,4 +1,4 @@
-// Wisp — © Shawy404. All rights reserved.
+// Wisp. © Shawy404, MIT.
 import { useEffect, useState } from 'react'
 
 export default function Toast(): React.JSX.Element | null {

@@ -1,4 +1,4 @@
-// Wisp — © Shawy404. All rights reserved.
+// Wisp. © Shawy404, MIT.
 import { useEffect, useMemo, useRef, useState } from 'react'
 import type { NoteInfo } from '@shared/types'
 import { noteSlug } from '@shared/wikilink'

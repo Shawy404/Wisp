@@ -1,4 +1,4 @@
-// Wisp — © Shawy404. All rights reserved.
+// Wisp. © Shawy404, MIT.
 import { ipcMain } from 'electron'
 import type { WispContext } from './ipc'
 

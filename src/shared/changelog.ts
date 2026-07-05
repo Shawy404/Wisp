@@ -1,12 +1,10 @@
-// Wisp — © Shawy404. All rights reserved.
+// Wisp. © Shawy404, MIT.
 import type { Lang } from './i18n'
 
-/**
- * Human-written release notes, newest first. Shown in Settings → Updates and
- * by the update banner's "what's new" view. GitHub release bodies stay the
- * canonical source for the updater itself; this list is the offline copy so
- * the log is readable even before (or without) a release check.
- */
+// the actual changelog, written by me, not a robot. newest first. this shows up
+// in Settings under release notes and in the little "what's new" popup when an
+// update lands. the github release notes are the real source for the updater,
+// this is just the offline copy so you can read it without checking online.
 export interface ChangelogEntry {
   version: string
   date: string
@@ -19,22 +17,24 @@ export const CHANGELOG: ChangelogEntry[] = [
     date: '2026-07-05',
     notes: {
       tr: [
-        'Split view artık iki farklı canlı sayfayı gerçekten yan yana gösteriyor; ortadaki çizgiyi tutup panoların kapladığı alanı değiştirebiliyorsun.',
-        'Essentials ile sabitler tek şeritte birleşti: bir sekmeyi essentials yap → tüm odalarda çıkar; sağ tıkla sadece bu odadan ya da tümünden kaldır.',
-        'Sayfada zoom: trackpad pinch pürüzsüz büyütür (cursor’a sabit), Ctrl+tekerlek ve Ctrl+±/0 ile sayfa zoom’u; F5 ile yenile.',
-        'Uygulama maskotu (wisp orb) sol üstte ve yeni uygulama ikonu oldu.',
-        'İlk açılışta şakacı bir karşılama + GitHub; ayarlarda arama, sekmeli kategoriler ve “Nasıl çalışır” yardımı; ayarlar butonu sağ alt köşede.',
-        'Compact mod artık sayfa açıkken de sol kenara gelince açılıyor; müzik göstergesi sadece bir şey çalarken görünüyor.',
-        'Wisp artık MIT lisanslı — ücretsiz ve herkese açık.'
+        'split view artık 2 farklı sayfayı gerçekten canlı gösteriyor, yan yana. ortadaki çizgiyi tutup panoların boyutunu değiştirebiliyorsun. (uğraşırken ellerim kırılacaktı)',
+        'essentials ve pinler tek şey oldu. bir sekmeyi essentials yap, her odada çıksın. sağ tıkla sadece bu odadan, ya da hepsinden kaldır.',
+        'sayfaya zoom geldi. trackpad’de pinch yap, ya da Ctrl+tekerlek, Ctrl ve +/-, Ctrl+0 sıfırlar.',
+        'ilk açılış introsundan sonra küçük bir sürpriz var. git bul.',
+        'compact kenar çubuğu artık sayfa açıkken de açılıyor, mouse’u sola doğru it yeter.',
+        'müzik olayı sadece bir şey çalarken görünüyor artık, boşuna “nothing playing” yazısına bakmak yok.',
+        'ayarlara arama ve sekmeler geldi, tek uzun liste değil. kaybolursan bir de “nasıl çalışır” kısmı koydum.',
+        'wisp artık mit. yani fuck around and find out. projende adım geçerse mutlu olurum.'
       ],
       en: [
-        'Split view now really shows two different live pages side by side; drag the middle divider to change how much space each pane takes.',
-        'Essentials and pins merged into one strip: make a tab essential → it shows in every room; right-click to remove it from just this room or all of them.',
-        'Page zoom: trackpad pinch magnifies smoothly (cursor-anchored), Ctrl+wheel and Ctrl+±/0 do page zoom; F5 reloads.',
-        'The app mascot (the wisp orb) sits by the wordmark and became the new app icon.',
-        'A playful first-run welcome + GitHub; settings search, tabbed categories and a “How it works” help section; the settings button lives in the bottom-right.',
-        'Compact mode now reveals over a live page when you reach the left edge; the music widget only appears while something is playing.',
-        'Wisp is MIT-licensed now — free and open for everyone.'
+        'split view actually shows two different live pages side by side now. grab the line in the middle to resize the panes. (this one nearly broke my hands)',
+        'essentials and pins are one thing now. make a tab essential and it follows you into every room. right click to yeet it from just this room, or from all of them.',
+        'added page zoom. pinch on the trackpad, or Ctrl+wheel, or Ctrl and +/-, and Ctrl+0 to reset.',
+        "there's a little surprise after the first run intro. go find it.",
+        'the compact sidebar opens even when a page is covering it now. just shove the mouse to the left edge.',
+        "the music thing only shows up when something's actually playing. no more staring at 'nothing playing'.",
+        "settings got a search box and tabs so it's not one endless scroll. also a 'how it works' bit if you get lost.",
+        'wisp is MIT now. so, fuck around and find out. if my name shows up somewhere in your project that would make me happy.'
       ]
     }
   },
@@ -43,22 +43,20 @@ export const CHANGELOG: ChangelogEntry[] = [
     date: '2026-07-04',
     notes: {
       tr: [
-        'Split view artık iki farklı canlı sayfayı yan yana gösterebiliyor: her panoyu ayrı ayrı Sayfa / Okuyucu / Not / Kaynaklar yap ve canlı panoda hangi sekmenin görüneceğini seç.',
-        'Ayarlara arama kutusu ve sekmeli kategoriler (Görünüm, Genel, Arama, Gizlilik, Bellek, Güncellemeler) eklendi.',
-        'Ayarlar butonu her zaman erişilebilir olması için pencerenin sağ alt köşesine taşındı.',
-        'Açılış animasyonu daha güvenilir ve opak; pencere şeffafken bile görünüyor.',
-        'Sekmelere sağ tık menüsü ve ipuçları artık sayfanın üstünde görünüyor, arkasında kaybolmuyor.',
-        'Panel butonları kenar çubuğu ile üst çubuk arasında sürüklenebiliyor; ayarlardan da taşınabiliyor.',
-        'Arayüzdeki başka marka isimleri temizlendi.'
+        'split view iki farklı canlı sayfayı yan yana açabiliyor. her panoyu ayrı ayrı Sayfa / Okuyucu / Not / Kaynaklar yapabilirsin.',
+        'ayarlara arama kutusu ve sekmeler koydum, tek uzun liste yerine.',
+        'ayarlar butonu sağ alt köşeye geçti, her sayfanın üstünde tek tık.',
+        'açılış animasyonunu daha sağlam yaptım, pencere şeffafken bile görünüyor.',
+        'sekmeye sağ tık menüsü artık sayfanın arkasında kaybolmuyor.',
+        'panel butonlarını kenar çubuğu ile üst çubuk arasında sürükleyebiliyorsun.'
       ],
       en: [
-        'Split view can now show two different live pages side by side: set each pane to Page / Reader / Note / Sources and pick which tab a live pane shows.',
-        'Settings gained a search box and tabbed categories (Appearance, General, Search, Privacy, Memory, Updates).',
-        'The settings button moved to the bottom-right corner so it is always reachable.',
-        'The startup animation is more reliable and opaque; it shows even with window transparency on.',
-        "Tab right-click menus and hints now render above the page instead of vanishing behind it.",
-        'Panel buttons can be dragged between the sidebar rail and the title bar; you can also move them from settings.',
-        'Cleared other brand names from the interface.'
+        'split view can show two different live pages side by side. set each pane to Page / Reader / Note / Sources.',
+        'put a search box and tabs in settings instead of one giant scroll.',
+        'settings button moved to the bottom right so it is always one click away over any page.',
+        'made the startup animation more solid, it shows even with window transparency on.',
+        'the right click menu on a tab does not vanish behind the page anymore.',
+        'you can drag the panel buttons between the sidebar and the title bar.'
       ]
     }
   },
@@ -67,20 +65,18 @@ export const CHANGELOG: ChangelogEntry[] = [
     date: '2026-07-04',
     notes: {
       tr: [
-        'Uygulamanın açılışta siyah ekranda kalmasına yol açan hata giderildi.',
-        'Güncellemeler artık uygulamanın içinde iniyor: kurulum penceresi açılmadan, wisp animasyonlu bir ilerleme menüsüyle iner ve yeniden başlatınca kurulur. Güncellemek tamamen senin seçimin.',
-        'Açılış animasyonu artık her açılışta güvenilir biçimde görünüyor.',
-        'Panel butonlarını (ayarlar, indirilenler, şifreler vb.) tutup kenar çubuğu ile üst çubuk arasında sürükleyebiliyorsun; ayarlardan da yerleri değişiyor.',
-        'Split view yenilendi: her iki pano da ayrı ayrı Sayfa / Okuyucu / Not / Kaynaklar gösterebiliyor. Bir sekmeyi kenara sürükleyince canlı sayfa bir yanda, not diğer yanda açılıyor.',
-        'Ayarlara her sürümde ne değiştiğini gösteren sürüm notları bölümü eklendi.'
+        'açılışta siyah ekranda kalma sorununu çözdüm. (özür, o benim hatamdı)',
+        'güncellemeler artık uygulamanın içinde iniyor, kurulum penceresi falan açılmıyor, bitince yeniden başlatınca kuruluyor. güncellemek senin seçimin.',
+        'açılış animasyonu artık her seferinde çıkıyor.',
+        'split view yenilendi, her pano ayrı içerik gösterebiliyor.',
+        'ayarlara her sürümde ne değiştiğini gösteren bir kısım koydum.'
       ],
       en: [
-        'Fixed a bug that could leave the app stuck on a black screen at startup.',
-        'Updates now download inside the app: a wisp-animated progress menu, no installer window, and it installs on restart. Updating is entirely your choice.',
-        'The startup animation now shows reliably on every launch.',
-        'Panel buttons (settings, downloads, vault, and the rest) can be dragged between the sidebar rail and the title bar; you can also move them from settings.',
-        'Split view reworked: each pane independently shows Page / Reader / Note / Sources. Drag a tab to an edge to get the live page on one side and a note on the other.',
-        'Added a release-notes section in settings that lists what changed in each version.'
+        'fixed the thing where it got stuck on a black screen at startup. (sorry, that one was on me)',
+        'updates download inside the app now, no installer window popping up, installs when you restart. updating is your call.',
+        'the startup animation actually shows up every time now.',
+        'reworked split view so each pane can show its own thing.',
+        'added a spot in settings that lists what changed in each version.'
       ]
     }
   },
@@ -89,28 +85,24 @@ export const CHANGELOG: ChangelogEntry[] = [
     date: '2026-07-04',
     notes: {
       tr: [
-        'Compact mod: kenar çubuğu kullanılmadığında kenara çekilir, fare sol kenara gelince geri açılır (Ayarlar → Görünüm).',
-        'Essentials: tüm odalarda görünen kalıcı sekmeler — sekmeye sağ tıklayıp ekleyebilirsin; oda sabitlemeleri odaya özel kalır.',
-        'Notlarda backlink paneli: bir nota bağlanan diğer notlar editörün altında listelenir; linksiz geçen not adları tek tıkla [[link]]e çevrilir.',
-        'Sekmeyi görüntü alanının sağına/soluna sürükleyip bırakınca split view açılır.',
-        'Ayarlara güncelleme bölümü geldi: otomatik güncelleme aç/kapat, elle kontrol ve bu sürüm notları.',
-        'Bellek ayarları: arka plan sekmelerinin ne kadar sürede uyutulacağı seçilebilir.',
-        'RAM göstergesi düzeltildi — artık gerçek kullanımını gösteriyor (paylaşılan bellek çift sayılmıyor, önbellek dolu sayılmıyor.)',
-        'Alt ray sadeleşti: geçmiş butonu kaldırıldı (Ctrl+H ve komut paleti), butonlar içerik/sistem olarak gruplandı; sistem grubu istersen üst çubuğa taşınabilir.',
-        'Uygulama açılışına ve aramaya küçük wisp animasyonları eklendi.',
-        'Yapay zekâ ile ilgili her şey kaldırıldı — API anahtarı yok, dışarı veri gitmiyor.'
+        'compact mod: kenar çubuğu kullanılmadığında kenara çekiliyor, mouse’u sola götürünce açılıyor.',
+        'essentials: her odada duran sekmeler. sekmeye sağ tıklayıp ekle.',
+        'notlarda backlink paneli, bir nota kimlerin bağlandığını altta gösteriyor. linksiz geçen isimleri tek tıkla linkliyorsun.',
+        'sekmeyi ekranın kenarına sürükleyince split view açılıyor.',
+        'ayarlara güncelleme kısmı geldi. bellek ayarları da var, sekmeler ne kadar sonra uyusun seçebiliyorsun.',
+        'RAM göstergesini düzelttim, artık gerçek kullanımı gösteriyor.',
+        'alt rayı sadeleştirdim, geçmiş butonu Ctrl+H ve komut paletine taşındı.',
+        'yapay zekayla ilgili ne varsa söktüm. api anahtarı yok, dışarı hiçbir şey gitmiyor.'
       ],
       en: [
-        'Compact mode: the sidebar tucks itself away and glides back when the pointer nears the left edge (Settings → Appearance).',
-        'Essentials: tabs that follow you into every room — add via right-click; room pins stay per-room.',
-        'Backlinks panel in notes: everything linking to the open note is listed under the editor; unlinked title mentions can be converted to [[links]] in one click.',
-        'Drag a tab to the left/right edge of the viewport to open split view.',
-        'New Updates section in Settings: auto-update toggle, manual check and these release notes.',
-        'Memory settings: choose how long background tabs may idle before being unloaded.',
-        'RAM meter fixed — it now reports real usage (shared memory no longer double-counted, page cache no longer counted as used).',
-        'The bottom rail was decluttered: history moved to Ctrl+H / the palette, buttons grouped into content/system; the system group can move to the title bar.',
-        'Little wisp animations on app start and while searching.',
-        'Everything AI-related was removed — no API keys, nothing leaves your machine.'
+        'compact mode: the sidebar tucks away when you are not using it and pops back when the mouse goes left.',
+        'essentials: tabs that stick around in every room. right click a tab to add one.',
+        'backlinks panel in notes shows who links to the open note. and it links unlinked mentions with one click.',
+        'drag a tab to the edge of the screen to open split view.',
+        'settings got an updates section. also memory settings, you pick how long before background tabs go to sleep.',
+        'fixed the RAM meter, it shows real usage now.',
+        'cleaned up the bottom rail, history moved to Ctrl+H and the command palette.',
+        'ripped out everything AI. no api keys, nothing leaves your machine.'
       ]
     }
   },
@@ -119,16 +111,16 @@ export const CHANGELOG: ChangelogEntry[] = [
     date: '2026-07-02',
     notes: {
       tr: [
-        'Windows için otomatik güncelleyici: yeni sürüm arkada iner, yeniden başlatınca kurulur.',
-        'Kenar çubuğuna müzik ve RAM mini widget’ları geldi.',
-        'Odaklanma zamanlayıcısının süresi ayarlanabilir oldu.',
-        'Kavram haritasına sürüm geçmişi eklendi — eski hâline dönebilirsin.'
+        'windows için otomatik güncelleyici. yeni sürüm arkada iniyor, yeniden başlatınca kuruluyor.',
+        'kenar çubuğuna müzik ve RAM göstergeleri koydum.',
+        'odaklanma zamanlayıcısının süresi ayarlanabiliyor.',
+        'kavram haritasına sürüm geçmişi geldi, eski hâline dönebiliyorsun.'
       ],
       en: [
-        'Auto-updater on Windows: new versions download in the background and install on restart.',
-        'Music and RAM mini widgets in the sidebar.',
-        'The focus timer length is adjustable.',
-        'The concept map got version history — roll back anytime.'
+        'auto updater for windows. new versions download in the background and install on restart.',
+        'added music and RAM widgets to the sidebar.',
+        'the focus timer length is adjustable now.',
+        'the concept map remembers old versions so you can roll back.'
       ]
     }
   },
@@ -137,18 +129,18 @@ export const CHANGELOG: ChangelogEntry[] = [
     date: '2026-06-28',
     notes: {
       tr: [
-        'Bölüm klipsleme: sayfanın bir kısmını odaya kaydet, kaynağı açınca vurgulu görünsün.',
-        'Oda bazlı gezinme geçmişi ve aranabilir geçmiş paneli.',
-        'İndirme yöneticisi ve yt-dlp ile video klipleme.',
-        'Sayfada bul (Ctrl+F), oda içi tam metin arama (Ctrl+Shift+F).',
-        'Şifre kasası: otomatik yakalama ve doldurma.'
+        'bölüm klipsleme. sayfanın bir parçasını odaya kaydediyorsun, kaynağı açınca vurgulu görünüyor.',
+        'oda bazlı gezinme geçmişi ve aranabilir geçmiş paneli.',
+        'indirme yöneticisi ve yt-dlp ile video klipleme.',
+        'sayfada bul (Ctrl+F), oda içinde tam metin arama (Ctrl+Shift+F).',
+        'şifre kasası, otomatik yakalama ve doldurma.'
       ],
       en: [
-        'Section clipping: save part of a page into the room, highlighted when reopened.',
-        'Per-room browsing history with a searchable panel.',
-        'Download manager and video clipping via yt-dlp.',
-        'Find in page (Ctrl+F), room-wide full-text search (Ctrl+Shift+F).',
-        'Password vault with auto-capture and autofill.'
+        'section clipping. save a piece of a page into the room, it comes back highlighted.',
+        'per room browsing history with a searchable panel.',
+        'download manager and video clipping through yt-dlp.',
+        'find in page (Ctrl+F), full text search across the room (Ctrl+Shift+F).',
+        'a password vault that captures and fills logins.'
       ]
     }
   },
@@ -157,16 +149,16 @@ export const CHANGELOG: ChangelogEntry[] = [
     date: '2026-06-20',
     notes: {
       tr: [
-        'Öğe silici (zapper): sayfadaki istenmeyen öğeleri kalıcı gizle.',
-        'Arka plan görseli ve Zen tarzı yarı saydam arayüz.',
-        'Kavram haritası açık bağlantılar (wikilink/manuel) etrafında yeniden kuruldu.',
-        'Yeni uygulama ikonu ve altı tema.'
+        'öğe silici. sayfadaki istemediğin şeyleri kalıcı gizliyorsun.',
+        'arka plan görseli ve yarı saydam arayüz.',
+        'kavram haritasını açık bağlar (wikilink/manuel) üzerine yeniden kurdum.',
+        'yeni ikon ve altı tema.'
       ],
       en: [
-        'Element zapper: permanently hide unwanted page elements.',
-        'Background images and Zen-style translucent UI.',
-        'The concept map was rebuilt around explicit links (wikilinks/manual).',
-        'New app icon and six themes.'
+        'element zapper. hide the junk you do not want on a page, for good.',
+        'background images and a translucent UI.',
+        'rebuilt the concept map around explicit links (wikilinks and manual ones).',
+        'new icon and six themes.'
       ]
     }
   },
@@ -174,17 +166,13 @@ export const CHANGELOG: ChangelogEntry[] = [
     version: '0.1.0-pre-alpha',
     date: '2026-06-12',
     notes: {
-      tr: [
-        'İlk sürüm: odalar, araştırma araması, notlar, kavram haritası, okuyucu ve reklam engelleme.'
-      ],
-      en: [
-        'First release: rooms, research search, notes, the concept map, reader mode and adblock.'
-      ]
+      tr: ['ilk sürüm. odalar, araştırma araması, notlar, kavram haritası, okuyucu ve reklam engelleme.'],
+      en: ['first release. rooms, research search, notes, the concept map, reader mode and adblock.']
     }
   }
 ]
 
-/** Notes for one version (without the -pre-alpha suffix fuss), if we have them. */
+// notes for a version, ignoring the pre-alpha suffix nonsense.
 export function changelogFor(version: string): ChangelogEntry | null {
   const bare = version.replace(/^v/, '').split('-')[0]
   return CHANGELOG.find((e) => e.version.split('-')[0] === bare) ?? null

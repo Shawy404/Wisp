@@ -1,4 +1,4 @@
-// Wisp — © Shawy404. All rights reserved.
+// Wisp. © Shawy404, MIT.
 import { ipcMain, type WebContents } from 'electron'
 import { translate } from '@shared/i18n'
 import { saveConfig } from './storage'

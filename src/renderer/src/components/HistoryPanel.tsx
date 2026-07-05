@@ -1,4 +1,4 @@
-// Wisp — © Shawy404. All rights reserved.
+// Wisp. © Shawy404, MIT.
 import { useEffect, useMemo, useState } from 'react'
 import type { HistoryEntry } from '@shared/types'
 import { invoke, useApp, useT } from '@/store'

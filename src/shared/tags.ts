@@ -1,4 +1,4 @@
-// Wisp — © Shawy404. All rights reserved.
+// Wisp. © Shawy404, MIT.
 
 /**
  * Deterministic keyword extraction — no AI, no network. These tags are what

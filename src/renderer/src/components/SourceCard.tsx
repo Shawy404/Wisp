@@ -1,4 +1,4 @@
-// Wisp — © Shawy404. All rights reserved.
+// Wisp. © Shawy404, MIT.
 import { useState } from 'react'
 import type { SourceItem } from '@shared/types'
 import { highlightUrl } from '@shared/address'

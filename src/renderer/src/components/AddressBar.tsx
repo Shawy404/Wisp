@@ -1,4 +1,4 @@
-// Wisp — © Shawy404. All rights reserved.
+// Wisp. © Shawy404, MIT.
 import { useEffect, useRef, useState } from 'react'
 import { resolveAddress, webSearchUrl } from '@shared/address'
 import { invoke, useApp, useT } from '@/store'

@@ -1,4 +1,4 @@
-// Wisp — © Shawy404. All rights reserved.
+// Wisp. © Shawy404, MIT.
 import type { ThemeId } from './types'
 import type { TKey } from './i18n'
 

@@ -1,4 +1,4 @@
-// Wisp — © Shawy404. All rights reserved.
+// Wisp. © Shawy404, MIT.
 import { Decoration, EditorView, ViewPlugin, type DecorationSet, ViewUpdate } from '@codemirror/view'
 import { RangeSetBuilder, type Extension } from '@codemirror/state'
 

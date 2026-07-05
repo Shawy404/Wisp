@@ -1,4 +1,4 @@
-// Wisp — © Shawy404. All rights reserved.
+// Wisp. © Shawy404, MIT.
 import { app, BrowserWindow } from 'electron'
 import { join } from 'path'
 import { loadConfig } from './storage'

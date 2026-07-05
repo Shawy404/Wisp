@@ -1,4 +1,4 @@
-// Wisp — © Shawy404. All rights reserved.
+// Wisp. © Shawy404, MIT.
 import { useApp, useT } from '@/store'
 import type { TKey } from '@shared/i18n'
 

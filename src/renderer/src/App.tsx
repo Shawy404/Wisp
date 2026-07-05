@@ -1,4 +1,4 @@
-// Wisp — © Shawy404. All rights reserved.
+// Wisp. © Shawy404, MIT.
 import { lazy, Suspense, useEffect, useRef, useState } from 'react'
 import { invoke, useApp } from '@/store'
 import TitleBar from './components/TitleBar'

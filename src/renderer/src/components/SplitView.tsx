@@ -1,4 +1,4 @@
-// Wisp — © Shawy404. All rights reserved.
+// Wisp. © Shawy404, MIT.
 import { useCallback, useEffect, useRef, useState } from 'react'
 import type { NoteInfo } from '@shared/types'
 import type { TKey } from '@shared/i18n'

@@ -1,4 +1,4 @@
-<!-- Wisp - © Shawy404. All rights reserved. -->
+<!-- Wisp. © Shawy404, MIT. -->
 
 <div align="center">
 
@@ -6,121 +6,117 @@
 
 # Wisp
 
-**A browser built for research.** Rooms, clean search, notes and a concept map — all on your own disk.
+a browser i built for doing research. rooms, a search that actually digs, notes and a concept map, all sitting on your own disk.
 
-`v0.1.7-pre-alpha` · Linux & Windows · [Download a build](../../releases) · Built by [Shawy404](https://github.com/Shawy404)
+`v0.1.7-pre-alpha` · Linux & Windows · [grab a build](../../releases) · by [Shawy404](https://github.com/Shawy404)
 
-<img src="docs/media/map.png" width="820" alt="Wisp concept map of a neuroscience topic, with figures dropped in" />
+<img src="docs/media/map.png" width="820" alt="Wisp concept map of a neuroscience topic with figures dropped in" />
 
-<sub>A room's concept map — concepts, notes and dropped-in figures, all linked. Here: the basics of a neuron.</sub>
+<sub>a room's concept map. concepts, notes and figures you drag in, all wired together. here it's the basics of a neuron.</sub>
 
 </div>
 
 ---
 
-## Why
+## why
 
-If you do research, your work is scattered: forty tabs you're scared to close, a notes app that doesn't know what those tabs are, and a citation tool that talks to neither. Wisp puts them in one place.
+if you actually research stuff, your work is everywhere. forty tabs you're too scared to close, a notes app that has no idea what those tabs are, a citation thing that talks to neither. i got tired of it so i made this.
 
-Each topic you work on is a **room**. The tabs, sources, notes and concept map for that topic all live inside it and swap in and out as you move between rooms. Nothing leaves your machine unless you ask it to — everything is a plain file under `~/Wisp/`.
+every topic you work on is a **room**. the tabs, sources, notes and map for that topic live inside it and swap in and out as you jump between rooms. nothing leaves your machine unless you ask it to. it's all just plain files under `~/Wisp/`.
 
-The name is from *will-o'-the-wisp*, the ghost light that leads travelers through the marsh.
+the name is from *will o' the wisp*, the ghost light that leads people through the marsh. felt fitting.
 
-## What it does
+## what it does
 
-**Rooms.** One room per topic. Switch rooms and your whole workspace — tabs, sources, notes, map — swaps with it. Close and reopen a room and it's all exactly where you left it.
+**rooms.** one room per topic. switch rooms and the whole workspace (tabs, sources, notes, map) swaps with it. close a room, open it again, everything is exactly where you left it.
 
-**Search that isn't just Google.** One search bar hits Semantic Scholar, Crossref, arXiv, Wikipedia, Openverse and the web at once, sorts the results into Academic / Overview / Images / Web, and lets you save the ones you want into the room with a click — no copy-pasting citations. A Wisp/Web toggle sits right next to it when you'd rather just search the web.
+**a search that isn't just google.** one bar hits Semantic Scholar, Crossref, arXiv, Wikipedia, Openverse and the web all at once, sorts what comes back into Academic / Overview / Images / Web, and lets you save the ones you like into the room with a click. no more copy pasting citations. there's a Wisp/Web toggle right there when you just want a normal web search.
 
-<img src="docs/media/search.png" width="820" alt="Multi-source research search for a scientific topic" />
+<img src="docs/media/search.png" width="820" alt="Multi source research search for a scientific topic" />
 
-<sub>One query, every source at once — save the ones you want with a click.</sub>
+<sub>one query, every source at once. keep the ones you want.</sub>
 
-Everything you save lands in the room's sources, tagged and ready to cite:
+everything you save lands in the room's sources, tagged and ready to cite:
 
 <img src="docs/media/sources.png" width="820" alt="Sources collected in a room" />
 
-**Notes and a concept map.** Notes are plain markdown files, with `[[wikilinks]]`, inline images, and `![[src-id]]` to embed a source. The map is the same data as a graph: boxed nodes, photos for image sources, six ready-made templates to start from, undo/redo and version history, drag-to-link, editable edge labels, and auto-links when one note mentions another node by name.
+**notes and a concept map.** notes are plain markdown files with `[[wikilinks]]`, inline images, and `![[src-id]]` to embed a source. the map is that same stuff drawn as a graph: boxed nodes, photos for image sources, a few templates to start from, undo/redo and version history, drag to link, editable edge labels, and it auto links things when one note names another by title.
 
 <img src="docs/media/notes.png" width="820" alt="Notes with wikilinks" />
 
-Start a map from a template instead of a blank canvas — central topic, timeline, hierarchy, brainstorm, project plan:
+start a map from a template instead of a blank page. central topic, timeline, hierarchy, brainstorm, project plan:
 
-<img src="docs/media/map-template.png" width="820" alt="A project-plan map built from a template" />
+<img src="docs/media/map-template.png" width="820" alt="A project plan map built from a template" />
 
-**Clip anything.** Right-click a page, a text selection, or an image to save it into the room. Clip just a section and reopening it jumps back to the exact spot on the page, highlighted. On a YouTube page, clip the whole video or a time range — `yt-dlp` ships inside the app, nothing to install.
+**clip anything.** right click a page, some selected text, or an image to save it into the room. clip just a section and reopening it jumps you back to the exact spot, highlighted. on a youtube page you can clip the whole video or a time range, `yt-dlp` ships inside so there's nothing to install.
 
-**A real browser underneath.** Find in page (`Ctrl+F`), full-text search across the room (`Ctrl+Shift+F`), a download manager, tab sleeping to save memory, an ad/tracker blocker, reader mode, per-site permission prompts, and keyboard shortcuts that work even while a page has focus (press `?` for the list).
+**it's a real browser under there.** find in page (`Ctrl+F`), full text search across the room (`Ctrl+Shift+F`), a download manager, tab sleeping to save memory, an ad and tracker blocker, reader mode, per site permission prompts, and shortcuts that work even while a page has focus (hit `?` for the list).
 
-**A password vault.** App-wide, encrypted through your OS keychain, unlocked with your system password. Log in somewhere and Wisp offers to save it; come back and it fills the form for you.
+**a password vault.** app wide, encrypted through your OS keychain, unlocked with your system password. log in somewhere and Wisp offers to save it, come back later and it fills the form for you.
 
-**Little comforts.** A per-room focus timer with adjustable length, sidebar widgets for the currently-playing tab and memory usage (with a one-click "sleep background tabs"), six themes with a custom accent, and a first-run tour in English or Turkish.
+**little stuff.** a per room focus timer you can set, sidebar bits for whatever tab is playing and your memory usage (with a one click "sleep the background tabs"), six themes with a custom accent, and a first run tour in english or turkish.
 
-## Install
+## install
 
-Grab a ready build from the [**Releases**](../../releases) page — an `AppImage` for Linux, an installer or portable `.exe` for Windows. No setup, no dependencies. On Windows, Wisp tells you when a new release is out and downloads it inside the app when you choose to, then installs on restart.
+grab a build from the [**releases**](../../releases) page. an `AppImage` for linux, an installer or portable `.exe` for windows. no setup, no dependencies. on windows Wisp tells you when a new one is out and downloads it inside the app when you say so, then installs on restart.
 
-### Or run it from source
+### or run it from source
 
-You'll need [Node.js](https://nodejs.org) 20+ and git.
+you'll need [Node.js](https://nodejs.org) 20+ and git.
 
 ```bash
 git clone https://github.com/Shawy404/Wisp.git
 cd Wisp
-npm install     # dependencies + the Electron binary
-npm run dev     # start Wisp, hot reload
+npm install     # deps plus the electron binary
+npm run dev     # start it, hot reload
 ```
 
-Build your own installable app:
+build your own installable app:
 
 ```bash
-npm run build:linux   # AppImage → dist/
-npm run build:win     # installer + portable exe → dist/
+npm run build:linux   # AppImage into dist/
+npm run build:win     # installer and portable exe into dist/
 ```
 
-The build downloads `yt-dlp` and bundles it, so the app you ship works out of the box. If npm can't reach GitHub for the Electron binary, set `ELECTRON_MIRROR` to a mirror first.
+the build pulls `yt-dlp` and bundles it so the thing you ship just works. if npm can't reach github for the electron binary, point `ELECTRON_MIRROR` at a mirror first.
 
-## Shortcuts
+## shortcuts
 
-| Key | Action |
+| key | does |
 | --- | --- |
-| `Ctrl+T` | Command bar — new tab, search, commands |
-| `Ctrl+L` | Focus the address bar |
-| `Ctrl+W` | Close tab |
-| `Ctrl+Tab` / `Ctrl+1…9` | Cycle / jump to tab |
-| `Ctrl+F` | Find in page |
-| `Ctrl+Shift+F` | Search the whole room |
-| `?` | All shortcuts |
+| `Ctrl+T` | command bar (new tab, search, commands) |
+| `Ctrl+L` | jump to the address bar |
+| `Ctrl+W` | close tab |
+| `Ctrl+Tab` / `Ctrl+1…9` | cycle or jump to a tab |
+| `Ctrl+F` | find in page |
+| `Ctrl+Shift+F` | search the whole room |
+| `?` | all the shortcuts |
 
-On the map: shift-click two nodes to link, shift-drag or `Ctrl+A` to select, `Delete` to remove, `Ctrl+Z` / `Ctrl+Shift+Z` to undo/redo.
+on the map: shift click two nodes to link them, shift drag or `Ctrl+A` to select, `Delete` to remove, `Ctrl+Z` / `Ctrl+Shift+Z` to undo and redo.
 
-## Under the hood
+## under the hood
 
-Electron + React + TypeScript + Tailwind, built with electron-vite. Cytoscape drives the map, CodeMirror the notes, `@mozilla/readability` the reader, `@ghostery/adblocker-electron` the blocking. The main process owns tabs (`WebContentsView`), search and the filesystem; the renderer is UI only, behind a preload bridge with `contextIsolation` on.
+electron, react, typescript, tailwind, built with electron-vite. cytoscape draws the map, codemirror the notes, `@mozilla/readability` the reader, `@ghostery/adblocker-electron` the blocking. the main process owns tabs (`WebContentsView`), search and the filesystem. the renderer is just the UI, behind a preload bridge with `contextIsolation` on.
 
-Everything is local — nothing leaves your machine beyond the searches you run. Your data lives here (override with `WISP_HOME`):
+it's all local, nothing leaves your machine beyond the searches you run. your stuff lives here (point `WISP_HOME` somewhere else if you want):
 
 ```
 ~/Wisp/
-  config.json              global settings
+  config.json              settings
   vault.json               passwords (encrypted via the OS keychain)
   rooms/<room>/
-    room.json              metadata + open tabs
+    room.json              metadata and open tabs
     notes/*.md             notes (plain markdown)
-    sources.json           collected sources
-    map.json               concept nodes + links
+    sources.json           saved sources
+    map.json               concept nodes and links
     map-history.json       map version snapshots
-    clips/                 clipped images / pages / video
+    clips/                 clipped images, pages, video
 ```
 
-## Honest limitations
+## honest limitations
 
-- Pre-alpha. Things will break; the data format may still shift.
-- No Chrome extensions, no cloud sync, no mobile.
-- Video clipping needs `ffmpeg` on your system for trimmed ranges (whole-video downloads work without it).
-- Password autofill catches ordinary login forms; a few fully-JavaScript logins may slip past.
-- The "Web" search tab scrapes results, so it can come back empty if that source changes its markup (the other tabs are unaffected).
+it's pre alpha so things will break, and the data format might still move around. no chrome extensions, no cloud sync, no mobile. trimmed video clips need `ffmpeg` on your system (whole video downloads work without it). autofill catches normal login forms, a few fully javascript ones slip past. the "web" search tab scrapes, so it can come back empty if that site changes its markup (the other tabs don't care).
 
-## License
+## license
 
-MIT — free and open for everyone. See [LICENSE](LICENSE). Wisp is not for sale and never will be; use it, fork it, ship it.
+MIT, see [LICENSE](LICENSE). so basically, fuck around and find out. use it, fork it, ship it, break it. if my name ends up somewhere in your project that'd make me happy.

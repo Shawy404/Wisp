@@ -1,4 +1,4 @@
-// Wisp — © Shawy404. All rights reserved.
+// Wisp. © Shawy404, MIT.
 import type { SearchResults, SourceItem } from '@shared/types'
 import { classifyQuery, extractKeywords, stableId, tagSlug } from '@shared/tags'
 

@@ -1,4 +1,4 @@
-// Wisp — © Shawy404. All rights reserved.
+// Wisp. © Shawy404, MIT.
 import { ElectronBlocker } from '@ghostery/adblocker-electron'
 import { net } from 'electron'
 import * as fs from 'fs'

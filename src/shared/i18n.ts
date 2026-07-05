@@ -1,4 +1,4 @@
-// Wisp — © Shawy404. All rights reserved.
+// Wisp. © Shawy404, MIT.
 
 export type Lang = 'tr' | 'en'
 
@@ -63,7 +63,7 @@ const tr = {
   'settings.devMode.toggle': 'DevTools erişimi + arama sonuçları için JSON görüntüleyici (oda-bazlı, hafif)',
   'settings.profile': 'Profil',
   'settings.profile.hint': '(çoklu profil için — şimdilik etiket)',
-  'settings.footer': 'Wisp — © Shawy404. All rights reserved.',
+  'settings.footer': 'Wisp. © Shawy404, MIT.',
 
   'sidebar.newRoom': 'Yeni oda',
   'sidebar.roomNamePlaceholder': 'Oda adı…',
@@ -562,7 +562,7 @@ const en: typeof tr = {
   'settings.devMode.toggle': 'DevTools access + a JSON viewer for search results (per-room, lightweight)',
   'settings.profile': 'Profile',
   'settings.profile.hint': '(for multiple profiles — just a label for now)',
-  'settings.footer': 'Wisp — © Shawy404. All rights reserved.',
+  'settings.footer': 'Wisp. © Shawy404, MIT.',
 
   'sidebar.newRoom': 'New room',
   'sidebar.roomNamePlaceholder': 'Room name…',

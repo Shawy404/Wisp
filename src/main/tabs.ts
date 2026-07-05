@@ -1,4 +1,4 @@
-// Wisp — © Shawy404. All rights reserved.
+// Wisp. © Shawy404, MIT.
 import { join } from 'path'
 import { BrowserWindow, WebContentsView, type Input } from 'electron'
 import type { MediaState, TabInfo } from '@shared/types'
