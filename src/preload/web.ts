@@ -13,6 +13,24 @@ import { ipcRenderer } from 'electron'
  * into its own inputs.
  */
 
+// ------------------------------------------------------------- edge hover --
+// The native page view captures the mouse, so the shell's DOM sidebar never
+// sees the pointer reach the left edge — which is exactly what compact mode's
+// hover-to-reveal needs. Report edge proximity to the main process, which
+// forwards it to the shell so the sidebar can reveal even over a live page.
+let nearLeftEdge = false
+window.addEventListener(
+  'mousemove',
+  (e) => {
+    const near = e.clientX <= 14
+    if (near !== nearLeftEdge) {
+      nearLeftEdge = near
+      ipcRenderer.send('shell:edge-left', near)
+    }
+  },
+  true
+)
+
 // ---------------------------------------------------------------- capture --
 window.addEventListener(
   'submit',

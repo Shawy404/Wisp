@@ -162,6 +162,12 @@ export function registerCoreIpc(ctx: WispContext): void {
   })
   ipcMain.handle('viewport:visible', (_e, visible: boolean) => tabs.setVisible(visible))
 
+  // A page's preload reports when the pointer nears the left edge; relay it to
+  // the shell so compact mode can reveal the sidebar even over a live page.
+  ipcMain.on('shell:edge-left', (_e, near: boolean) => {
+    if (!win.isDestroyed()) win.webContents.send('shell:edge-left', near)
+  })
+
   // Split view: show one or two live tabs side by side at the given rects.
   ipcMain.handle(
     'split:show',

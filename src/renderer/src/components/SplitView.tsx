@@ -67,6 +67,12 @@ export default function SplitView(): React.JSX.Element {
   const [leftTab, setLeftTab] = useState<string | null>(initLeftTab)
   const [rightTab, setRightTab] = useState<string | null>(initRightTab)
 
+  // Fraction of the width the left pane takes; dragged via the middle divider.
+  const [leftFrac, setLeftFrac] = useState(0.5)
+  const [draggingDivider, setDraggingDivider] = useState(false)
+  const draggingRef = useRef(false)
+  const rootRef = useRef<HTMLDivElement>(null)
+
   const [article, setArticle] = useState<ReaderArticle | null>(null)
   const [readerLoading, setReaderLoading] = useState(false)
   const [noteId, setNoteId] = useState<string | null>(notes[0]?.id ?? null)
@@ -103,6 +109,9 @@ export default function SplitView(): React.JSX.Element {
   // Hand each live pane's tab + rect to the main process so the real web views
   // land in the panes; when neither pane is live, release them.
   const pushSplit = useCallback((): void => {
+    // While the divider is being dragged the native views are hidden so the
+    // pointer reaches the DOM; don't re-attach them mid-drag.
+    if (draggingRef.current) return
     const panes: { tabId: string; rect: { x: number; y: number; width: number; height: number } }[] = []
     const add = (mode: PaneMode, tabId: string | null, el: HTMLDivElement | null): void => {
       if (mode !== 'live' || !tabId || !el) return
@@ -300,20 +309,70 @@ export default function SplitView(): React.JSX.Element {
     )
   }
 
+  const startDividerDrag = (): void => {
+    // Hide the live views for the duration of the drag so mouse events land on
+    // the DOM overlay, not the native page. Restored on release.
+    draggingRef.current = true
+    setDraggingDivider(true)
+    useApp.getState().setSplitLive(false)
+    void invoke('split:hide')
+    void invoke('viewport:visible', false)
+  }
+  const onDividerMove = (e: React.MouseEvent): void => {
+    const el = rootRef.current
+    if (!el) return
+    const r = el.getBoundingClientRect()
+    setLeftFrac(Math.min(0.8, Math.max(0.2, (e.clientX - r.left) / r.width)))
+  }
+  const endDividerDrag = (): void => {
+    draggingRef.current = false
+    setDraggingDivider(false)
+    // Let the panes settle at the new width, then re-attach the live views.
+    requestAnimationFrame(pushSplit)
+  }
+
   return (
-    <div className="absolute inset-0 flex overflow-hidden bg-neutral-950">
-      <div className="flex min-w-0 flex-1 flex-col border-r border-neutral-800">
+    <div ref={rootRef} className="absolute inset-0 flex overflow-hidden bg-neutral-950">
+      <div
+        className="flex min-w-0 flex-col"
+        style={{ flex: `${leftFrac} 1 0%` }}
+      >
         <PaneHeader side="left" />
         <div className="min-h-0 flex-1">
           <PaneBody mode={leftMode} contentRef={leftContent} />
         </div>
       </div>
-      <div className="flex min-w-0 flex-1 flex-col">
+
+      {/* Draggable divider: sets how much of the width each pane takes. */}
+      <div
+        onMouseDown={startDividerDrag}
+        className={`group relative w-px shrink-0 cursor-col-resize bg-neutral-800 ${
+          draggingDivider ? 'bg-accent' : 'hover:bg-accent/60'
+        }`}
+      >
+        <span className="absolute inset-y-0 -left-1.5 -right-1.5" />
+      </div>
+
+      <div
+        className="flex min-w-0 flex-col"
+        style={{ flex: `${1 - leftFrac} 1 0%` }}
+      >
         <PaneHeader side="right" />
         <div className="min-h-0 flex-1">
           <PaneBody mode={rightMode} contentRef={rightContent} />
         </div>
       </div>
+
+      {/* Full-window capture layer while dragging the divider — the native views
+          are hidden meanwhile so these events actually land here. */}
+      {draggingDivider && (
+        <div
+          className="fixed inset-0 z-50 cursor-col-resize"
+          onMouseMove={onDividerMove}
+          onMouseUp={endDividerDrag}
+          onMouseLeave={endDividerDrag}
+        />
+      )}
     </div>
   )
 }

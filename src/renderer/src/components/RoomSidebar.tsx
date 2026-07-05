@@ -54,10 +54,7 @@ export default function RoomSidebar(): React.JSX.Element {
   const [renaming, setRenaming] = useState(false)
   const [renameValue, setRenameValue] = useState('')
 
-  // Compact auto-hide is paused while split view is open: a split pane's native
-  // web view is drawn on top of the DOM, so a peeking sidebar would be hidden
-  // behind it (and fight the panes for space). In split, keep the sidebar normal.
-  const compact = (config?.compactSidebar ?? false) && overlay !== 'split'
+  const compact = config?.compactSidebar ?? false
   const [revealed, setRevealed] = useState(true)
   const hideTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
   // Inline UI that must not vanish under the user's cursor mid-action.
@@ -82,6 +79,21 @@ export default function RoomSidebar(): React.JSX.Element {
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [compact, draggingTab])
+
+  // A live page captures the mouse, so its preload tells us when the pointer
+  // nears the left edge — that's what lets compact reveal work over any page.
+  useEffect(() => {
+    return window.wisp.on('shell:edge-left', (near) => {
+      if (!useApp.getState().config?.compactSidebar) return
+      if (near) {
+        cancelHide()
+        setRevealed(true)
+      } else {
+        scheduleHide()
+      }
+    })
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
 
   const cancelHide = (): void => {
     if (hideTimer.current) {
