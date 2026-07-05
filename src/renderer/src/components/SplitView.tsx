@@ -106,21 +106,40 @@ export default function SplitView(): React.JSX.Element {
     }
   }
 
+  // Gap left between the two live views so the drag divider (DOM) shows through
+  // — native views are drawn over all DOM, so without a gap they'd bury it.
+  const DIVIDER_GAP = 10
+
   // Hand each live pane's tab + rect to the main process so the real web views
-  // land in the panes; when neither pane is live, release them.
+  // land in the panes. Rects are computed from the container's geometry + the
+  // split fraction (robust — never a stale per-pane measurement), so the views
+  // track the sidebar collapsing/revealing and the divider moving exactly.
   const pushSplit = useCallback((): void => {
-    // While the divider is being dragged the native views are hidden so the
-    // pointer reaches the DOM; don't re-attach them mid-drag.
+    // While the divider is dragged the native views are hidden so the pointer
+    // reaches the DOM; don't re-attach them mid-drag.
     if (draggingRef.current) return
+    const root = rootRef.current
+    if (!root) return
+    const r = root.getBoundingClientRect()
+    // Content sits below the pane header; take its top from a content div.
+    const cTop = (leftContent.current ?? rightContent.current)?.getBoundingClientRect().top ?? r.top
+    const top = Math.round(cTop)
+    const height = Math.round(r.bottom - cTop)
+    const splitX = r.x + r.width * leftFrac
     const panes: { tabId: string; rect: { x: number; y: number; width: number; height: number } }[] = []
-    const add = (mode: PaneMode, tabId: string | null, el: HTMLDivElement | null): void => {
-      if (mode !== 'live' || !tabId || !el) return
-      if (panes.some((p) => p.tabId === tabId)) return // one web view per tab
-      const r = el.getBoundingClientRect()
-      panes.push({ tabId, rect: { x: r.x, y: r.y, width: r.width, height: r.height } })
+    const seen = new Set<string>()
+    if (leftMode === 'live' && leftTab && !seen.has(leftTab)) {
+      seen.add(leftTab)
+      panes.push({
+        tabId: leftTab,
+        rect: { x: Math.round(r.x), y: top, width: Math.round(splitX - DIVIDER_GAP / 2 - r.x), height }
+      })
     }
-    add(leftMode, leftTab, leftContent.current)
-    add(rightMode, rightTab, rightContent.current)
+    if (rightMode === 'live' && rightTab && !seen.has(rightTab)) {
+      seen.add(rightTab)
+      const rx = Math.round(splitX + DIVIDER_GAP / 2)
+      panes.push({ tabId: rightTab, rect: { x: rx, y: top, width: Math.round(r.right - rx), height } })
+    }
     if (panes.length === 0) {
       useApp.getState().setSplitLive(false)
       void invoke('split:hide')
@@ -129,13 +148,14 @@ export default function SplitView(): React.JSX.Element {
       useApp.getState().setSplitLive(true)
       void invoke('split:show', panes)
     }
-  }, [leftMode, rightMode, leftTab, rightTab])
+  }, [leftMode, rightMode, leftTab, rightTab, leftFrac])
 
   useEffect(() => {
     pushSplit()
-    const els = [leftContent.current, rightContent.current].filter(Boolean) as HTMLDivElement[]
+    // Observe the whole split container so any size change — including the
+    // sidebar collapsing/revealing beside it — re-lays the live views.
     const ro = new ResizeObserver(pushSplit)
-    els.forEach((el) => ro.observe(el))
+    if (rootRef.current) ro.observe(rootRef.current)
     window.addEventListener('resize', pushSplit)
     return () => {
       ro.disconnect()
@@ -333,38 +353,32 @@ export default function SplitView(): React.JSX.Element {
 
   return (
     <div ref={rootRef} className="absolute inset-0 flex overflow-hidden bg-neutral-950">
-      <div
-        className="flex min-w-0 flex-col"
-        style={{ flex: `${leftFrac} 1 0%` }}
-      >
+      <div className="flex min-w-0 flex-col" style={{ flex: `${leftFrac} 1 0%` }}>
         <PaneHeader side="left" />
         <div className="min-h-0 flex-1">
           <PaneBody mode={leftMode} contentRef={leftContent} />
         </div>
       </div>
-
-      {/* Draggable divider: sets how much of the width each pane takes. */}
-      <div
-        onMouseDown={startDividerDrag}
-        className={`group relative w-px shrink-0 cursor-col-resize bg-neutral-800 ${
-          draggingDivider ? 'bg-accent' : 'hover:bg-accent/60'
-        }`}
-      >
-        <span className="absolute inset-y-0 -left-1.5 -right-1.5" />
-      </div>
-
-      <div
-        className="flex min-w-0 flex-col"
-        style={{ flex: `${1 - leftFrac} 1 0%` }}
-      >
+      <div className="flex min-w-0 flex-col" style={{ flex: `${1 - leftFrac} 1 0%` }}>
         <PaneHeader side="right" />
         <div className="min-h-0 flex-1">
           <PaneBody mode={rightMode} contentRef={rightContent} />
         </div>
       </div>
 
-      {/* Full-window capture layer while dragging the divider — the native views
-          are hidden meanwhile so these events actually land here. */}
+      {/* The divider sits in the gap the live views leave for it, so it's always
+          visible and grabbable — even between two live pages. */}
+      <div
+        onMouseDown={startDividerDrag}
+        style={{ left: `${leftFrac * 100}%` }}
+        className="group absolute top-0 bottom-0 z-30 flex w-2.5 -translate-x-1/2 cursor-col-resize items-stretch justify-center"
+        data-tip={t('splitView.resize')}
+      >
+        <div className={`w-px ${draggingDivider ? 'bg-accent' : 'bg-neutral-700'} group-hover:bg-accent/60`} />
+      </div>
+
+      {/* Full-window capture layer while dragging — native views are hidden
+          meanwhile so these events actually land here. */}
       {draggingDivider && (
         <div
           className="fixed inset-0 z-50 cursor-col-resize"

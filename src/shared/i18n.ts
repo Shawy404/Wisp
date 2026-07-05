@@ -368,6 +368,7 @@ const tr = {
   'splitView.mode.reader': 'Okuyucu',
   'splitView.mode.note': 'Not',
   'splitView.mode.sources': 'Kaynaklar',
+  'splitView.resize': 'Sürükle: panoları yeniden boyutlandır',
 
   'reader.title': 'Reader Modu',
   'reader.wordCount': '~{count} kelime',
@@ -866,6 +867,7 @@ const en: typeof tr = {
   'splitView.mode.reader': 'Reader',
   'splitView.mode.note': 'Note',
   'splitView.mode.sources': 'Sources',
+  'splitView.resize': 'Drag to resize the panes',
 
   'reader.title': 'Reader Mode',
   'reader.wordCount': '~{count} words',
