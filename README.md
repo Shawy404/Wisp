@@ -50,7 +50,13 @@ start a map from a template instead of a blank page. central topic, timeline, hi
 
 **clip anything.** right click a page, some selected text, or an image to save it into the room. clip just a section and reopening it jumps you back to the exact spot, highlighted. on a youtube page you can clip the whole video or a time range, `yt-dlp` ships inside so there's nothing to install.
 
-**it's a real browser under there.** find in page (`Ctrl+F`), full text search across the room (`Ctrl+Shift+F`), a download manager, tab sleeping to save memory, an ad and tracker blocker, reader mode, per site permission prompts, and shortcuts that work even while a page has focus (hit `?` for the list).
+**two pages at once.** drag a tab to the edge and you get a real split, two live pages side by side (or a page and your notes). grab the line in the middle to resize them.
+
+<img src="docs/media/split.png" width="820" alt="Split view with two live pages side by side" />
+
+<sub>two live pages at the same time. read one, take notes on the other, whatever.</sub>
+
+**it's a real browser under there.** find in page (`Ctrl+F`), full text search across the room (`Ctrl+Shift+F`), a download manager, tab sleeping to save memory, an ad and tracker blocker, reader mode, per site permission prompts, page zoom (pinch or Ctrl+wheel), and shortcuts that work even while a page has focus (hit `?` for the list).
 
 **a password vault.** app wide, encrypted through your OS keychain, unlocked with your system password. log in somewhere and Wisp offers to save it, come back later and it fills the form for you.
 
