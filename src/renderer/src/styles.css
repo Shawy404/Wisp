@@ -128,26 +128,36 @@ body,
 }
 
 /*
- * Zen-style glass. Active when a background image should shine through the
- * shell, or when the window itself is transparent (compositor glass — the
- * desktop shows through; Hyprland blur rules make it frosted). A coherent
- * dark glass on top of any theme, rather than a per-theme tint.
+ * Frosted glass. Active when a background image should shine through the shell,
+ * or when the window itself is transparent (the desktop shows through, and a
+ * compositor with window blur — e.g. KDE/Hyprland — frosts it; plain GNOME just
+ * shows it translucent without blur). A coherent dark glass on top of any theme.
  */
 html.wisp-translucent,
 html.wisp-translucent body {
   background: transparent;
 }
 html.wisp-translucent {
-  --color-neutral-950: rgb(14 14 18 / 0.55);
-  --color-neutral-925: rgb(19 19 22 / 0.52);
-  --color-neutral-900: rgb(23 23 27 / 0.5);
-  --color-neutral-850: rgb(33 33 38 / 0.55);
-  --color-neutral-800: rgb(42 42 48 / 0.55);
+  --color-neutral-950: rgb(15 15 19 / 0.5);
+  --color-neutral-925: rgb(19 19 23 / 0.46);
+  --color-neutral-900: rgb(24 24 29 / 0.44);
+  --color-neutral-850: rgb(34 34 40 / 0.5);
+  --color-neutral-800: rgb(44 44 51 / 0.52);
 }
-/* Frost the in-window layers (background image, overlays). The desktop behind
-   a transparent window is blurred by the compositor, not by CSS. */
+/*
+ * Frost every glass surface: the chrome (title bar, sidebar, bottom bar) plus
+ * the overlay panels and the viewport card. A real CSS backdrop blur + a touch
+ * of saturation/brightness reads as frosted glass over the background image;
+ * over a transparent window the compositor's own blur stacks on top. A hairline
+ * top highlight gives it a lit glass edge.
+ */
+html.wisp-translucent .wisp-chrome,
+html.wisp-translucent .wisp-glass {
+  backdrop-filter: blur(26px) saturate(1.5) brightness(1.06);
+  -webkit-backdrop-filter: blur(26px) saturate(1.5) brightness(1.06);
+}
 html.wisp-translucent .wisp-chrome {
-  backdrop-filter: blur(18px) saturate(1.2);
+  box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.06);
 }
 
 /*
@@ -343,6 +353,26 @@ html.wisp-translucent .wisp-chrome {
 .wisp-orb--update .wisp-eye {
   width: 5px;
   height: 8px;
+}
+
+/*
+ * The mascot: the same wisp orb from the splash/loader, shrunk to sit next to
+ * the wordmark in the title bar. It rests quietly and lights up on hover.
+ */
+.wisp-mascot {
+  display: inline-block;
+  width: 15px;
+  height: 15px;
+  border-radius: 50% 50% 45% 45%;
+  background: radial-gradient(circle at 35% 30%, var(--wisp-accent), color-mix(in srgb, var(--wisp-accent) 55%, #000));
+  box-shadow: 0 0 5px color-mix(in srgb, var(--wisp-accent) 45%, transparent);
+  transition:
+    box-shadow 0.25s ease,
+    transform 0.25s ease;
+}
+.wisp-mascot:hover {
+  transform: translateY(-1px) scale(1.12);
+  box-shadow: 0 0 14px color-mix(in srgb, var(--wisp-accent) 85%, transparent);
 }
 
 ::-webkit-scrollbar {

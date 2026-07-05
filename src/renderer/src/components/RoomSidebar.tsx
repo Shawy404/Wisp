@@ -54,7 +54,10 @@ export default function RoomSidebar(): React.JSX.Element {
   const [renaming, setRenaming] = useState(false)
   const [renameValue, setRenameValue] = useState('')
 
-  const compact = config?.compactSidebar ?? false
+  // Compact auto-hide is paused while split view is open: a split pane's native
+  // web view is drawn on top of the DOM, so a peeking sidebar would be hidden
+  // behind it (and fight the panes for space). In split, keep the sidebar normal.
+  const compact = (config?.compactSidebar ?? false) && overlay !== 'split'
   const [revealed, setRevealed] = useState(true)
   const hideTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
   // Inline UI that must not vanish under the user's cursor mid-action.

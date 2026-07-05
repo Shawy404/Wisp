@@ -28,7 +28,10 @@ export default function TitleBar(): React.JSX.Element {
 
   return (
     <div className="drag-region wisp-chrome flex h-11 items-center gap-2 border-b border-neutral-800/60 bg-neutral-925 pr-1 pl-3">
-      <span className="text-xs font-semibold tracking-tight text-accent select-none">Wisp</span>
+      <span className="no-drag flex items-center gap-1.5 select-none" data-tip="Wisp" data-tip-pos="bottom">
+        <span className="wisp-mascot" />
+        <span className="text-xs font-semibold tracking-tight text-accent">Wisp</span>
+      </span>
       <AddressBar />
       <FindBar />
       <div
