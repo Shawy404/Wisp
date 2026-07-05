@@ -8,7 +8,7 @@
 
 **A browser built for research.** Rooms, clean search, notes and a concept map — all on your own disk.
 
-`v0.1.6-pre-alpha` · Linux & Windows · [Download a build](../../releases) · Built by [Shawy404](https://github.com/Shawy404)
+`v0.1.7-pre-alpha` · Linux & Windows · [Download a build](../../releases) · Built by [Shawy404](https://github.com/Shawy404)
 
 <img src="docs/media/map.png" width="820" alt="Wisp concept map of a neuroscience topic, with figures dropped in" />
 

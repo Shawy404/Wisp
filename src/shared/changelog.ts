@@ -15,6 +15,30 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: '0.1.7-pre-alpha',
+    date: '2026-07-05',
+    notes: {
+      tr: [
+        'Split view artık iki farklı canlı sayfayı gerçekten yan yana gösteriyor; ortadaki çizgiyi tutup panoların kapladığı alanı değiştirebiliyorsun.',
+        'Essentials ile sabitler tek şeritte birleşti: bir sekmeyi essentials yap → tüm odalarda çıkar; sağ tıkla sadece bu odadan ya da tümünden kaldır.',
+        'Sayfada zoom: trackpad pinch pürüzsüz büyütür (cursor’a sabit), Ctrl+tekerlek ve Ctrl+±/0 ile sayfa zoom’u; F5 ile yenile.',
+        'Uygulama maskotu (wisp orb) sol üstte ve yeni uygulama ikonu oldu.',
+        'İlk açılışta şakacı bir karşılama + GitHub; ayarlarda arama, sekmeli kategoriler ve “Nasıl çalışır” yardımı; ayarlar butonu sağ alt köşede.',
+        'Compact mod artık sayfa açıkken de sol kenara gelince açılıyor; müzik göstergesi sadece bir şey çalarken görünüyor.',
+        'Wisp artık MIT lisanslı — ücretsiz ve herkese açık.'
+      ],
+      en: [
+        'Split view now really shows two different live pages side by side; drag the middle divider to change how much space each pane takes.',
+        'Essentials and pins merged into one strip: make a tab essential → it shows in every room; right-click to remove it from just this room or all of them.',
+        'Page zoom: trackpad pinch magnifies smoothly (cursor-anchored), Ctrl+wheel and Ctrl+±/0 do page zoom; F5 reloads.',
+        'The app mascot (the wisp orb) sits by the wordmark and became the new app icon.',
+        'A playful first-run welcome + GitHub; settings search, tabbed categories and a “How it works” help section; the settings button lives in the bottom-right.',
+        'Compact mode now reveals over a live page when you reach the left edge; the music widget only appears while something is playing.',
+        'Wisp is MIT-licensed now — free and open for everyone.'
+      ]
+    }
+  },
+  {
     version: '0.1.6-pre-alpha',
     date: '2026-07-04',
     notes: {
