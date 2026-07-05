@@ -285,6 +285,24 @@ export class TabManager {
     return e ? { url: e.url, title: e.title, view: e.view } : null
   }
 
+  /**
+   * Is this page's view sitting against the window's left edge? Used to reject
+   * "pointer at my left edge" reports from a split pane that's mid-window (a
+   * right pane), so only a genuinely leftmost page reveals the compact sidebar.
+   */
+  viewAtWindowLeft(wc: Electron.WebContents): boolean {
+    for (const entry of this.tabs.values()) {
+      if (entry.view?.webContents === wc) {
+        try {
+          return entry.view.getBounds().x <= 24
+        } catch {
+          return false
+        }
+      }
+    }
+    return false
+  }
+
   currentRoomId(): string | null {
     return this.currentRoom
   }
@@ -364,6 +382,9 @@ export class TabManager {
     })
     // Match the rounded corners of the renderer's viewport card.
     if (typeof view.setBorderRadius === 'function') view.setBorderRadius(12)
+    // Enable trackpad pinch-to-zoom: Chromium's visual zoom magnifies the page
+    // smoothly, anchored to the pinch point, without reflowing the layout.
+    view.webContents.setVisualZoomLevelLimits(1, 4).catch(() => {})
     entry.view = view
     this.wireEvents(entry)
     for (const hook of this.viewHooks) hook(view, entry.id)

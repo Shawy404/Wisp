@@ -164,7 +164,10 @@ export function registerCoreIpc(ctx: WispContext): void {
 
   // A page's preload reports when the pointer nears the left edge; relay it to
   // the shell so compact mode can reveal the sidebar even over a live page.
-  ipcMain.on('shell:edge-left', (_e, near: boolean) => {
+  // Ignore "near" reports from a page that isn't actually at the window's left
+  // (e.g. the right split pane, whose left edge is mid-window at the divider).
+  ipcMain.on('shell:edge-left', (e, near: boolean) => {
+    if (near && !tabs.viewAtWindowLeft(e.sender)) return
     if (!win.isDestroyed()) win.webContents.send('shell:edge-left', near)
   })
 

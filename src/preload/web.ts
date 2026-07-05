@@ -1,6 +1,6 @@
 // Wisp — © Shawy404. All rights reserved.
 /// <reference lib="dom" />
-import { ipcRenderer } from 'electron'
+import { ipcRenderer, webFrame } from 'electron'
 
 /**
  * Preload for web page views (sandboxed, no API exposed to the page). Two
@@ -12,6 +12,33 @@ import { ipcRenderer } from 'electron'
  * The page can't reach the vault: it only ever sees what gets typed/filled
  * into its own inputs.
  */
+
+// ------------------------------------------------------------------- zoom --
+// Ctrl + mouse wheel does standard page zoom (like every browser). Trackpad
+// pinch is handled natively as smooth visual zoom (enabled in the main process),
+// so it magnifies toward the pinch point without reflowing.
+function stepZoom(factor: number): void {
+  webFrame.setZoomFactor(Math.min(5, Math.max(0.3, webFrame.getZoomFactor() * factor)))
+}
+window.addEventListener(
+  'wheel',
+  (e) => {
+    if (!e.ctrlKey) return
+    e.preventDefault()
+    stepZoom(e.deltaY < 0 ? 1.1 : 1 / 1.1)
+  },
+  { passive: false, capture: true }
+)
+window.addEventListener(
+  'keydown',
+  (e) => {
+    if (!e.ctrlKey && !e.metaKey) return
+    if (e.key === '0') webFrame.setZoomFactor(1)
+    else if (e.key === '=' || e.key === '+') stepZoom(1.1)
+    else if (e.key === '-') stepZoom(1 / 1.1)
+  },
+  true
+)
 
 // ------------------------------------------------------------- edge hover --
 // The native page view captures the mouse, so the shell's DOM sidebar never
