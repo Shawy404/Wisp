@@ -10,9 +10,9 @@ a browser i built for doing research. rooms, a search that actually digs, notes 
 
 `v0.2.0-alpha` · Linux & Windows · [grab a build](../../releases) · by [Shawy404](https://github.com/Shawy404)
 
-<img src="docs/media/map.png" width="820" alt="Wisp concept map of how mycorrhizal fungi work, with a framed group and figures dropped in" />
+<img src="docs/media/map.png" width="820" alt="Wisp concept map of a fungi room, two named frames, photos dragged in, a note card showing its own text, concepts wired with labeled links" />
 
-<sub>a room's concept map. concepts, notes, figures you drag in and framed groups, all wired together. here it's how mycorrhizal fungi work.</sub>
+<sub>a room's concept map. concepts, photos you drag in, framed groups and a note card showing its own text, all wired together. this one is me poking at fungi.</sub>
 
 </div>
 
@@ -30,10 +30,6 @@ the name is from *will o' the wisp*, the ghost light that leads people through t
 
 **rooms.** one room per topic. switch rooms and the whole workspace (tabs, sources, notes, map) swaps with it. close a room, open it again, everything is exactly where you left it. a topic going quiet? archive the room instead of deleting it, it waits in the + menu until you want it back.
 
-<img src="docs/media/archive.png" width="820" alt="The new room field showing archived rooms ready to restore" />
-
-<sub>hit + like you're making a new room and the archived ones are right there, one click to bring back.</sub>
-
 **a search that isn't just google.** one bar hits Semantic Scholar, Crossref, arXiv, Wikipedia, Openverse and the web all at once, sorts what comes back into Academic / Overview / Images / Web, and lets you save the ones you like into the room with a click. no more copy pasting citations. there's a Wisp/Web toggle right there when you just want a normal web search.
 
 <img src="docs/media/search.png" width="820" alt="Multi source research search for a scientific topic" />
@@ -50,9 +46,9 @@ everything you save lands in the room's sources, tagged and ready to cite:
 
 the map is that same stuff drawn as a graph, and it grew up a lot. boxed nodes and photos for image sources, connected clusters that get their own tint, curved links you can label, undo/redo with version history, and now **named frames** you draw around a group so it moves as one piece, plus **note cards** that show a note's real text right on the canvas. shift-click two things to link them, frames included.
 
-<img src="docs/media/map.png" width="820" alt="Concept map with a named FACTS frame, a note card showing its text, and concepts wired together" />
+<img src="docs/media/map.png" width="820" alt="Concept map with two named frames, a note card showing its text, fungi photos, and concepts wired together" />
 
-<sub>the hero shot up top and this one are the same map: a named frame around two notes, a note card showing its content, concepts wired in with labeled curved links.</sub>
+<sub>same map as up top. two named frames, a note card showing its actual words, photos i dragged in, concepts joined with labeled curved links. shift click any two things to wire them together.</sub>
 
 **clip anything.** right click a page, some selected text, or an image to save it into the room. clip just a section and reopening it jumps you back to the exact spot with the whole saved bit highlighted. on a youtube page you can clip the whole video or a time range, `yt-dlp` ships inside so there's nothing to install.
 
@@ -61,6 +57,10 @@ the map is that same stuff drawn as a graph, and it grew up a lot. boxed nodes a
 <img src="docs/media/split.png" width="820" alt="Split view with two live pages side by side" />
 
 <sub>two live pages at the same time. read one, take notes on the other, whatever.</sub>
+
+<img src="docs/media/split-notes.png" width="820" alt="Split view with a live page on one side and the notes editor on the other" />
+
+<sub>or a page next to your notes, so you can write about the thing while the thing is right there.</sub>
 
 **an address bar that remembers.** start typing and it offers back what you searched before and pages you've already visited in this room, recent ones first. first launch it asks which search engine you actually want.
 
@@ -73,6 +73,10 @@ the map is that same stuff drawn as a graph, and it grew up a lot. boxed nodes a
 <img src="docs/media/glass.png" width="820" alt="The start page with a wallpaper glowing softly through the frosted chrome" />
 
 <sub>wallpaper glowing through the frosted chrome. settings open over it stay solid and readable.</sub>
+
+<img src="docs/media/glass-real.png" width="820" alt="Real window transparency, the desktop showing straight through the shell" />
+
+<sub>or flip on real transparency and the whole shell goes see through, your actual desktop sitting right behind it.</sub>
 
 **it's a real browser under there.** find in page (`Ctrl+F`), full text search across the room (`Ctrl+Shift+F`), a download manager, tab sleeping to save memory, an ad and tracker blocker, reader mode, per site permission prompts, page zoom (pinch or Ctrl+wheel), and shortcuts that work even while a page has focus (hit `?` for the list).
 
