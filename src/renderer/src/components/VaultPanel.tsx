@@ -79,7 +79,7 @@ export default function VaultPanel(): React.JSX.Element {
   // The vault stays behind the machine owner's own password (polkit dialog).
   if (locked) {
     return (
-      <div className="absolute inset-0 flex flex-col items-center justify-center gap-4 bg-neutral-950">
+      <div className="wisp-panel absolute inset-0 flex flex-col items-center justify-center gap-4 bg-neutral-950">
         <div className="flex h-16 w-16 items-center justify-center rounded-2xl border border-accent/30 bg-accent/10 text-3xl text-accent">
           ⚿
         </div>
@@ -97,7 +97,7 @@ export default function VaultPanel(): React.JSX.Element {
   }
 
   return (
-    <div className="absolute inset-0 flex flex-col overflow-hidden bg-neutral-950">
+    <div className="wisp-panel absolute inset-0 flex flex-col overflow-hidden bg-neutral-950">
       <div className="mx-auto w-full max-w-2xl px-6 pt-6 pb-3">
         <div className="text-sm font-semibold text-neutral-200">{t('vault.title')}</div>
         <div className="mt-0.5 text-[11px] text-neutral-500">{t('vault.subtitle')}</div>

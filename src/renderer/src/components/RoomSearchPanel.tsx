@@ -55,7 +55,7 @@ export default function RoomSearchPanel(): React.JSX.Element {
   }
 
   return (
-    <div className="absolute inset-0 flex flex-col overflow-hidden bg-neutral-950">
+    <div className="wisp-panel absolute inset-0 flex flex-col overflow-hidden bg-neutral-950">
       <div className="mx-auto w-full max-w-2xl px-6 pt-6 pb-3">
         <input
           autoFocus

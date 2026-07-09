@@ -40,7 +40,7 @@ export default function ReaderPanel(): React.JSX.Element {
   }
 
   return (
-    <div className="absolute inset-0 flex flex-col overflow-hidden bg-neutral-950">
+    <div className="wisp-panel absolute inset-0 flex flex-col overflow-hidden bg-neutral-950">
       <div className="flex items-center gap-2 border-b border-neutral-800 px-6 py-3">
         <span className="text-xs font-medium tracking-wide text-neutral-500 uppercase">
           {t('reader.title')}

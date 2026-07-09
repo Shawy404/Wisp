@@ -89,7 +89,7 @@ export default function NotesPanel(): React.JSX.Element {
   }
 
   return (
-    <div className="absolute inset-0 flex overflow-hidden bg-neutral-950">
+    <div className="wisp-panel absolute inset-0 flex overflow-hidden bg-neutral-950">
       <div className="flex w-56 flex-col border-r border-neutral-800">
         <div className="flex items-center justify-between px-3 pt-3 pb-1">
           <span className="text-[11px] font-semibold tracking-wider text-neutral-500 uppercase">

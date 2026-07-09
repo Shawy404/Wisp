@@ -71,6 +71,10 @@ export default function App(): React.JSX.Element {
     if (effectiveTheme && effectiveTheme !== 'dark') el.classList.add(`wisp-${effectiveTheme}`)
     if (config.windowTransparent || (config.translucentUi && backgroundUrl)) {
       el.classList.add('wisp-translucent')
+      // wallpaper glass gets an extra marker: panels go opaque under it so the
+      // settings page doesn't turn into a where's waldo over your wallpaper.
+      // desktop glass (real transparency) keeps its see-through panels.
+      if (!config.windowTransparent) el.classList.add('wisp-wallglass')
     }
   }, [config?.accent, effectiveTheme, config?.translucentUi, config?.windowTransparent, backgroundUrl])
 

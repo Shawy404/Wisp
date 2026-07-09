@@ -159,6 +159,14 @@ html.wisp-translucent .wisp-glass {
 html.wisp-translucent .wisp-chrome {
   box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.06);
 }
+/*
+ * wallpaper glass (translucent ui over a background image, window itself
+ * opaque): the chrome stays frosted but panels get a solid back. reading
+ * settings through your own wallpaper was a novelty for about four seconds.
+ */
+html.wisp-wallglass .wisp-panel {
+  background: #101014;
+}
 
 /*
  * Tooltips (`data-tip`, with optional `data-tip-pos="bottom"` and

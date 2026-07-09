@@ -149,7 +149,7 @@ export default function SearchPanel(): React.JSX.Element {
   }
 
   return (
-    <div className="absolute inset-0 flex flex-col overflow-hidden bg-neutral-950">
+    <div className="wisp-panel absolute inset-0 flex flex-col overflow-hidden bg-neutral-950">
       <div className="mx-auto flex w-full max-w-3xl flex-col gap-3 px-6 pt-6 pb-2">
         <div className="flex items-center gap-2">
           <input

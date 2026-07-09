@@ -1,7 +1,7 @@
 // Wisp. © Shawy404, MIT.
 import { useEffect, useMemo, useRef, useState } from 'react'
 import cytoscape, { type Core, type ElementDefinition, type NodeSingular } from 'cytoscape'
-import type { MapData, MapGroup } from '@shared/types'
+import type { MapData, MapEdge, MapGroup } from '@shared/types'
 import type { TKey } from '@shared/i18n'
 import { buildGraph, type Graph } from '@shared/graph'
 import { highlightUrl } from '@shared/address'
@@ -84,16 +84,17 @@ function cyStyle(c: MapColors): cytoscape.StylesheetJson {
       }
     },
     // Strong (deliberate) links are solid, derived ones dashed — no arrowheads.
-    // gentle bezier curves instead of straight lines: parallel links stop
-    // stacking on top of each other and the whole thing reads more like a map,
-    // less like a circuit diagram.
+    // unbundled bezier so EVERY line gets a gentle arc. plain bezier only
+    // curves when two edges share endpoints, which is why the map looked
+    // straight as a ruler unless you linked the same pair twice.
     {
       selector: 'edge',
       style: {
         width: 1.3,
         'line-color': c.edge,
-        'curve-style': 'bezier',
-        'control-point-step-size': 32,
+        'curve-style': 'unbundled-bezier',
+        'control-point-distances': [22],
+        'control-point-weights': [0.5],
         label: 'data(label)',
         'font-size': '8px',
         color: c.edgeLabel,
@@ -111,7 +112,7 @@ function cyStyle(c: MapColors): cytoscape.StylesheetJson {
       style: {
         shape: 'round-rectangle',
         'background-color': c.nodeBg,
-        'background-opacity': 0.3,
+        'background-opacity': 0.85,
         'border-width': 1.2,
         'border-color': c.edge,
         label: 'data(label)',
@@ -279,7 +280,8 @@ function toElements(
   images: Record<string, string>,
   sizes: Record<string, number>,
   groups: MapGroup[],
-  cardText: Record<string, string>
+  cardText: Record<string, string>,
+  persistedEdges: MapEdge[]
 ): ElementDefinition[] {
   // group frames become cytoscape compound parents; their members point at
   // them and cytoscape does the "dragging the frame drags the family" part.
@@ -329,7 +331,27 @@ function toElements(
     },
     classes: e.kind
   }))
-  return [...parents, ...nodes, ...edges]
+  // edges that touch a group frame never make it through buildGraph (frames
+  // aren't graph nodes), so they get picked out of map.json by hand here
+  const frameIds = new Set(parents.map((p) => p.data.id as string))
+  const allIds = new Set([...nodeIds, ...frameIds])
+  const frameEdges = persistedEdges
+    .filter(
+      (e) =>
+        (frameIds.has(e.from) || frameIds.has(e.to)) && allIds.has(e.from) && allIds.has(e.to)
+    )
+    .map((e) => ({
+      data: {
+        id: e.id,
+        source: e.from,
+        target: e.to,
+        label: e.label ?? '',
+        kind: e.kind,
+        ...(e.style ? { lineStyle: e.style } : {})
+      },
+      classes: e.kind
+    }))
+  return [...parents, ...nodes, ...edges, ...frameEdges]
 }
 
 type NodeType = 'source' | 'note' | 'concept' | 'group'
@@ -446,15 +468,21 @@ export default function MapPanel(): React.JSX.Element {
     }
   }, [sources, activeRoomId, images])
 
-  // note cards: the on-canvas text for nodes the user flipped to card mode
+  // note cards: the on-canvas text for nodes the user flipped to card mode.
+  // just the content: no title (it's a card, not a header) and no #tags, those
+  // are wiring for the graph, not prose anyone wants to read.
   const cardText = useMemo(() => {
     const out: Record<string, string> = {}
     for (const id of map.cards ?? []) {
       if (!id.startsWith('note:')) continue
       const note = notes.find((n) => `note:${n.id}` === id)
       if (!note) continue
-      const body = note.body.replace(/^#[^\n]*\n?/, '').replace(/\s+/g, ' ').trim()
-      out[id] = `${note.title}\n\n${body.slice(0, 240)}${body.length > 240 ? '…' : ''}`
+      const body = note.body
+        .replace(/^#\s[^\n]*\n?/, '')
+        .replace(/(^|\s)#[\p{L}\p{N}_-]+/gu, ' ')
+        .replace(/\s+/g, ' ')
+        .trim()
+      out[id] = body ? `${body.slice(0, 260)}${body.length > 260 ? '…' : ''}` : note.title
     }
     return out
   }, [map.cards, notes])
@@ -462,6 +490,8 @@ export default function MapPanel(): React.JSX.Element {
   cardTextRef.current = cardText
   const groupsRef = useRef<MapGroup[]>([])
   groupsRef.current = map.groups ?? []
+  const edgesRef = useRef<MapEdge[]>([])
+  edgesRef.current = map.edges
 
   // Hand-placed coordinates, kept in a ref so the long-lived cytoscape event
   // handlers always see the latest set (drags update it without a re-render).
@@ -527,7 +557,8 @@ export default function MapPanel(): React.JSX.Element {
         imagesRef.current,
         sizesRef.current,
         groupsRef.current,
-        cardTextRef.current
+        cardTextRef.current,
+        edgesRef.current
       ),
       style: cyStyle(mapColors(useApp.getState().config?.theme ?? 'dark')),
       layout: { name: 'preset' },
@@ -577,10 +608,9 @@ export default function MapPanel(): React.JSX.Element {
 
     cy.current.on('tap', 'node', (evt) => {
       setCtx(null)
-      // tapping a group frame is just grabbing the box, no focus theatrics
-      if ((evt.target as cytoscape.NodeSingular).isParent()) return
       const id = evt.target.id()
-      // Shift-click chains two nodes into a manual link.
+      // Shift-click chains two nodes into a manual link. Group frames count
+      // as link targets too, so a whole frame can point at a concept.
       if (evt.originalEvent.shiftKey) {
         if (!linkFrom.current) {
           linkFrom.current = id
@@ -594,6 +624,8 @@ export default function MapPanel(): React.JSX.Element {
         }
         return
       }
+      // tapping a group frame without shift is just grabbing the box
+      if ((evt.target as cytoscape.NodeSingular).isParent()) return
       // Plain click focuses the node and its neighbours (Obsidian-style).
       linkFrom.current = null
       cy.current?.nodes().removeClass('link-source')
@@ -700,11 +732,19 @@ export default function MapPanel(): React.JSX.Element {
     c.batch(() => {
       c.elements().remove()
       c.add(
-        toElements(graph, positionsRef.current, images, sizesRef.current, map.groups ?? [], cardText)
+        toElements(
+          graph,
+          positionsRef.current,
+          images,
+          sizesRef.current,
+          map.groups ?? [],
+          cardText,
+          map.edges
+        )
       )
     })
     runLayout(c, new Set(Object.keys(positionsRef.current)))
-  }, [graph, images, map.sizes, map.groups, cardText])
+  }, [graph, images, map.sizes, map.groups, cardText, map.edges])
 
   // Undo/redo — buttons in the filter bar plus Ctrl+Z / Ctrl+Shift+Z / Ctrl+Y,
   // and Delete clears the current (box) selection.
@@ -911,7 +951,7 @@ export default function MapPanel(): React.JSX.Element {
   )
 
   return (
-    <div className="absolute inset-0 flex overflow-hidden bg-neutral-950">
+    <div className="wisp-panel absolute inset-0 flex overflow-hidden bg-neutral-950">
       <div
         className="relative min-w-0 flex-1"
         onClick={() => setCtx(null)}

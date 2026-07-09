@@ -35,7 +35,7 @@ export default function SourcesPanel(): React.JSX.Element {
     .sort((a, b) => b.addedAt.localeCompare(a.addedAt))
 
   return (
-    <div className="absolute inset-0 flex flex-col overflow-hidden bg-neutral-950">
+    <div className="wisp-panel absolute inset-0 flex flex-col overflow-hidden bg-neutral-950">
       <div className="mx-auto flex w-full max-w-3xl items-center gap-2 px-6 pt-6 pb-3">
         <input
           value={text}

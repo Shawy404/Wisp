@@ -352,7 +352,7 @@ export default function SplitView(): React.JSX.Element {
   }
 
   return (
-    <div ref={rootRef} className="absolute inset-0 flex overflow-hidden bg-neutral-950">
+    <div ref={rootRef} className="wisp-panel absolute inset-0 flex overflow-hidden bg-neutral-950">
       <div className="flex min-w-0 flex-col" style={{ flex: `${leftFrac} 1 0%` }}>
         <PaneHeader side="left" />
         <div className="min-h-0 flex-1">

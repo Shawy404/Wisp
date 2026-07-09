@@ -310,11 +310,14 @@ export function registerMapIpc(ctx: WispContext): void {
     return map
   })
 
-  // dissolve the frame only; the nodes inside stay right where they are
+  // dissolve the frame only; the nodes inside stay right where they are.
+  // edges that pointed at the frame go with it, they'd dangle otherwise.
   ipcMain.handle('map:removeGroup', (_e, roomId: string, groupId: string) => {
     snapshot(roomId)
     const map = store.loadMap(roomId)
     map.groups = (map.groups ?? []).filter((g) => g.id !== groupId)
+    const nodeId = `group:${groupId}`
+    map.edges = map.edges.filter((edge) => edge.from !== nodeId && edge.to !== nodeId)
     store.saveMap(roomId, map)
     notify(roomId)
     return map

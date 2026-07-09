@@ -98,7 +98,7 @@ export default function SettingsPanel(): React.JSX.Element {
   if (!config) return <div />
 
   return (
-    <div className="absolute inset-0 overflow-y-auto bg-neutral-950">
+    <div className="wisp-panel absolute inset-0 overflow-y-auto bg-neutral-950">
       <div className="mx-auto max-w-2xl px-8 py-6">
         <h1 className="mb-2 text-xl font-semibold text-neutral-100">{t('settings.title')}</h1>
         <p className="mb-4 text-xs text-neutral-600">
@@ -570,6 +570,38 @@ export default function SettingsPanel(): React.JSX.Element {
             {t('settings.devMode.toggle')}
           </label>
         </Section>
+
+        {/* the test bench. only shows itself in dev mode, so normal people
+            never wonder why settings has a "pretend an update arrived" button */}
+        {config.devMode && (
+          <Section cat="general" terms={t('settings.devTools.hint')} title={t('settings.devTools')}>
+            <div className="mb-2 text-[11px] text-neutral-500">{t('settings.devTools.hint')}</div>
+            <div className="flex flex-wrap gap-2">
+              <button
+                className="rounded-md bg-neutral-800 px-3 py-1.5 text-xs text-neutral-200 hover:bg-neutral-700"
+                onClick={() => void setConfig({ onboarded: false })}
+              >
+                {t('settings.devTools.tour')}
+              </button>
+              <button
+                className="rounded-md bg-neutral-800 px-3 py-1.5 text-xs text-neutral-200 hover:bg-neutral-700"
+                onClick={() => window.dispatchEvent(new CustomEvent('wisp:demo-update'))}
+              >
+                {t('settings.devTools.update')}
+              </button>
+              <button
+                className="rounded-md bg-neutral-800 px-3 py-1.5 text-xs text-neutral-200 hover:bg-neutral-700"
+                onClick={() => {
+                  window.dispatchEvent(
+                    new CustomEvent('wisp:toast-local', { detail: t('settings.devTools.toastDemoText') })
+                  )
+                }}
+              >
+                {t('settings.devTools.toast')}
+              </button>
+            </div>
+          </Section>
+        )}
 
         <Section cat="general" terms={t('settings.profile.hint')} title={t('settings.profile')}>
           <div className="flex items-center gap-2">

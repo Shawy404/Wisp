@@ -19,7 +19,7 @@ export default function ShortcutsPanel(): React.JSX.Element {
   const t = useT()
   return (
     <div
-      className="absolute inset-0 flex items-center justify-center overflow-hidden bg-neutral-950"
+      className="wisp-panel absolute inset-0 flex items-center justify-center overflow-hidden bg-neutral-950"
       onClick={() => useApp.getState().setOverlay('none')}
     >
       <div

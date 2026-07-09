@@ -62,7 +62,7 @@ export default function Onboarding(): React.JSX.Element {
   }
 
   return (
-    <div className="absolute inset-0 z-[60] flex items-center justify-center bg-neutral-950">
+    <div className="wisp-panel absolute inset-0 z-[60] flex items-center justify-center bg-neutral-950">
       <div className="relative flex w-[460px] flex-col items-center rounded-2xl border border-neutral-800 bg-neutral-925 px-8 pt-10 pb-8 shadow-2xl shadow-black/50">
         {step >= -1 && (
           <button

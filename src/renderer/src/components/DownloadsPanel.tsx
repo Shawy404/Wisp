@@ -20,7 +20,7 @@ export default function DownloadsPanel(): React.JSX.Element {
   }, [])
 
   return (
-    <div className="absolute inset-0 flex flex-col overflow-hidden bg-neutral-950">
+    <div className="wisp-panel absolute inset-0 flex flex-col overflow-hidden bg-neutral-950">
       <div className="mx-auto flex w-full max-w-2xl items-center justify-between px-6 pt-6 pb-3">
         <span className="text-sm font-semibold text-neutral-200">{t('downloads.title')}</span>
         {items.some((i) => i.state !== 'progress') && (
