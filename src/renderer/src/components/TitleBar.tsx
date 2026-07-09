@@ -1,5 +1,5 @@
 // Wisp. © Shawy404, MIT.
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { invoke, useApp, useT } from '@/store'
 import AddressBar from './AddressBar'
 import FindBar from './FindBar'
@@ -11,6 +11,8 @@ import { RAIL_DND_TYPE, railItemsFor, type RailItem } from './railItems'
  * Any rail buttons the user has dragged up here (config.railPlacement) sit left
  * of the timer; this row is also a drop target, so a button dropped anywhere on
  * it moves to the title bar. Dragging one back onto the sidebar rail returns it.
+ * In compact mode the whole bar tucks itself away like the sidebar does and
+ * slides back when the pointer touches the top edge (or Ctrl+L calls for it).
  */
 export default function TitleBar(): React.JSX.Element {
   const t = useT()
@@ -19,6 +21,55 @@ export default function TitleBar(): React.JSX.Element {
   const { setOverlay, placeRailItem } = useApp.getState()
   const [dropHot, setDropHot] = useState(false)
 
+  const compact = config?.compactSidebar ?? false
+  const [revealed, setRevealed] = useState(!compact)
+  const root = useRef<HTMLDivElement>(null)
+  const hideTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
+
+  const cancelHide = (): void => {
+    if (hideTimer.current) {
+      clearTimeout(hideTimer.current)
+      hideTimer.current = null
+    }
+  }
+  const scheduleHide = (): void => {
+    if (!useApp.getState().config?.compactSidebar) return
+    cancelHide()
+    hideTimer.current = setTimeout(() => {
+      // typing in the address bar keeps the toolbar up. hiding an input while
+      // someone is mid sentence is a war crime.
+      if (root.current?.contains(document.activeElement)) return
+      setRevealed(false)
+    }, useApp.getState().config?.compactHideDelayMs ?? 400)
+  }
+
+  useEffect(() => {
+    setRevealed(!compact)
+    return cancelHide
+  }, [compact])
+
+  // reveal triggers: the pointer grazing the top edge of a live page, Ctrl+L
+  // asking for the address bar, or Ctrl+F wanting the find bar.
+  useEffect(() => {
+    const reveal = (): void => {
+      if (!useApp.getState().config?.compactSidebar) return
+      cancelHide()
+      setRevealed(true)
+    }
+    const offEdge = window.wisp.on('shell:edge-top', (near) => {
+      if (near) reveal()
+      else scheduleHide()
+    })
+    window.addEventListener('wisp:focus-address', reveal)
+    window.addEventListener('wisp:find-open', reveal)
+    return () => {
+      offEdge()
+      window.removeEventListener('wisp:focus-address', reveal)
+      window.removeEventListener('wisp:find-open', reveal)
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+
   const items = railItemsFor(config, 'titlebar')
 
   const startDrag = (e: React.DragEvent, item: RailItem): void => {
@@ -26,8 +77,31 @@ export default function TitleBar(): React.JSX.Element {
     e.dataTransfer.effectAllowed = 'move'
   }
 
+  const hidden = compact && !revealed
+
   return (
-    <div className="drag-region wisp-chrome flex h-11 items-center gap-2 border-b border-neutral-800/60 bg-neutral-925 pr-1 pl-3">
+    <div
+      ref={root}
+      className="relative shrink-0"
+      onMouseEnter={() => {
+        cancelHide()
+        if (compact) setRevealed(true)
+      }}
+      onMouseLeave={scheduleHide}
+    >
+      {/* the sliver that marks where the toolbar sleeps in compact mode */}
+      {hidden && (
+        <div className="absolute inset-x-0 top-0 z-10 h-[6px] border-b border-neutral-800/60 bg-neutral-925">
+          <div className="absolute inset-x-[42%] top-[2px] h-[3px] rounded-full bg-accent/40" />
+        </div>
+      )}
+      <div
+        className={`overflow-hidden transition-[height] duration-200 ease-out ${hidden ? 'h-[6px]' : 'h-11'}`}
+      >
+        <div
+          className={`transition-opacity duration-150 ${hidden ? 'pointer-events-none opacity-0' : 'opacity-100'}`}
+        >
+          <div className="drag-region wisp-chrome flex h-11 items-center gap-2 border-b border-neutral-800/60 bg-neutral-925 pr-1 pl-3">
       <span className="no-drag flex items-center gap-1.5 select-none" data-tip="Wisp" data-tip-pos="bottom">
         <span className="wisp-mascot" />
         <span className="text-xs font-semibold tracking-tight text-accent">Wisp</span>
@@ -107,6 +181,9 @@ export default function TitleBar(): React.JSX.Element {
             <path d="M0 0 L10 10 M10 0 L0 10" stroke="currentColor" strokeWidth="1.2" />
           </svg>
         </button>
+      </div>
+          </div>
+        </div>
       </div>
     </div>
   )

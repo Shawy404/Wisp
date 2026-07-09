@@ -18,10 +18,21 @@ export function webSearchUrl(engine: SearchEngineId | undefined, query: string):
  * (#:~:text=…) scroll to and mark the excerpt on the page.
  */
 export function highlightUrl(url: string, excerpt?: string): string {
-  if (!excerpt) return url
-  const words = excerpt.trim().split(/\s+/).slice(0, 8).join(' ')
-  if (!words || url.includes('#')) return url
-  return `${url}#:~:text=${encodeURIComponent(words)}`
+  const words = excerpt?.trim().replace(/\s+/g, ' ')
+  if (!words) return url
+  // dashes and commas mean things inside a text fragment, so they get encoded
+  // by hand. found that out the hard way with an excerpt full of dates.
+  const enc = (s: string): string =>
+    encodeURIComponent(s).replace(/-/g, '%2D').replace(/,/g, '%2C')
+  const tokens = words.split(' ')
+  // long clips become a start,end range so the whole saved section lights up,
+  // not just the first line of it
+  const frag =
+    tokens.length > 10
+      ? `${enc(tokens.slice(0, 5).join(' '))},${enc(tokens.slice(-4).join(' '))}`
+      : enc(words)
+  // whatever hash the url already had loses the argument. the highlight wins.
+  return `${url.split('#')[0]}#:~:text=${frag}`
 }
 
 /** Decide whether address-bar input is a URL to visit or a search query. */

@@ -214,9 +214,11 @@ export function registerClip(ctx: WispContext): void {
 
       template.push({ type: 'separator' })
       if (params.linkURL) {
+        // opens behind the current page on purpose. you keep reading, the tab
+        // waits for you in the sidebar. stealing focus was driving me insane.
         template.push({
           label: t('main.clip.openLink'),
-          click: () => ctx.tabs.openTab(roomId, params.linkURL, true)
+          click: () => ctx.tabs.openTab(roomId, params.linkURL, false)
         })
       }
       template.push({

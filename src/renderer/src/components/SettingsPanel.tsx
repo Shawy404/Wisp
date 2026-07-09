@@ -3,7 +3,6 @@ import { useEffect, useState } from 'react'
 import { THEMES } from '@shared/themes'
 import { CHANGELOG } from '@shared/changelog'
 import { invoke, useApp, useT } from '@/store'
-import { ALL_RAIL, railLocation } from './railItems'
 import type { TKey } from '@shared/i18n'
 import type { SearchEngineId, WispConfig } from '@shared/types'
 
@@ -32,7 +31,7 @@ const SLEEP_CHOICES = [5, 10, 20, 45, 0]
 
 export default function SettingsPanel(): React.JSX.Element {
   const config = useApp((s) => s.config)
-  const { setConfig, placeRailItem } = useApp.getState()
+  const { setConfig } = useApp.getState()
   const t = useT()
   const lang = config?.language ?? 'tr'
   const [allowlistText, setAllowlistText] = useState((config?.adblockAllowlist ?? []).join('\n'))
@@ -189,6 +188,14 @@ export default function SettingsPanel(): React.JSX.Element {
               </button>
             ))}
           </div>
+          <label className="mt-3 flex items-center gap-2 text-xs text-neutral-300">
+            <input
+              type="checkbox"
+              checked={config.followSystemTheme ?? false}
+              onChange={(e) => void setConfig({ followSystemTheme: e.target.checked })}
+            />
+            {t('settings.theme.system')}
+          </label>
           <div className="mt-3 flex items-center gap-2">
             <span className="text-xs text-neutral-500">{t('settings.accent')}</span>
             {PRESET_ACCENTS.map((c) => (
@@ -297,6 +304,34 @@ export default function SettingsPanel(): React.JSX.Element {
           </div>
         </Section>
 
+        <Section cat="appearance" terms={t('settings.appIcon.hint')} title={t('settings.appIcon')}>
+          <div className="mb-2 text-[11px] text-neutral-500">{t('settings.appIcon.hint')}</div>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() =>
+                void invoke<WispConfig | null>('appicon:pick').then((cfg) => {
+                  if (cfg) useApp.setState({ config: cfg })
+                })
+              }
+              className="rounded-md bg-neutral-800 px-3 py-1.5 text-xs text-neutral-200 hover:bg-neutral-700"
+            >
+              {t('settings.appIcon.choose')}
+            </button>
+            {config.appIcon && (
+              <button
+                onClick={() =>
+                  void invoke<WispConfig>('appicon:reset').then((cfg) =>
+                    useApp.setState({ config: cfg })
+                  )
+                }
+                className="rounded-md px-3 py-1.5 text-xs text-neutral-500 hover:text-neutral-300"
+              >
+                {t('settings.appIcon.reset')}
+              </button>
+            )}
+          </div>
+        </Section>
+
         <Section cat="appearance" terms={t('settings.compact.hint')} title={t('settings.compact')}>
           <label className="flex items-center gap-2 text-xs text-neutral-300">
             <input
@@ -341,30 +376,6 @@ export default function SettingsPanel(): React.JSX.Element {
               </div>
             </div>
           )}
-        </Section>
-
-        <Section cat="appearance" terms={t('settings.rail.hint')} title={t('settings.rail')}>
-          <div className="mb-3 text-[11px] text-neutral-500">{t('settings.rail.hint')}</div>
-          <div className="flex flex-wrap items-center gap-2">
-            {ALL_RAIL.map((item) => {
-              const loc = railLocation(config, item.id)
-              const next = loc === 'sidebar' ? 'titlebar' : 'sidebar'
-              return (
-                <button
-                  key={item.id}
-                  onClick={() => void placeRailItem(item.id, next)}
-                  className="flex items-center gap-1.5 rounded-md border border-neutral-800 bg-neutral-900 px-2.5 py-1.5 text-xs text-neutral-300 hover:border-neutral-600"
-                  data-tip={t('settings.rail.move')}
-                >
-                  <span className="text-sm">{item.icon}</span>
-                  <span>{t(item.titleKey)}</span>
-                  <span className="ml-1 rounded bg-neutral-800 px-1.5 py-px text-[9px] text-neutral-500">
-                    {t(loc === 'sidebar' ? 'settings.rail.sidebar' : 'settings.rail.titlebar')}
-                  </span>
-                </button>
-              )
-            })}
-          </div>
         </Section>
 
         <Section cat="memory" terms={t('settings.memory.hint')} title={t('settings.memory')}>

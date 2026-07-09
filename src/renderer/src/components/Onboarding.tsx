@@ -2,8 +2,16 @@
 import { useEffect, useState } from 'react'
 import { invoke, useApp, useT } from '@/store'
 import type { TKey } from '@shared/i18n'
+import type { SearchEngineId } from '@shared/types'
 
 const GITHUB_URL = 'https://github.com/Shawy404/Wisp'
+
+const ENGINES: { id: SearchEngineId; name: string }[] = [
+  { id: 'google', name: 'Google' },
+  { id: 'duckduckgo', name: 'DuckDuckGo' },
+  { id: 'bing', name: 'Bing' },
+  { id: 'brave', name: 'Brave' }
+]
 
 const STEPS: { glyph: string; title: TKey; body: TKey }[] = [
   { glyph: '◉', title: 'onboard.rooms.title', body: 'onboard.rooms.body' },
@@ -15,14 +23,14 @@ const STEPS: { glyph: string; title: TKey; body: TKey }[] = [
 ]
 
 /**
- * First-run tour: language first, then five short cards about how Wisp works.
- * Skippable at any point; finishing (or skipping) sets config.onboarded so it
- * never shows again.
+ * First-run tour: language, then which search engine is yours, then the short
+ * cards about how Wisp works. Skippable at any point; finishing (or skipping)
+ * sets config.onboarded so it never shows again.
  */
 export default function Onboarding(): React.JSX.Element {
   const t = useT()
-  // -1 = language picker; 0..4 = tour cards.
-  const [step, setStep] = useState(-1)
+  // -2 = language picker; -1 = search engine picker; 0.. = tour cards.
+  const [step, setStep] = useState(-2)
 
   // The tour owns the whole window; keep the native page view out of the way.
   useEffect(() => {
@@ -45,13 +53,17 @@ export default function Onboarding(): React.JSX.Element {
   }
   const pickLanguage = (lang: 'tr' | 'en'): void => {
     void useApp.getState().setConfig({ language: lang })
+    setStep(-1)
+  }
+  const pickEngine = (engine: SearchEngineId): void => {
+    void useApp.getState().setConfig({ searchEngine: engine })
     setStep(0)
   }
 
   return (
     <div className="absolute inset-0 z-[60] flex items-center justify-center bg-neutral-950">
       <div className="relative flex w-[460px] flex-col items-center rounded-2xl border border-neutral-800 bg-neutral-925 px-8 pt-10 pb-8 shadow-2xl shadow-black/50">
-        {step >= 0 && (
+        {step >= -1 && (
           <button
             className="absolute top-3 right-4 text-[11px] text-neutral-600 hover:text-neutral-300"
             onClick={finish}
@@ -60,7 +72,7 @@ export default function Onboarding(): React.JSX.Element {
           </button>
         )}
 
-        {step === -1 ? (
+        {step === -2 ? (
           <>
             <div className="mb-1 text-3xl font-semibold tracking-tight text-accent">Wisp</div>
             <div className="mb-1 text-sm text-neutral-200">{t('onboard.lang.title')}</div>
@@ -78,6 +90,27 @@ export default function Onboarding(): React.JSX.Element {
               >
                 English
               </button>
+            </div>
+          </>
+        ) : step === -1 ? (
+          <>
+            <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-2xl border border-accent/30 bg-accent/10 text-3xl text-accent">
+              ⌕
+            </div>
+            <div className="mb-1 text-sm text-neutral-200">{t('onboard.engine.title')}</div>
+            <div className="mb-6 text-center text-[11px] text-neutral-500">
+              {t('onboard.engine.sub')}
+            </div>
+            <div className="grid w-full grid-cols-2 gap-2">
+              {ENGINES.map((engine) => (
+                <button
+                  key={engine.id}
+                  className="rounded-lg border border-neutral-700 bg-neutral-900 px-4 py-2.5 text-sm text-neutral-200 hover:border-accent/60 hover:text-accent"
+                  onClick={() => pickEngine(engine.id)}
+                >
+                  {engine.name}
+                </button>
+              ))}
             </div>
           </>
         ) : (

@@ -56,6 +56,12 @@ interface AppState {
   splitLive: boolean
   setSplitLive: (live: boolean) => void
 
+  /** Window fullscreen state, mirrored from main (the wm can flip it too). */
+  fullscreen: boolean
+  /** True fullscreen: not a single piece of app ui on screen, just the page. */
+  trueFullscreen: boolean
+  setFullscreenMode: (mode: 'off' | 'normal' | 'true') => void
+
   init: () => Promise<void>
   refreshRoomData: (roomId?: string) => Promise<void>
   setOverlay: (overlay: Overlay) => void
@@ -70,6 +76,8 @@ interface AppState {
   createRoom: (name: string) => Promise<void>
   deleteRoom: (id: string) => Promise<void>
   renameRoom: (id: string, name: string) => Promise<void>
+  archiveRoom: (id: string) => Promise<void>
+  restoreRoom: (id: string) => Promise<void>
   switchRoom: (id: string) => Promise<void>
   pinTab: (url: string, title: string, favicon?: string) => Promise<void>
   unpinTab: (url: string) => Promise<void>
@@ -81,7 +89,7 @@ interface AppState {
   /** Drag-and-drop: move a rail button to the sidebar or the title bar. */
   placeRailItem: (id: string, location: 'sidebar' | 'titlebar') => Promise<void>
 
-  newTab: (url?: string) => void
+  newTab: (url?: string, background?: boolean) => void
   closeTab: (id: string) => void
   activateTab: (id: string) => void
   navigate: (id: string, url: string) => void
@@ -119,6 +127,13 @@ export const useApp = create<AppState>((set, get) => ({
   splitLive: false,
   setSplitLive: (live) => set({ splitLive: live }),
 
+  fullscreen: false,
+  trueFullscreen: false,
+  setFullscreenMode: (mode) => {
+    void invoke('window:fullscreen', mode !== 'off')
+    set({ fullscreen: mode !== 'off', trueFullscreen: mode === 'true' })
+  },
+
   init: async () => {
     window.wisp.on('tabs:state', (state) => {
       const s = state as TabsState
@@ -126,6 +141,12 @@ export const useApp = create<AppState>((set, get) => ({
     })
     window.wisp.on('room:updated', (roomId) => {
       if (roomId === get().activeRoomId) void get().refreshRoomData()
+    })
+    // the wm can kick us out of fullscreen without asking. when that happens
+    // the ui has to come back too, or you end up trapped in a chromeless window.
+    window.wisp.on('window:fullscreen-changed', (on) => {
+      if (on) set({ fullscreen: true })
+      else set({ fullscreen: false, trueFullscreen: false })
     })
     // Screenshot tooling (WISP_SHOT): main asks for an overlay to be shown.
     window.wisp.on('shot:overlay', (name) => {
@@ -206,6 +227,19 @@ export const useApp = create<AppState>((set, get) => ({
     set({ rooms: await invoke<RoomMeta[]>('rooms:list') })
   },
 
+  archiveRoom: async (id) => {
+    const res = await invoke<{ rooms: RoomMeta[]; activeRoomId: string }>('rooms:archive', id)
+    set({ rooms: res.rooms, activeRoomId: res.activeRoomId })
+    await get().refreshRoomData(res.activeRoomId)
+  },
+
+  restoreRoom: async (id) => {
+    const res = await invoke<{ rooms: RoomMeta[]; activeRoomId: string }>('rooms:restore', id)
+    set({ rooms: res.rooms, activeRoomId: res.activeRoomId, overlay: 'none' })
+    void invoke('viewport:visible', true)
+    await get().refreshRoomData(id)
+  },
+
   switchRoom: async (id) => {
     if (get().activeRoomId === id) return
     await invoke('rooms:switch', id)
@@ -257,7 +291,7 @@ export const useApp = create<AppState>((set, get) => ({
     await get().setConfig({ railPlacement: { ...current, [id]: location } })
   },
 
-  newTab: (url) => void invoke('tabs:new', url ?? 'about:blank'),
+  newTab: (url, background) => void invoke('tabs:new', url ?? 'about:blank', background ?? false),
   closeTab: (id) => void invoke('tabs:close', id),
   activateTab: (id) => void invoke('tabs:activate', id),
   navigate: (id, url) => void invoke('tabs:navigate', id, url),

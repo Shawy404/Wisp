@@ -16,13 +16,18 @@ import { registerFind } from './find'
 import { registerVideo } from './video'
 import { registerVault } from './vault'
 import { registerUpdater } from './updater'
-import { registerBackground } from './background'
+import { customIconPath, registerBackground } from './background'
 import { registerHistory } from './history'
 import { initAdblock } from './adblock'
 import { hardenApp, openExternalSafe, webSession } from './security'
 
 // Wayland/Hyprland friendliness: let Chromium pick the native platform.
 app.commandLine.appendSwitch('ozone-platform-hint', 'auto')
+
+// i spent way too long trying to hide scrollbars with injected css before
+// finding out chromium just has a switch for it. floating bars that show up
+// while you scroll and then leave. one line. incredible.
+app.commandLine.appendSwitch('enable-features', 'OverlayScrollbar')
 
 // Real window transparency on Linux/X11 silently fails without this switch
 // (the window just stays black/opaque). Harmless on Wayland, so gate it only
@@ -48,7 +53,7 @@ function createWindow(): void {
     autoHideMenuBar: true,
     transparent,
     backgroundColor: transparent ? '#00000000' : '#0e0e12',
-    icon: join(__dirname, '../../build/icon.png'),
+    icon: customIconPath(config) ?? join(__dirname, '../../build/icon.png'),
     // Frameless with in-app window controls; tiling WMs (Hyprland) manage
     // geometry themselves so no server-side decorations are needed.
     frame: false,

@@ -11,6 +11,8 @@ const ROWS: { combo: string; key: TKey }[] = [
   { combo: 'Ctrl+F', key: 'shortcuts.find' },
   { combo: 'Ctrl+Shift+F', key: 'shortcuts.roomSearch' },
   { combo: 'Ctrl+H', key: 'shortcuts.history' },
+  { combo: 'F11', key: 'shortcuts.fullscreen' },
+  { combo: 'Shift+F11', key: 'shortcuts.trueFullscreen' },
   { combo: 'Ctrl+/ · ?', key: 'shortcuts.help' }
 ]
 

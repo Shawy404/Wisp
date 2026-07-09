@@ -36,6 +36,11 @@ function shortcutFor(input: Input): string | null {
   if (input.type !== 'keyDown') return null
   // F5 reloads even without a modifier, and works while a page has key focus.
   if (input.key === 'F5' && !input.control && !input.alt && !input.meta) return 'reload'
+  // F11 fullscreen, shift+F11 true fullscreen (the one where the whole ui gets
+  // out of your face). these must work while a page has focus, obviously.
+  if (input.key === 'F11' && !input.control && !input.alt && !input.meta) {
+    return input.shift ? 'true-fullscreen' : 'fullscreen'
+  }
   if (!input.control || input.alt || input.meta) return null
   const key = input.key.toLowerCase()
   if (key === 'r') return 'reload'
@@ -68,6 +73,8 @@ export class TabManager {
   private visible = true
   /** Tab ids currently shown side by side in split view (0, 1 or 2). */
   private splitTabs: string[] = []
+  /** Where each split pane sits, so html fullscreen can put a view back. */
+  private splitRects = new Map<string, Bounds>()
   /** How long a background tab may idle before unloading; 0 disables sleeping. */
   private sleepAfterMs = DEFAULT_SLEEP_MINUTES * 60 * 1000
   /** Called whenever a room's tab set changes, for persistence. */
@@ -253,6 +260,7 @@ export class TabManager {
       entry.view.setBounds(round(p.rect))
       entry.view.setVisible(true)
       this.splitTabs.push(p.tabId)
+      this.splitRects.set(p.tabId, round(p.rect))
     }
     this.broadcast()
   }
@@ -269,6 +277,7 @@ export class TabManager {
       }
     }
     this.splitTabs = []
+    this.splitRects.clear()
   }
 
   activeTabId(): string | null {
@@ -499,6 +508,22 @@ export class TabManager {
       this.onMediaChange()
     })
     wc.on('media-paused', () => this.onMediaChange())
+    // a video going fullscreen used to stay boxed inside the page card, which
+    // looked so wrong i thought i broke the compositor. stretch the view over
+    // the whole window while the page is in html fullscreen, put it back after.
+    wc.on('enter-html-full-screen', () => {
+      const view = entry.view
+      if (!view) return
+      const { width, height } = this.win.getContentBounds()
+      view.setBounds({ x: 0, y: 0, width, height })
+    })
+    wc.on('leave-html-full-screen', () => {
+      const view = entry.view
+      if (!view) return
+      const splitRect = this.splitRects.get(entry.id)
+      if (splitRect) view.setBounds(splitRect)
+      else if (this.activeTabId() === entry.id) view.setBounds(this.bounds)
+    })
     wc.on('page-favicon-updated', (_e, favicons) => {
       entry.favicon = favicons[0]
       this.broadcast()

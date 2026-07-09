@@ -68,6 +68,24 @@ export function registerCoreIpc(ctx: WispContext): void {
     return { rooms, activeRoomId: next }
   })
   ipcMain.handle('rooms:rename', (_e, id: string, name: string) => store.renameRoom(id, name))
+  // archive: the room folder stays exactly where it is, it just leaves the
+  // sidebar. deleting felt too final, i kept losing rooms i wanted back.
+  ipcMain.handle('rooms:archive', (_e, id: string) => {
+    tabs.closeRoom(id)
+    store.setRoomArchived(id, true)
+    const rooms = store.ensureDefaultRoom()
+    const next = rooms.some((r) => r.id === ctx.config.lastRoomId)
+      ? ctx.config.lastRoomId!
+      : rooms[0].id
+    switchRoom(next)
+    return { rooms, activeRoomId: next }
+  })
+  ipcMain.handle('rooms:restore', (_e, id: string) => {
+    store.setRoomArchived(id, false)
+    switchRoom(id)
+    return { rooms: store.listRooms(), activeRoomId: id }
+  })
+  ipcMain.handle('rooms:archived', () => store.listArchivedRooms())
   ipcMain.handle('rooms:pin', (_e, id: string, pin: PinnedTab) => {
     const meta = store.loadRoomMeta(id)
     if (!meta || !pin.url) return null
@@ -87,9 +105,9 @@ export function registerCoreIpc(ctx: WispContext): void {
   ipcMain.handle('rooms:switch', (_e, id: string) => switchRoom(id))
   ipcMain.handle('rooms:data', (_e, id: string) => store.loadRoomData(id))
 
-  ipcMain.handle('tabs:new', (_e, url: string) => {
+  ipcMain.handle('tabs:new', (_e, url: string, background?: boolean) => {
     const roomId = tabs.currentRoomId()
-    if (roomId) tabs.openTab(roomId, url || 'about:blank', true)
+    if (roomId) tabs.openTab(roomId, url || 'about:blank', !background)
   })
   ipcMain.handle('tabs:close', (_e, id: string) => tabs.closeTab(id))
   ipcMain.handle('tabs:activate', (_e, id: string) => tabs.activateTab(id))
@@ -170,6 +188,11 @@ export function registerCoreIpc(ctx: WispContext): void {
     if (near && !tabs.viewAtWindowLeft(e.sender)) return
     if (!win.isDestroyed()) win.webContents.send('shell:edge-left', near)
   })
+  // top edge relay, for the auto hiding toolbar in compact mode. every page
+  // view starts at the top of the page area so no geometry check needed here.
+  ipcMain.on('shell:edge-top', (_e, near: boolean) => {
+    if (!win.isDestroyed()) win.webContents.send('shell:edge-top', near)
+  })
 
   // Split view: show one or two live tabs side by side at the given rects.
   ipcMain.handle(
@@ -190,6 +213,22 @@ export function registerCoreIpc(ctx: WispContext): void {
     app.relaunch()
     app.exit(0)
   })
+
+  // fullscreen state can also change under us (wm keybinds, taskbar). keep the
+  // renderer honest by echoing whatever actually happened.
+  ipcMain.handle('window:fullscreen', (_e, on: boolean) => win.setFullScreen(on))
+  win.on('enter-full-screen', () => {
+    if (!win.isDestroyed()) win.webContents.send('window:fullscreen-changed', true)
+  })
+  win.on('leave-full-screen', () => {
+    if (!win.isDestroyed()) win.webContents.send('window:fullscreen-changed', false)
+  })
+
+  // address bar suggestions: what you searched before, then what you search a lot
+  ipcMain.handle('searches:record', (_e, q: string) => store.recordSearch(String(q ?? '')))
+  ipcMain.handle('searches:suggest', (_e, prefix: string) =>
+    store.suggestSearches(String(prefix ?? ''))
+  )
 
   ipcMain.handle('window:minimize', () => win.minimize())
   ipcMain.handle('window:maximize', () => (win.isMaximized() ? win.unmaximize() : win.maximize()))

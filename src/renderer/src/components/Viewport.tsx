@@ -50,7 +50,9 @@ function SplitZone({ side }: { side: 'left' | 'right' }): React.JSX.Element {
 export default function Viewport({ children }: { children?: React.ReactNode }): React.JSX.Element {
   const inner = useRef<HTMLDivElement>(null)
   const tabs = useApp((s) => s.tabs)
+  const overlay = useApp((s) => s.overlay)
   const draggingTab = useApp((s) => s.draggingTab)
+  const trueFullscreen = useApp((s) => s.trueFullscreen)
   const t = useT()
 
   useEffect(() => {
@@ -79,12 +81,21 @@ export default function Viewport({ children }: { children?: React.ReactNode }): 
   }, [])
 
   return (
-    <div className="relative flex-1 overflow-hidden bg-neutral-925 p-2 pl-0">
+    <div
+      className={`relative flex-1 overflow-hidden ${trueFullscreen ? '' : 'bg-neutral-925 p-2 pl-0'}`}
+    >
       <div
         ref={inner}
-        className="wisp-glass relative h-full w-full overflow-hidden rounded-xl border border-neutral-800/60 bg-neutral-950 shadow-[0_2px_16px_rgba(0,0,0,0.35)]"
+        className={`relative h-full w-full overflow-hidden ${
+          trueFullscreen
+            ? ''
+            : 'wisp-glass rounded-xl border border-neutral-800/60 bg-neutral-950 shadow-[0_2px_16px_rgba(0,0,0,0.35)]'
+        }`}
       >
-        {tabs.length === 0 && (
+        {/* the start page ducks out whenever a panel floats over it. with glass
+            themes it used to grin at you straight through the settings panel,
+            very haunted house. only the wallpaper may shine through. */}
+        {tabs.length === 0 && overlay === 'none' && (
           <div className="flex h-full flex-col items-center justify-center gap-3">
             <div className="text-3xl font-semibold tracking-tight text-accent">Wisp</div>
             <div className="max-w-sm text-center text-sm text-neutral-500">

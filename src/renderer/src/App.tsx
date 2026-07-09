@@ -1,5 +1,6 @@
 // Wisp. © Shawy404, MIT.
 import { lazy, Suspense, useEffect, useRef, useState } from 'react'
+import { THEMES } from '@shared/themes'
 import { invoke, useApp } from '@/store'
 import TitleBar from './components/TitleBar'
 import RoomSidebar from './components/RoomSidebar'
@@ -33,6 +34,21 @@ export default function App(): React.JSX.Element {
   const overlay = useApp((s) => s.overlay)
   const config = useApp((s) => s.config)
   const backgroundUrl = useApp((s) => s.backgroundUrl)
+  const trueFullscreen = useApp((s) => s.trueFullscreen)
+
+  // "follow the system" theme: the renderer's prefers-color-scheme tracks the
+  // os setting on its own, so no ipc gymnastics needed. i was ready for pain
+  // here and there was none.
+  const [systemDark, setSystemDark] = useState(
+    () => window.matchMedia('(prefers-color-scheme: dark)').matches
+  )
+  useEffect(() => {
+    const mq = window.matchMedia('(prefers-color-scheme: dark)')
+    const onChange = (e: MediaQueryListEvent): void => setSystemDark(e.matches)
+    mq.addEventListener('change', onChange)
+    return () => mq.removeEventListener('change', onChange)
+  }, [])
+  const effectiveTheme = config?.followSystemTheme ? (systemDark ? 'dark' : 'light') : config?.theme
 
   useEffect(() => {
     void useApp.getState().init()
@@ -55,11 +71,11 @@ export default function App(): React.JSX.Element {
     const el = document.documentElement
     el.style.setProperty('--wisp-accent', config.accent)
     for (const cls of [...el.classList]) if (cls.startsWith('wisp-')) el.classList.remove(cls)
-    if (config.theme && config.theme !== 'dark') el.classList.add(`wisp-${config.theme}`)
+    if (effectiveTheme && effectiveTheme !== 'dark') el.classList.add(`wisp-${effectiveTheme}`)
     if (config.windowTransparent || (config.translucentUi && backgroundUrl)) {
       el.classList.add('wisp-translucent')
     }
-  }, [config?.accent, config?.theme, config?.translucentUi, config?.windowTransparent, backgroundUrl])
+  }, [config?.accent, effectiveTheme, config?.translucentUi, config?.windowTransparent, backgroundUrl])
 
   // Full-window boot splash: the wisp animates over the whole app for a
   // deliberate ~3.5s (so people actually see it and the warmed-up panels finish
@@ -113,25 +129,37 @@ export default function App(): React.JSX.Element {
         (() => {
           // The built-in icon shows as a centered watermark; a custom image fills.
           const isIcon = !config?.backgroundImage || config.backgroundImage === 'icon'
+          // a custom background gets an opaque slab under it. without this a
+          // transparent window let the actual desktop wallpaper bleed through
+          // MY wallpaper, which is a crossover nobody asked for.
+          const base = THEMES.find((t) => t.id === effectiveTheme)?.preview[0] ?? '#0e0e12'
           return (
-            <div
-              className="pointer-events-none fixed inset-0 z-0 bg-center bg-no-repeat"
-              style={{
-                backgroundImage: `url(${backgroundUrl})`,
-                backgroundSize: isIcon ? 'min(38vw, 42vh)' : 'cover',
-                opacity: config?.backgroundOpacity ?? 0.15,
-                filter: config?.backgroundBlur ? `blur(${config.backgroundBlur}px)` : undefined
-              }}
-            />
+            <>
+              {!isIcon && (
+                <div className="pointer-events-none fixed inset-0 z-0" style={{ background: base }} />
+              )}
+              <div
+                className="pointer-events-none fixed inset-0 z-0 bg-center bg-no-repeat"
+                style={{
+                  backgroundImage: `url(${backgroundUrl})`,
+                  backgroundSize: isIcon ? 'min(38vw, 42vh)' : 'cover',
+                  opacity: config?.backgroundOpacity ?? 0.15,
+                  filter: config?.backgroundBlur ? `blur(${config.backgroundBlur}px)` : undefined
+                }}
+              />
+            </>
           )
         })()}
       <div className="relative z-10 flex h-full flex-col">
-      <TitleBar />
+      {/* true fullscreen strips every bar off; the page owns the whole window.
+          F11 or shift+F11 brings the ui back. the update banner stays mounted
+          (it hides itself) so a download in flight doesn't lose its overlay. */}
+      {!trueFullscreen && <TitleBar />}
       <UpdateBanner />
       <PermissionPrompt />
       <VaultOffer />
       <div className="flex min-h-0 flex-1">
-        <RoomSidebar />
+        {!trueFullscreen && <RoomSidebar />}
         <Viewport>
           <Suspense fallback={null}>
             {overlay === 'search' && <SearchPanel />}
@@ -151,7 +179,7 @@ export default function App(): React.JSX.Element {
           <Toast />
         </Viewport>
       </div>
-      <BottomBar />
+      {!trueFullscreen && <BottomBar />}
       </div>
       {/* First run: language + a short skippable tour, above everything. */}
       {config && !config.onboarded && (

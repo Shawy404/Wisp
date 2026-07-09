@@ -84,12 +84,16 @@ function cyStyle(c: MapColors): cytoscape.StylesheetJson {
       }
     },
     // Strong (deliberate) links are solid, derived ones dashed — no arrowheads.
+    // gentle bezier curves instead of straight lines: parallel links stop
+    // stacking on top of each other and the whole thing reads more like a map,
+    // less like a circuit diagram.
     {
       selector: 'edge',
       style: {
         width: 1.3,
         'line-color': c.edge,
-        'curve-style': 'straight',
+        'curve-style': 'bezier',
+        'control-point-step-size': 32,
         label: 'data(label)',
         'font-size': '8px',
         color: c.edgeLabel,
@@ -98,6 +102,8 @@ function cyStyle(c: MapColors): cytoscape.StylesheetJson {
         'text-rotation': 'autorotate'
       }
     },
+    // nodes that belong to the same connected cluster share a soft tinted halo
+    { selector: 'node[clusterColor]', style: { 'underlay-color': 'data(clusterColor)', 'underlay-opacity': 0.09, 'underlay-padding': 10 } },
     { selector: 'edge.manual', style: { 'line-color': '#a1a1aa', width: 1.6 } },
     { selector: 'edge.wikilink', style: { 'line-color': '#7dd3a8', opacity: 0.9 } },
     {
@@ -139,17 +145,46 @@ function cyStyle(c: MapColors): cytoscape.StylesheetJson {
 // Plain cose stacks the loose nodes into an unreadable column, so connected
 // components get laid out with cose and the leftover singletons are arranged
 // in a tidy grid band underneath — nothing overlaps and clusters stay legible.
+// tuned by throwing rooms of various sizes at it until clusters stopped
+// hugging each other. more repulsion, longer edges, less gravity.
 const COSE_LAYOUT = {
   name: 'cose',
   animate: false,
-  nodeRepulsion: 20000,
-  idealEdgeLength: 120,
-  nodeOverlap: 24,
-  componentSpacing: 140,
-  gravity: 0.15,
-  padding: 50,
+  nodeRepulsion: 30000,
+  idealEdgeLength: 140,
+  nodeOverlap: 32,
+  componentSpacing: 190,
+  gravity: 0.3,
+  numIter: 1500,
+  padding: 60,
   randomize: true
 } as const
+
+// halo palette for clusters. same family as the accent presets so the map
+// stays wisp coloured instead of turning into a bag of skittles.
+const CLUSTER_COLORS = ['#7dd3a8', '#8ab4f8', '#c58af8', '#f8b48a', '#f87d9a', '#e8d47d']
+
+/**
+ * Automatic clustering, the honest kind: every connected knot of 3+ nodes gets
+ * its own soft halo color so groups read as groups even zoomed way out.
+ * Singles and pairs stay clean.
+ */
+function paintClusters(c: Core): void {
+  let i = 0
+  for (const comp of c.elements().components()) {
+    const nodes = comp.nodes()
+    if (nodes.length < 3) {
+      nodes.forEach((n) => {
+        n.removeData('clusterColor')
+      })
+      continue
+    }
+    const color = CLUSTER_COLORS[i++ % CLUSTER_COLORS.length]
+    nodes.forEach((n) => {
+      n.data('clusterColor', color)
+    })
+  }
+}
 
 type NodePositions = Record<string, { x: number; y: number }>
 
@@ -164,7 +199,18 @@ function runLayout(c: Core, pinned: Set<string>): void {
   const freeSingletons = c.nodes().filter((n) => !pinned.has(n.id()) && n.degree(false) === 0)
 
   if (freeLinked.length > 0) {
-    freeLinked.layout({ ...COSE_LAYOUT }).run()
+    // two traps found the hard way: cose run on a collection instead of the
+    // core quietly gives up and stacks everything into one sad column, and
+    // without a bounding box it has no room to breathe. so: lock what must
+    // not move, run on the whole core with real space, unlock.
+    const frozen = c.nodes().filter((n) => pinned.has(n.id()) || n.degree(false) === 0)
+    frozen.lock()
+    const side = Math.max(700, Math.round(Math.sqrt(freeLinked.length) * 260))
+    c.layout({
+      ...COSE_LAYOUT,
+      boundingBox: { x1: 0, y1: 0, w: Math.round(side * 1.4), h: side }
+    }).run()
+    frozen.unlock()
   }
 
   // The grid band starts below everything that already has a place: pinned
@@ -182,6 +228,7 @@ function runLayout(c: Core, pinned: Set<string>): void {
     n.position({ x: startX + col * gap, y: startY + row * gap })
   })
 
+  paintClusters(c)
   c.fit(undefined, 50)
 }
 
@@ -258,7 +305,13 @@ export default function MapPanel(): React.JSX.Element {
   const notes = useApp((s) => s.notes)
   const map = useApp((s) => s.map)
   const activeRoomId = useApp((s) => s.activeRoomId)
-  const themeId = useApp((s) => s.config?.theme ?? 'dark')
+  const configTheme = useApp((s) => s.config?.theme ?? 'dark')
+  const followSystem = useApp((s) => s.config?.followSystemTheme ?? false)
+  const themeId = followSystem
+    ? window.matchMedia('(prefers-color-scheme: dark)').matches
+      ? 'dark'
+      : 'light'
+    : configTheme
   const t = useT()
   const host = useRef<HTMLDivElement>(null)
   const cy = useRef<Core | null>(null)
@@ -267,6 +320,27 @@ export default function MapPanel(): React.JSX.Element {
   const [addingConcept, setAddingConcept] = useState(false)
   const [conceptName, setConceptName] = useState('')
   const [hint, setHint] = useState('')
+  const [nodeQuery, setNodeQuery] = useState('')
+
+  // find-as-you-type for big rooms: matching nodes stay lit, everything else
+  // dims, and the view glides to the first hit. clearing the box lifts the fog.
+  const findNode = (q: string): void => {
+    const c = cy.current
+    if (!c) return
+    const ql = q.trim().toLowerCase()
+    if (!ql) {
+      c.elements().removeClass('faded')
+      return
+    }
+    const hits = c
+      .nodes()
+      .filter((n) => (((n.data('fullLabel') as string) ?? '').toLowerCase().includes(ql)))
+    if (hits.length === 0) return
+    c.elements().addClass('faded')
+    hits.removeClass('faded')
+    hits.connectedEdges().removeClass('faded')
+    c.animate({ center: { eles: hits.first() }, zoom: Math.max(c.zoom(), 1) }, { duration: 220 })
+  }
 
   // View filters — edges stay explicit by default; tag links are opt-in.
   const [showTypes, setShowTypes] = useState<Record<NodeType, boolean>>({
@@ -784,6 +858,31 @@ export default function MapPanel(): React.JSX.Element {
             data-tip-pos="bottom"
           >
             {t('map.mentionLinks')}
+          </button>
+          <span className="mx-0.5 h-4 w-px bg-neutral-800" />
+          <input
+            value={nodeQuery}
+            onChange={(e) => {
+              setNodeQuery(e.target.value)
+              findNode(e.target.value)
+            }}
+            onKeyDown={(e) => {
+              if (e.key === 'Escape') {
+                setNodeQuery('')
+                findNode('')
+              }
+            }}
+            placeholder={t('map.find')}
+            className="h-5 w-32 rounded-full border border-neutral-850 bg-neutral-900/80 px-2 text-[10px] text-neutral-200 outline-none placeholder:text-neutral-600 focus:border-accent/50"
+            spellCheck={false}
+          />
+          <button
+            onClick={() => cy.current?.fit(undefined, 50)}
+            className="flex h-5 w-5 items-center justify-center rounded-full border border-neutral-850 text-[11px] text-neutral-500 hover:border-neutral-600 hover:text-neutral-200"
+            data-tip={t('map.fit')}
+            data-tip-pos="bottom"
+          >
+            ⛶
           </button>
           <span className="mx-0.5 h-4 w-px bg-neutral-800" />
           <button

@@ -59,6 +59,8 @@ export default function SearchPanel(): React.JSX.Element {
 
   const run = async (q: string): Promise<void> => {
     if (!q.trim()) return
+    // remember the query either way, it feeds the address bar suggestions
+    void invoke('searches:record', q.trim())
     if (mode === 'web') {
       const { newTab, setOverlay, config } = useApp.getState()
       newTab(webSearchUrl(config?.searchEngine, q.trim()))

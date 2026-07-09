@@ -165,10 +165,48 @@ export default function AddressBar(): React.JSX.Element {
   const [value, setValue] = useState('')
   const [focused, setFocused] = useState(false)
   const inputRef = useRef<HTMLInputElement>(null)
+  // things you searched before, floating under the bar as you type
+  const [suggestions, setSuggestions] = useState<string[]>([])
+  const [suggestIndex, setSuggestIndex] = useState(-1)
+  const suggestTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   useEffect(() => {
     if (!focused) setValue(activeTab?.url === 'about:blank' ? '' : (activeTab?.url ?? ''))
   }, [activeTab?.url, activeTabId, focused])
+
+  // ask main for matching past searches, lightly debounced so we don't hammer
+  // the disk on every keystroke like an animal
+  useEffect(() => {
+    if (suggestTimer.current) clearTimeout(suggestTimer.current)
+    if (!focused || !value.trim() || value.includes('://')) {
+      setSuggestions([])
+      setSuggestIndex(-1)
+      return
+    }
+    suggestTimer.current = setTimeout(() => {
+      const q = value.trim().replace(/^\?/, '')
+      void invoke<string[]>('searches:suggest', q).then((list) => {
+        setSuggestions(list)
+        setSuggestIndex(-1)
+      })
+    }, 120)
+    return () => {
+      if (suggestTimer.current) clearTimeout(suggestTimer.current)
+    }
+  }, [value, focused])
+
+  // the dropdown hangs over the page area and the native view would eat it,
+  // so the page steps aside while suggestions are showing
+  const suggestOpen = focused && suggestions.length > 0
+  useEffect(() => {
+    if (suggestOpen) void invoke('viewport:visible', false)
+    else void invoke('viewport:visible', useApp.getState().overlay === 'none')
+    // unmount cleanup matters: if the toolbar disappears (true fullscreen)
+    // while the list is open, the page must come back on its own
+    return () => {
+      if (suggestOpen) void invoke('viewport:visible', useApp.getState().overlay === 'none')
+    }
+  }, [suggestOpen])
 
   // Shortcuts live in shortcuts.ts; Ctrl+L arrives here as a focus event.
   useEffect(() => {
@@ -180,22 +218,28 @@ export default function AddressBar(): React.JSX.Element {
     return () => window.removeEventListener('wisp:focus-address', focus)
   }, [])
 
-  const submit = (): void => {
+  const submit = (chosen?: string): void => {
     const { activeTabId, navigate, newTab, requestSearch, config, overlay, setOverlay } =
       useApp.getState()
+    const text = chosen ?? (suggestIndex >= 0 ? suggestions[suggestIndex] : value)
+    setSuggestions([])
     // "?" prefix targets Wisp's research search; anything else behaves like a
     // normal browser — URLs open, plain text goes to the web search engine.
-    if (value.trim().startsWith('?')) {
-      const q = value.trim().slice(1).trim()
-      if (q) requestSearch(q)
+    if (text.trim().startsWith('?')) {
+      const q = text.trim().slice(1).trim()
+      if (q) {
+        void invoke('searches:record', q)
+        requestSearch(q)
+      }
       inputRef.current?.blur()
       return
     }
-    const resolved = resolveAddress(value)
+    const resolved = resolveAddress(text)
     if (resolved.type === 'url') {
       if (activeTabId) navigate(activeTabId, resolved.url)
       else newTab(resolved.url)
     } else if (resolved.query) {
+      void invoke('searches:record', resolved.query)
       const url = webSearchUrl(config?.searchEngine, resolved.query)
       if (activeTabId) navigate(activeTabId, url)
       else newTab(url)
@@ -209,7 +253,7 @@ export default function AddressBar(): React.JSX.Element {
   }
 
   return (
-    <div className="no-drag mx-auto flex h-8 min-w-0 flex-1 max-w-2xl items-center gap-1 rounded-full border border-neutral-800 bg-neutral-900/70 px-1.5 focus-within:border-accent/50">
+    <div className="no-drag relative mx-auto flex h-8 min-w-0 flex-1 max-w-2xl items-center gap-1 rounded-full border border-neutral-800 bg-neutral-900/70 px-1.5 focus-within:border-accent/50">
       <NavButton
         title={t('address.back')}
         disabled={!activeTab?.canGoBack}
@@ -303,12 +347,48 @@ export default function AddressBar(): React.JSX.Element {
           e.target.select()
         }}
         onBlur={() => setFocused(false)}
-        onKeyDown={(e) => e.key === 'Enter' && submit()}
+        onKeyDown={(e) => {
+          if (e.key === 'Enter') submit()
+          else if (e.key === 'ArrowDown' && suggestions.length) {
+            e.preventDefault()
+            setSuggestIndex((i) => (i + 1) % suggestions.length)
+          } else if (e.key === 'ArrowUp' && suggestions.length) {
+            e.preventDefault()
+            setSuggestIndex((i) => (i - 1 + suggestions.length) % suggestions.length)
+          } else if (e.key === 'Escape') {
+            setSuggestions([])
+            setSuggestIndex(-1)
+          }
+        }}
         placeholder={t('address.placeholder')}
         className="h-7 min-w-0 flex-1 bg-transparent px-2 text-center text-xs text-neutral-200 outline-none placeholder:text-neutral-600 focus:text-left"
         spellCheck={false}
       />
       <ShieldBadge />
+      {suggestOpen && (
+        <div className="absolute top-full right-0 left-0 z-50 mt-1 overflow-hidden rounded-xl border border-neutral-700 bg-neutral-900 py-1 shadow-2xl">
+          {suggestions.map((s, i) => (
+            <button
+              key={s}
+              // mousedown so picking one beats the input's blur to the punch
+              onMouseDown={(e) => {
+                e.preventDefault()
+                submit(s)
+              }}
+              onMouseEnter={() => setSuggestIndex(i)}
+              className={`flex w-full items-center gap-2 px-3 py-1.5 text-left text-xs ${
+                i === suggestIndex ? 'bg-neutral-800 text-neutral-100' : 'text-neutral-300'
+              }`}
+            >
+              <svg width="10" height="10" viewBox="0 0 12 12" className="shrink-0 text-neutral-600">
+                <circle cx="5" cy="5" r="3.4" fill="none" stroke="currentColor" strokeWidth="1.2" />
+                <path d="M7.6 7.6 L10.6 10.6" stroke="currentColor" strokeWidth="1.2" />
+              </svg>
+              <span className="min-w-0 flex-1 truncate">{s}</span>
+            </button>
+          ))}
+        </div>
+      )}
     </div>
   )
 }

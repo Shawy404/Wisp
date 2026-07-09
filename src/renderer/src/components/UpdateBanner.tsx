@@ -25,6 +25,56 @@ function fmtMB(bytes: number): string {
 }
 
 /**
+ * Release notes come in as github flavoured markdown. This renders the parts
+ * people actually read (headings, bullets, paragraphs) as real ui instead of
+ * dumping the raw text with hashes and asterisks all over it. i'm not pulling
+ * in a whole markdown library for a changelog popup.
+ */
+function ReleaseNotes({ text }: { text: string }): React.JSX.Element {
+  const clean = (s: string): string =>
+    s
+      .replace(/<[^>]+>/g, '')
+      .replace(/\*\*([^*]+)\*\*/g, '$1')
+      .replace(/__([^_]+)__/g, '$1')
+      .replace(/`([^`]+)`/g, '$1')
+      .replace(/\[([^\]]+)\]\([^)]*\)/g, '$1')
+      .trim()
+  const blocks: React.JSX.Element[] = []
+  text.split(/\r?\n/).forEach((raw, i) => {
+    const line = raw.trim()
+    if (!line || /^-{3,}$/.test(line)) return
+    const heading = line.match(/^#{1,4}\s+(.*)/)
+    if (heading) {
+      blocks.push(
+        <div
+          key={i}
+          className="mt-3 mb-1 text-[10px] font-semibold tracking-wider text-neutral-400 uppercase first:mt-0"
+        >
+          {clean(heading[1])}
+        </div>
+      )
+      return
+    }
+    const bullet = line.match(/^(?:[-*•]|\d+[.)])\s+(.*)/)
+    if (bullet) {
+      blocks.push(
+        <div key={i} className="flex gap-1.5 text-xs leading-relaxed text-neutral-300">
+          <span className="shrink-0 text-accent">•</span>
+          <span className="select-text">{clean(bullet[1])}</span>
+        </div>
+      )
+      return
+    }
+    blocks.push(
+      <p key={i} className="text-xs leading-relaxed text-neutral-300 select-text">
+        {clean(line)}
+      </p>
+    )
+  })
+  return <div className="space-y-1">{blocks}</div>
+}
+
+/**
  * Update flow, entirely inside the app — no installer window ever appears.
  * A new release is announced as a banner; the user chooses to download; the
  * download runs behind a small progress overlay with the wisp bobbing along;
@@ -35,6 +85,7 @@ function fmtMB(bytes: number): string {
 export default function UpdateBanner(): React.JSX.Element | null {
   const t = useT()
   const lang = useApp((s) => s.config?.language ?? 'tr')
+  const trueFullscreen = useApp((s) => s.trueFullscreen)
   const [update, setUpdate] = useState<UpdateState | null>(null)
   const [progress, setProgress] = useState<Progress | null>(null)
   const [error, setError] = useState('')
@@ -123,7 +174,9 @@ export default function UpdateBanner(): React.JSX.Element | null {
   }
 
   // --- The announcement bar (before the user commits to downloading). ---
-  const banner = update.phase === 'available' && (
+  // in true fullscreen the bar keeps quiet; the download overlay still shows
+  // because you asked for that one explicitly.
+  const banner = update.phase === 'available' && !trueFullscreen && (
     <div className="flex items-center gap-3 border-b border-accent/30 bg-accent/10 px-4 py-2">
       <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-accent/20 text-xs text-accent">
         ↑
@@ -256,9 +309,7 @@ export default function UpdateBanner(): React.JSX.Element | null {
             </div>
             <div className="flex-1 overflow-y-auto px-4 py-3">
               {logText ? (
-                <pre className="text-xs leading-relaxed whitespace-pre-wrap text-neutral-300 select-text">
-                  {logText}
-                </pre>
+                <ReleaseNotes text={logText} />
               ) : (
                 <div className="py-6 text-center text-xs text-neutral-600">{t('update.noLog')}</div>
               )}

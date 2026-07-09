@@ -1,6 +1,7 @@
 // Wisp. © Shawy404, MIT.
 import { useEffect, useRef, useState } from 'react'
-import { useApp, useT, type Overlay } from '@/store'
+import type { RoomMeta } from '@shared/types'
+import { invoke, useApp, useT, type Overlay } from '@/store'
 import VerticalTabs from './VerticalTabs'
 import SidebarWidgets from './SidebarWidgets'
 import { RAIL_DND_TYPE, railItemsFor, type RailItem } from './railItems'
@@ -43,7 +44,7 @@ export default function RoomSidebar(): React.JSX.Element {
   const overlay = useApp((s) => s.overlay)
   const config = useApp((s) => s.config)
   const draggingTab = useApp((s) => s.draggingTab)
-  const { switchRoom, createRoom, deleteRoom, renameRoom, setOverlay, placeRailItem } =
+  const { switchRoom, createRoom, deleteRoom, renameRoom, archiveRoom, restoreRoom, setOverlay, placeRailItem } =
     useApp.getState()
   const [railDropHot, setRailDropHot] = useState(false)
   const t = useT()
@@ -53,6 +54,12 @@ export default function RoomSidebar(): React.JSX.Element {
   const [menuOpen, setMenuOpen] = useState(false)
   const [renaming, setRenaming] = useState(false)
   const [renameValue, setRenameValue] = useState('')
+  // the archive shows up right where you'd make a new room, because "wait, i
+  // already had a room for this" is exactly the moment you remember it exists
+  const [archivedRooms, setArchivedRooms] = useState<RoomMeta[]>([])
+  useEffect(() => {
+    if (creating) void invoke<RoomMeta[]>('rooms:archived').then(setArchivedRooms)
+  }, [creating])
 
   const compact = config?.compactSidebar ?? false
   const [revealed, setRevealed] = useState(true)
@@ -206,22 +213,55 @@ export default function RoomSidebar(): React.JSX.Element {
         {(!collapsed || compact) && (
           <div className="relative border-b border-neutral-800/60 px-3 py-2">
             {creating ? (
-              <input
-                autoFocus
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-                placeholder={t('sidebar.roomNamePlaceholder')}
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter' && name.trim()) {
-                    void createRoom(name.trim())
-                    setName('')
-                    setCreating(false)
-                  }
-                  if (e.key === 'Escape') setCreating(false)
-                }}
-                onBlur={() => setCreating(false)}
-                className="w-full rounded-md border border-accent/50 bg-neutral-900 px-2 py-1 text-xs text-neutral-100 outline-none placeholder:text-neutral-600"
-              />
+              <div>
+                <input
+                  autoFocus
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                  placeholder={t('sidebar.roomNamePlaceholder')}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' && name.trim()) {
+                      void createRoom(name.trim())
+                      setName('')
+                      setCreating(false)
+                    }
+                    if (e.key === 'Escape') setCreating(false)
+                  }}
+                  onBlur={() => setCreating(false)}
+                  className="w-full rounded-md border border-accent/50 bg-neutral-900 px-2 py-1 text-xs text-neutral-100 outline-none placeholder:text-neutral-600"
+                />
+                {archivedRooms.length > 0 && (
+                  <div className="mt-2">
+                    <div className="mb-1 text-[9px] font-semibold tracking-wider text-neutral-600 uppercase">
+                      {t('sidebar.archive')}
+                    </div>
+                    <div className="max-h-32 space-y-0.5 overflow-y-auto">
+                      {archivedRooms.map((r) => (
+                        <button
+                          key={r.id}
+                          // mousedown, not click: click would blur the input
+                          // above and the whole list would vanish under you
+                          onMouseDown={(e) => {
+                            e.preventDefault()
+                            setCreating(false)
+                            void restoreRoom(r.id)
+                          }}
+                          className="flex w-full items-center gap-1.5 rounded px-1.5 py-1 text-left text-[11px] text-neutral-400 hover:bg-neutral-800 hover:text-neutral-200"
+                        >
+                          <span
+                            className="inline-block h-1.5 w-1.5 shrink-0 rounded-full opacity-60"
+                            style={{ background: r.color }}
+                          />
+                          <span className="min-w-0 flex-1 truncate">{r.name}</span>
+                          <span className="shrink-0 text-[9px] text-neutral-600">
+                            {t('sidebar.restore')}
+                          </span>
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
             ) : renaming ? (
               <input
                 autoFocus
@@ -264,6 +304,15 @@ export default function RoomSidebar(): React.JSX.Element {
                   }}
                 >
                   {t('sidebar.rename')}
+                </button>
+                <button
+                  className="block w-full px-3 py-1.5 text-left text-neutral-300 hover:bg-neutral-800"
+                  onClick={() => {
+                    setMenuOpen(false)
+                    void archiveRoom(room.id)
+                  }}
+                >
+                  {t('sidebar.archiveRoom')}
                 </button>
                 <button
                   className="block w-full px-3 py-1.5 text-left text-red-400 hover:bg-neutral-800"

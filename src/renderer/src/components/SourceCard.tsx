@@ -1,5 +1,5 @@
 // Wisp. © Shawy404, MIT.
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import type { SourceItem } from '@shared/types'
 import { highlightUrl } from '@shared/address'
 import { formatCitation, type CitationFormat } from '@shared/citation'
@@ -34,6 +34,19 @@ export default function SourceCard(props: {
   const t = useT()
   const [citeOpen, setCiteOpen] = useState(false)
   const [copied, setCopied] = useState<CitationFormat | null>(null)
+  // right click menu: open the result in a tab that waits quietly in the
+  // background while you keep going through the list
+  const [menu, setMenu] = useState<{ x: number; y: number } | null>(null)
+  useEffect(() => {
+    if (!menu) return
+    const close = (): void => setMenu(null)
+    window.addEventListener('click', close)
+    window.addEventListener('contextmenu', close, true)
+    return () => {
+      window.removeEventListener('click', close)
+      window.removeEventListener('contextmenu', close, true)
+    }
+  }, [menu])
 
   const copyCite = async (fmt: CitationFormat): Promise<void> => {
     await navigator.clipboard.writeText(formatCitation(source, fmt))
@@ -53,7 +66,23 @@ export default function SourceCard(props: {
     .join(' · ')
 
   return (
-    <div className="group rounded-lg border border-neutral-800 bg-neutral-900/60 p-3 hover:border-neutral-700">
+    <div
+      className="group rounded-lg border border-neutral-800 bg-neutral-900/60 p-3 hover:border-neutral-700"
+      onContextMenu={(e) => {
+        if (!source.url) return
+        e.preventDefault()
+        e.stopPropagation()
+        setMenu({ x: e.clientX, y: e.clientY })
+      }}
+      // double click anywhere on a clip card = back to the exact spot on the
+      // page it came from, highlighted. single click on the title does it too.
+      onDoubleClick={() => {
+        if (source.url) {
+          newTab(highlightUrl(source.url, source.excerpt))
+          setOverlay('none')
+        }
+      }}
+    >
       <div className="flex items-start gap-2">
         {source.imageUrl && (
           <img
@@ -132,6 +161,38 @@ export default function SourceCard(props: {
           </div>
         </div>
       </div>
+      {menu && (
+        <div
+          className="fixed z-50 w-48 rounded-md border border-neutral-700 bg-neutral-900 py-1 text-xs shadow-xl"
+          style={{
+            left: Math.min(menu.x, window.innerWidth - 200),
+            top: Math.min(menu.y, window.innerHeight - 72)
+          }}
+          onClick={(e) => e.stopPropagation()}
+        >
+          <button
+            className="block w-full px-3 py-1.5 text-left text-neutral-300 hover:bg-neutral-800"
+            onClick={() => {
+              if (source.url) newTab(highlightUrl(source.url, source.excerpt), true)
+              setMenu(null)
+            }}
+          >
+            {t('sourceCard.openNewTab')}
+          </button>
+          <button
+            className="block w-full px-3 py-1.5 text-left text-neutral-300 hover:bg-neutral-800"
+            onClick={() => {
+              if (source.url) {
+                newTab(highlightUrl(source.url, source.excerpt))
+                setOverlay('none')
+              }
+              setMenu(null)
+            }}
+          >
+            {t('sourceCard.openHere')}
+          </button>
+        </div>
+      )}
     </div>
   )
 }

@@ -38,6 +38,8 @@ export interface RoomMeta {
   activeTabIndex: number
   /** Pinned tabs shown above the tab list; clicking opens/activates the URL. */
   pinned: PinnedTab[]
+  /** Archived rooms keep their folder but leave the sidebar until restored. */
+  archived?: boolean
   settings: {
     devMode: boolean
   }
@@ -194,6 +196,17 @@ export interface WispConfig {
    * anything unset falls back to the sidebar.
    */
   railPlacement?: Record<string, 'sidebar' | 'titlebar'>
+  /** Follow the OS light/dark preference instead of a fixed theme. */
+  followSystemTheme?: boolean
+  /** Custom window icon: a stored filename under ~/Wisp/icons, or unset. */
+  appIcon?: string
+}
+
+/** One remembered address-bar/search query (~/Wisp/searches.json). */
+export interface SearchStat {
+  q: string
+  count: number
+  lastAt: string
 }
 
 /** What's playing in some tab, for the sidebar music widget. */

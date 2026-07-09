@@ -46,6 +46,7 @@ window.addEventListener(
 // hover-to-reveal needs. Report edge proximity to the main process, which
 // forwards it to the shell so the sidebar can reveal even over a live page.
 let nearLeftEdge = false
+let nearTopEdge = false
 window.addEventListener(
   'mousemove',
   (e) => {
@@ -53,6 +54,13 @@ window.addEventListener(
     if (near !== nearLeftEdge) {
       nearLeftEdge = near
       ipcRenderer.send('shell:edge-left', near)
+    }
+    // same trick for the top edge: compact mode tucks the toolbar away, and
+    // this is how it knows you came looking for it
+    const nearTop = e.clientY <= 10
+    if (nearTop !== nearTopEdge) {
+      nearTopEdge = nearTop
+      ipcRenderer.send('shell:edge-top', nearTop)
     }
   },
   true

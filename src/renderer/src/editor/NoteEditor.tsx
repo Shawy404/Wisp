@@ -7,6 +7,7 @@ import { markdown } from '@codemirror/lang-markdown'
 import { syntaxHighlighting, defaultHighlightStyle } from '@codemirror/language'
 import { wikilinkExtension } from './wikilinkExtension'
 import { imagePreview } from './imageExtension'
+import { tagAutocomplete } from './tagExtension'
 import { invoke, useApp } from '@/store'
 
 /**
@@ -87,6 +88,7 @@ export default function NoteEditor(props: {
         syntaxHighlighting(defaultHighlightStyle),
         ...wikilinkExtension(),
         imagePreview(),
+        tagAutocomplete(),
         imageInput,
         keymap.of([...defaultKeymap, ...historyKeymap]),
         wispTheme,

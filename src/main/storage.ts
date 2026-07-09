@@ -8,6 +8,7 @@ import type {
   NoteInfo,
   RoomData,
   RoomMeta,
+  SearchStat,
   SourceItem,
   WispConfig
 } from '@shared/types'
@@ -78,14 +79,27 @@ export function slugify(name: string): string {
   return unique
 }
 
-export function listRooms(): RoomMeta[] {
+export function listRooms(includeArchived = false): RoomMeta[] {
   if (!fs.existsSync(roomsDir())) return []
   return fs
     .readdirSync(roomsDir(), { withFileTypes: true })
     .filter((d) => d.isDirectory())
     .map((d) => loadRoomMeta(d.name))
-    .filter((m): m is RoomMeta => m !== null)
+    .filter((m): m is RoomMeta => m !== null && (includeArchived || !m.archived))
     .sort((a, b) => a.createdAt.localeCompare(b.createdAt))
+}
+
+/** The rooms tucked away in the archive, oldest first. */
+export function listArchivedRooms(): RoomMeta[] {
+  return listRooms(true).filter((m) => m.archived)
+}
+
+export function setRoomArchived(id: string, archived: boolean): RoomMeta | null {
+  const meta = loadRoomMeta(id)
+  if (!meta) return null
+  meta.archived = archived
+  saveRoomMeta(meta)
+  return meta
 }
 
 export function loadRoomMeta(id: string): RoomMeta | null {
@@ -238,6 +252,47 @@ export function extractHashtags(text: string): string[] {
   const tags = new Set<string>()
   for (const m of text.matchAll(/(^|\s)#([\p{L}\p{N}_-]{2,})/gu)) tags.add(m[2].toLowerCase())
   return [...tags]
+}
+
+/*
+ * Remembered searches for the address bar suggestions. Global, not per room,
+ * because when i search "how to exit vim" i want it suggested everywhere.
+ */
+const SEARCH_STATS_CAP = 500
+
+export function loadSearchStats(): SearchStat[] {
+  return readJson<{ searches: SearchStat[] }>(join(wispRoot(), 'searches.json'), { searches: [] })
+    .searches
+}
+
+export function recordSearch(q: string): void {
+  const query = q.trim()
+  if (!query || query.length > 200) return
+  const stats = loadSearchStats()
+  const hit = stats.find((s) => s.q.toLowerCase() === query.toLowerCase())
+  if (hit) {
+    hit.count += 1
+    hit.lastAt = new Date().toISOString()
+  } else {
+    stats.push({ q: query, count: 1, lastAt: new Date().toISOString() })
+  }
+  // keep the file from growing forever: drop the least loved entries first
+  stats.sort((a, b) => b.lastAt.localeCompare(a.lastAt))
+  writeJson(join(wispRoot(), 'searches.json'), { searches: stats.slice(0, SEARCH_STATS_CAP) })
+}
+
+/** Recent matches first, then the ones searched most. That order is on purpose. */
+export function suggestSearches(prefix: string, limit = 8): string[] {
+  const p = prefix.trim().toLowerCase()
+  if (!p) return []
+  const stats = loadSearchStats()
+  const starts = stats
+    .filter((s) => s.q.toLowerCase().startsWith(p) && s.q.toLowerCase() !== p)
+    .sort((a, b) => b.lastAt.localeCompare(a.lastAt))
+  const contains = stats
+    .filter((s) => !starts.includes(s) && s.q.toLowerCase().includes(p) && s.q.toLowerCase() !== p)
+    .sort((a, b) => b.count - a.count)
+  return [...starts, ...contains].slice(0, limit).map((s) => s.q)
 }
 
 export function loadRoomData(id: string): RoomData | null {

@@ -1,4 +1,4 @@
-// Wisp — © Shawy404. All rights reserved.
+// Wisp. © Shawy404, MIT.
 import type { MapData, MapEdge, NoteInfo, RoomData, SourceItem } from './types'
 import { extractSourceEmbeds, extractWikilinks, noteSlug } from './wikilink'
 
@@ -160,6 +160,28 @@ export function buildGraph(data: RoomData, opts: GraphOptions = {}): Graph {
       for (const target of targets) {
         if (target.id === s.id) continue
         if (mentions(hay, target.label)) pushEdge(s.id, target.id, 'mention')
+      }
+    }
+  }
+
+  // 2c. Explicit hashtag links. a #tag you typed yourself is a deliberate
+  //     label, so notes and concepts sharing one always connect, no toggle
+  //     needed. sources stay out of this: their tags are auto guessed keywords
+  //     and would spiderweb the whole map.
+  {
+    const byExplicitTag = new Map<string, string[]>()
+    for (const node of nodes) {
+      if (node.type === 'source') continue
+      for (const tag of node.tags) {
+        if (tag.length < 2) continue
+        if (!byExplicitTag.has(tag)) byExplicitTag.set(tag, [])
+        byExplicitTag.get(tag)!.push(node.id)
+      }
+    }
+    for (const [tag, ids] of byExplicitTag) {
+      if (ids.length < 2 || ids.length > 12) continue
+      for (let i = 0; i < ids.length; i++) {
+        for (let j = i + 1; j < ids.length; j++) pushEdge(ids[i], ids[j], 'tag', `#${tag}`)
       }
     }
   }
