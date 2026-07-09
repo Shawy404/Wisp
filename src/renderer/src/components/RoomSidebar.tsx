@@ -61,6 +61,13 @@ export default function RoomSidebar(): React.JSX.Element {
     if (creating) void invoke<RoomMeta[]>('rooms:archived').then(setArchivedRooms)
   }, [creating])
 
+  // Screenshot tooling: pop the new-room field (which shows the archive list).
+  useEffect(() => {
+    const demo = (): void => setCreating(true)
+    window.addEventListener('wisp:demo-archive', demo)
+    return () => window.removeEventListener('wisp:demo-archive', demo)
+  }, [])
+
   const compact = config?.compactSidebar ?? false
   const [revealed, setRevealed] = useState(true)
   const hideTimer = useRef<ReturnType<typeof setTimeout> | null>(null)

@@ -160,7 +160,7 @@ if (!app.requestSingleInstanceLock()) {
     // PNG and quits. Not reachable in normal use.
     if (process.env.WISP_SHOT) {
       const [overlay, file] = process.env.WISP_SHOT.split(/:(.+)/)
-      const wait = overlay === 'search-run' ? 12_000 : 3500
+      const wait = overlay === 'search-run' ? 12_000 : overlay === 'address-suggest' ? 6000 : 3500
       setTimeout(() => {
         ctx?.win.webContents.send('shot:overlay', overlay)
         setTimeout(() => {

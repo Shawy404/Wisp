@@ -8,11 +8,11 @@
 
 a browser i built for doing research. rooms, a search that actually digs, notes and a concept map, all sitting on your own disk.
 
-`v0.2.0-pre-alpha` · Linux & Windows · [grab a build](../../releases) · by [Shawy404](https://github.com/Shawy404)
+`v0.2.1-pre-alpha` · Linux & Windows · [grab a build](../../releases) · by [Shawy404](https://github.com/Shawy404)
 
-<img src="docs/media/map.png" width="820" alt="Wisp concept map of a neuroscience topic with figures dropped in" />
+<img src="docs/media/map.png" width="820" alt="Wisp concept map of how mycorrhizal fungi work, with a framed group and figures dropped in" />
 
-<sub>a room's concept map. concepts, notes and figures you drag in, all wired together. here it's the basics of a neuron.</sub>
+<sub>a room's concept map. concepts, notes, figures you drag in and framed groups, all wired together. here it's how mycorrhizal fungi work.</sub>
 
 </div>
 
@@ -30,6 +30,10 @@ the name is from *will o' the wisp*, the ghost light that leads people through t
 
 **rooms.** one room per topic. switch rooms and the whole workspace (tabs, sources, notes, map) swaps with it. close a room, open it again, everything is exactly where you left it. a topic going quiet? archive the room instead of deleting it, it waits in the + menu until you want it back.
 
+<img src="docs/media/archive.png" width="820" alt="The new room field showing archived rooms ready to restore" />
+
+<sub>hit + like you're making a new room and the archived ones are right there, one click to bring back.</sub>
+
 **a search that isn't just google.** one bar hits Semantic Scholar, Crossref, arXiv, Wikipedia, Openverse and the web all at once, sorts what comes back into Academic / Overview / Images / Web, and lets you save the ones you like into the room with a click. no more copy pasting citations. there's a Wisp/Web toggle right there when you just want a normal web search.
 
 <img src="docs/media/search.png" width="820" alt="Multi source research search for a scientific topic" />
@@ -40,15 +44,17 @@ everything you save lands in the room's sources, tagged and ready to cite:
 
 <img src="docs/media/sources.png" width="820" alt="Sources collected in a room" />
 
-**notes and a concept map.** notes are plain markdown files with `[[wikilinks]]`, inline images, and `![[src-id]]` to embed a source. the map is that same stuff drawn as a graph: boxed nodes, photos for image sources, a few templates to start from, undo/redo and version history, drag to link, editable edge labels, and it auto links things when one note names another by title.
+**notes and a concept map.** notes are plain markdown files with `[[wikilinks]]`, inline images, `#tags` that autocomplete from what the room already knows, and `![[src-id]]` to embed a source. under the editor you get backlinks and one-click links for notes that name each other.
 
-<img src="docs/media/notes.png" width="820" alt="Notes with wikilinks" />
+<img src="docs/media/notes.png" width="820" alt="Notes with wikilinks and embedded sources" />
 
-start a map from a template instead of a blank page. central topic, timeline, hierarchy, brainstorm, project plan:
+the map is that same stuff drawn as a graph, and it grew up a lot. boxed nodes and photos for image sources, connected clusters that get their own tint, curved links you can label, undo/redo with version history, and now **named frames** you draw around a group so it moves as one piece, plus **note cards** that show a note's real text right on the canvas. shift-click two things to link them, frames included.
 
-<img src="docs/media/map-template.png" width="820" alt="A project plan map built from a template" />
+<img src="docs/media/map.png" width="820" alt="Concept map with a named FACTS frame, a note card showing its text, and concepts wired together" />
 
-**clip anything.** right click a page, some selected text, or an image to save it into the room. clip just a section and reopening it jumps you back to the exact spot, highlighted. on a youtube page you can clip the whole video or a time range, `yt-dlp` ships inside so there's nothing to install.
+<sub>the hero shot up top and this one are the same map: a named frame around two notes, a note card showing its content, concepts wired in with labeled curved links.</sub>
+
+**clip anything.** right click a page, some selected text, or an image to save it into the room. clip just a section and reopening it jumps you back to the exact spot with the whole saved bit highlighted. on a youtube page you can clip the whole video or a time range, `yt-dlp` ships inside so there's nothing to install.
 
 **two pages at once.** drag a tab to the edge and you get a real split, two live pages side by side (or a page and your notes). grab the line in the middle to resize them.
 
@@ -56,23 +62,23 @@ start a map from a template instead of a blank page. central topic, timeline, hi
 
 <sub>two live pages at the same time. read one, take notes on the other, whatever.</sub>
 
-**frames and cards on the map.** select some nodes, right click, name the frame, and the whole box moves as one. a note can show its actual text on the canvas instead of just a title, and frames link to concepts with shift+click like everything else.
+**an address bar that remembers.** start typing and it offers back what you searched before and pages you've already visited in this room, recent ones first. first launch it asks which search engine you actually want.
 
-<img src="docs/media/map-frames.png" width="820" alt="Concept map with a named frame around notes and a note card showing its text" />
+<img src="docs/media/address.png" width="820" alt="Address bar suggesting past searches and visited pages while typing" />
 
-<sub>a named frame around two notes, wired to a concept. the card at the bottom is a note showing its real content.</sub>
+<sub>past searches up top, pages from your history below with their url. pick one and go.</sub>
 
-**glass, done politely.** set a wallpaper and the chrome frosts over it while panels keep a solid back so you can actually read them. flip on real window transparency instead and the wallpaper steps aside, your desktop shows through the shell.
+**glass, done politely.** set a wallpaper and the chrome frosts over it while the panels keep a solid back so you can actually read them. flip on real window transparency instead and the wallpaper steps aside so your desktop shows straight through the shell.
 
-<img src="docs/media/glass-settings.png" width="820" alt="Settings over wallpaper glass with a solid readable panel" />
+<img src="docs/media/glass.png" width="820" alt="The start page with a wallpaper glowing softly through the frosted chrome" />
 
-<sub>wallpaper shining through the chrome, settings staying readable. everyone gets what they want.</sub>
+<sub>wallpaper glowing through the frosted chrome. settings open over it stay solid and readable.</sub>
 
 **it's a real browser under there.** find in page (`Ctrl+F`), full text search across the room (`Ctrl+Shift+F`), a download manager, tab sleeping to save memory, an ad and tracker blocker, reader mode, per site permission prompts, page zoom (pinch or Ctrl+wheel), and shortcuts that work even while a page has focus (hit `?` for the list).
 
 **a password vault.** app wide, encrypted through your OS keychain, unlocked with your system password. log in somewhere and Wisp offers to save it, come back later and it fills the form for you.
 
-**little stuff.** a per room focus timer you can set, sidebar bits for whatever tab is playing and your memory usage (with a one click "sleep the background tabs"), six themes with a custom accent, and a first run tour in english or turkish.
+**little stuff.** a per room focus timer you can set, sidebar bits for whatever tab is playing and your memory usage (with a one click "sleep the background tabs"), six themes plus a follow-the-system option and a custom accent, your own app icon if you want one, a compact mode that tucks the sidebar and toolbar away until you reach for them, and a first run tour in english or turkish.
 
 ## install
 
@@ -108,6 +114,7 @@ the build pulls `yt-dlp` and bundles it so the thing you ship just works. if npm
 | `Ctrl+Tab` / `Ctrl+1…9` | cycle or jump to a tab |
 | `Ctrl+F` | find in page |
 | `Ctrl+Shift+F` | search the whole room |
+| `F11` | fullscreen |
 | `?` | all the shortcuts |
 
 on the map: shift click two nodes to link them, shift drag or `Ctrl+A` to select, `Delete` to remove, `Ctrl+Z` / `Ctrl+Shift+Z` to undo and redo.

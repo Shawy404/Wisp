@@ -97,8 +97,11 @@ export default function TitleBar(): React.JSX.Element {
           <div className="absolute inset-x-[42%] top-[2px] h-[3px] rounded-full bg-accent/40" />
         </div>
       )}
+      {/* overflow must stay visible when the bar is up, or it clips the address
+          suggestions and the find bar that hang below it. only clip while the
+          bar is tucked away (and animating down into) the sliver. */}
       <div
-        className={`overflow-hidden transition-[height] duration-200 ease-out ${hidden ? 'h-[6px]' : 'h-11'}`}
+        className={`transition-[height] duration-200 ease-out ${hidden ? 'h-[6px] overflow-hidden' : 'h-11 overflow-visible'}`}
       >
         <div
           className={`transition-opacity duration-150 ${hidden ? 'pointer-events-none opacity-0' : 'opacity-100'}`}

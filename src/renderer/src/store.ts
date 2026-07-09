@@ -144,10 +144,24 @@ export const useApp = create<AppState>((set, get) => ({
       set({ fullscreen: on === true })
     })
     // Screenshot tooling (WISP_SHOT): main asks for an overlay to be shown.
+    // A couple of the shots are interactive states (a dropdown open, the
+    // archive list showing) that no plain overlay switch can reach, so those
+    // ride in as their own DOM events the components listen for.
     window.wisp.on('shot:overlay', (name) => {
       const overlay = name as string
       if (overlay === 'search-run') get().requestSearch('mycorrhizal networks')
-      else if (overlay && overlay !== 'none') get().setOverlay(overlay as Overlay)
+      else if (overlay === 'address-suggest') {
+        // fire a few times: the first can land while the boot splash still
+        // owns focus, so a couple of follow-ups make sure the field keeps it
+        const fire = (): void => {
+          window.dispatchEvent(new CustomEvent('wisp:demo-address', { detail: 'mycorrhiz' }))
+        }
+        fire()
+        setTimeout(fire, 800)
+        setTimeout(fire, 1600)
+      } else if (overlay === 'archive') {
+        window.dispatchEvent(new CustomEvent('wisp:demo-archive'))
+      } else if (overlay && overlay !== 'none') get().setOverlay(overlay as Overlay)
     })
     const boot = await invoke<{ config: WispConfig; rooms: RoomMeta[]; activeRoomId: string }>(
       'app:init'

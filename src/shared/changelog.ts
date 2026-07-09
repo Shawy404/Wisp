@@ -13,7 +13,7 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
-    version: '0.2.0-pre-alpha',
+    version: '0.2.1-pre-alpha',
     date: '2026-07-09',
     notes: {
       tr: [
@@ -31,6 +31,7 @@ export const CHANGELOG: ChangelogEntry[] = [
         'klipler sayfanın tam o noktasında, kaydettiğin bölümün tamamı işaretli açılıyor.',
         'güncelleme notları ham markdown yerine düzgün görünüyor.',
         'kaydırma çubukları sayfanın üstünde yüzüyor, iş bitince kayboluyor.',
+        'adres çubuğu önerileri ve find bar artık üst çubuk tarafından kırpılmıyor, düzgünce altına açılıyor.',
         'dev moduna ayarlarda bir test tezgahı geldi, turu tekrar oynat ya da güncelleme akışını dene.',
         'maskot filigranı ve shift+F11 gitti. ikisini de özleyen olmayacak.'
       ],
@@ -49,6 +50,7 @@ export const CHANGELOG: ChangelogEntry[] = [
         'clips reopen at the exact spot with the whole saved section highlighted.',
         'update notes render like actual notes instead of raw markdown.',
         'scrollbars float over pages and fade away when you stop scrolling.',
+        'the address bar suggestion list and the find bar stopped getting clipped off by the toolbar. they hang below it properly now.',
         'dev mode grew a test bench in settings, replay the tour or demo the update flow.',
         'the mascot watermark and shift+F11 are gone. neither will be missed.'
       ]

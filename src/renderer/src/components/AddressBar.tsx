@@ -215,8 +215,19 @@ export default function AddressBar(): React.JSX.Element {
       inputRef.current?.focus()
       inputRef.current?.select()
     }
+    // Screenshot tooling: type a value and focus so the suggestion dropdown
+    // shows up for the shot. Harmless in normal use (nothing fires this).
+    const demo = (e: Event): void => {
+      setValue((e as CustomEvent<string>).detail)
+      setFocused(true)
+      inputRef.current?.focus()
+    }
     window.addEventListener('wisp:focus-address', focus)
-    return () => window.removeEventListener('wisp:focus-address', focus)
+    window.addEventListener('wisp:demo-address', demo)
+    return () => {
+      window.removeEventListener('wisp:focus-address', focus)
+      window.removeEventListener('wisp:demo-address', demo)
+    }
   }, [])
 
   const submit = (chosen?: { text: string; url?: string }): void => {
