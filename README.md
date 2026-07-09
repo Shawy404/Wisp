@@ -8,7 +8,7 @@
 
 a browser i built for doing research. rooms, a search that actually digs, notes and a concept map, all sitting on your own disk.
 
-`v0.2.1-pre-alpha` · Linux & Windows · [grab a build](../../releases) · by [Shawy404](https://github.com/Shawy404)
+`v0.2.0-alpha` · Linux & Windows · [grab a build](../../releases) · by [Shawy404](https://github.com/Shawy404)
 
 <img src="docs/media/map.png" width="820" alt="Wisp concept map of how mycorrhizal fungi work, with a framed group and figures dropped in" />
 
