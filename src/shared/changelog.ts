@@ -13,6 +13,48 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: '0.2.0-pre-alpha',
+    date: '2026-07-09',
+    notes: {
+      tr: [
+        'odalar silmek yerine arşivlenebiliyor. yeni oda açar gibi +\'ya bas, arşivdekiler orada bekliyor.',
+        'harita ciddileşti: düğümleri saran ve beraber taşınan adlı çerçeveler, gerçek metnini gösteren not kartları, artık gerçekten kavisli çizgiler, küme başına renk halesi ve bir arama kutusu. bir de her şeyi tek üzgün sütuna dizmeyi bıraktı (tek satırlık bir buğdu, bir akşamımı yedi).',
+        'çerçeveler de shift+tık ile kavramlara bağlanıyor, herkes gibi.',
+        'nota # yazınca odanın etiketleri açılıyor. birini seç, aynı etiketi taşıyan notlar haritada kendiliğinden bağlanıyor.',
+        'bağlantıyı yeni sekmede aç artık arkada açıyor. sen okumaya devam, sekme bekler. arama sonuçlarında da var, sağ tıkla.',
+        'adres çubuğu aramalarını hatırlıyor, yazarken geçmişteki sayfalarla karıştırıp öneriyor.',
+        'ilk açılış önce dilini, sonra arama motorunu soruyor.',
+        'ayarlar sol üstteki maskotun altına taşındı. alt bar gitti. küçük adama tıkla.',
+        'compact mod iki ayrı anahtar oldu, kenar çubuğu ve üst çubuk, ikisi de kendi başına.',
+        'cam meselesi çözüldü: duvar kağıdı varken panellerin arkası kapalı, okuyabiliyorsun; gerçek pencere şeffaflığında duvar kağıdı kenara çekiliyor ve masaüstün görünüyor.',
+        'uygulama ikonunu ayarlardan değiştirebiliyorsun, aynı duvar kağıdını iki kez seçmek artık kopya üretmiyor (dokuz kopya vardı. dokuz.).',
+        'klipler sayfanın tam o noktasında, kaydettiğin bölümün tamamı işaretli açılıyor.',
+        'güncelleme notları ham markdown yerine düzgün görünüyor.',
+        'kaydırma çubukları sayfanın üstünde yüzüyor, iş bitince kayboluyor.',
+        'dev moduna ayarlarda bir test tezgahı geldi, turu tekrar oynat ya da güncelleme akışını dene.',
+        'maskot filigranı ve shift+F11 gitti. ikisini de özleyen olmayacak.'
+      ],
+      en: [
+        "rooms can be archived instead of deleted. hit + like you're making a new room, the archived ones are right there waiting.",
+        "the map got serious: named frames that group nodes and move together, note cards that show the actual text, every line curves properly, clusters get their own halo, and there's a find box. also it stopped laying everything out in one sad column (a one line bug that ate my evening).",
+        'frames link to concepts with shift+click like everything else.',
+        "type # in a note and the room's tags pop up. pick one and matching notes connect on the map by themselves.",
+        'open link in new tab opens in the background now. you keep reading, the tab waits. search results too, right click one.',
+        'the address bar remembers your searches and mixes in pages from history while you type.',
+        'first launch asks your language, then your search engine.',
+        'settings moved under the mascot in the top left. the bottom bar is gone. click the little guy.',
+        'compact mode is two switches now, sidebar and toolbar, each on its own.',
+        'glass got sorted: with a wallpaper set the panels keep a solid back so you can read them, with real window transparency the wallpaper steps aside and your desktop shows through.',
+        "you can change the app icon from settings, and importing the same wallpaper twice doesn't duplicate it anymore (nine copies. i had nine).",
+        'clips reopen at the exact spot with the whole saved section highlighted.',
+        'update notes render like actual notes instead of raw markdown.',
+        'scrollbars float over pages and fade away when you stop scrolling.',
+        'dev mode grew a test bench in settings, replay the tour or demo the update flow.',
+        'the mascot watermark and shift+F11 are gone. neither will be missed.'
+      ]
+    }
+  },
+  {
     version: '0.1.7-pre-alpha',
     date: '2026-07-05',
     notes: {

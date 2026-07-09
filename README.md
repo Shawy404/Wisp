@@ -8,7 +8,7 @@
 
 a browser i built for doing research. rooms, a search that actually digs, notes and a concept map, all sitting on your own disk.
 
-`v0.1.7-pre-alpha` · Linux & Windows · [grab a build](../../releases) · by [Shawy404](https://github.com/Shawy404)
+`v0.2.0-pre-alpha` · Linux & Windows · [grab a build](../../releases) · by [Shawy404](https://github.com/Shawy404)
 
 <img src="docs/media/map.png" width="820" alt="Wisp concept map of a neuroscience topic with figures dropped in" />
 
@@ -28,7 +28,7 @@ the name is from *will o' the wisp*, the ghost light that leads people through t
 
 ## what it does
 
-**rooms.** one room per topic. switch rooms and the whole workspace (tabs, sources, notes, map) swaps with it. close a room, open it again, everything is exactly where you left it.
+**rooms.** one room per topic. switch rooms and the whole workspace (tabs, sources, notes, map) swaps with it. close a room, open it again, everything is exactly where you left it. a topic going quiet? archive the room instead of deleting it, it waits in the + menu until you want it back.
 
 **a search that isn't just google.** one bar hits Semantic Scholar, Crossref, arXiv, Wikipedia, Openverse and the web all at once, sorts what comes back into Academic / Overview / Images / Web, and lets you save the ones you like into the room with a click. no more copy pasting citations. there's a Wisp/Web toggle right there when you just want a normal web search.
 
@@ -55,6 +55,18 @@ start a map from a template instead of a blank page. central topic, timeline, hi
 <img src="docs/media/split.png" width="820" alt="Split view with two live pages side by side" />
 
 <sub>two live pages at the same time. read one, take notes on the other, whatever.</sub>
+
+**frames and cards on the map.** select some nodes, right click, name the frame, and the whole box moves as one. a note can show its actual text on the canvas instead of just a title, and frames link to concepts with shift+click like everything else.
+
+<img src="docs/media/map-frames.png" width="820" alt="Concept map with a named frame around notes and a note card showing its text" />
+
+<sub>a named frame around two notes, wired to a concept. the card at the bottom is a note showing its real content.</sub>
+
+**glass, done politely.** set a wallpaper and the chrome frosts over it while panels keep a solid back so you can actually read them. flip on real window transparency instead and the wallpaper steps aside, your desktop shows through the shell.
+
+<img src="docs/media/glass-settings.png" width="820" alt="Settings over wallpaper glass with a solid readable panel" />
+
+<sub>wallpaper shining through the chrome, settings staying readable. everyone gets what they want.</sub>
 
 **it's a real browser under there.** find in page (`Ctrl+F`), full text search across the room (`Ctrl+Shift+F`), a download manager, tab sleeping to save memory, an ad and tracker blocker, reader mode, per site permission prompts, page zoom (pinch or Ctrl+wheel), and shortcuts that work even while a page has focus (hit `?` for the list).
 
