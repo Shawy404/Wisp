@@ -19,6 +19,7 @@ const STEPS: { glyph: string; title: TKey; body: TKey }[] = [
   { glyph: '✂', title: 'onboard.clip.title', body: 'onboard.clip.body' },
   { glyph: '❋', title: 'onboard.map.title', body: 'onboard.map.body' },
   { glyph: '⌨', title: 'onboard.keys.title', body: 'onboard.keys.body' },
+  { glyph: '◍', title: 'onboard.settings.title', body: 'onboard.settings.body' },
   { glyph: '★', title: 'onboard.welcome.title', body: 'onboard.welcome.body' }
 ]
 

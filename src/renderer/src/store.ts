@@ -58,9 +58,7 @@ interface AppState {
 
   /** Window fullscreen state, mirrored from main (the wm can flip it too). */
   fullscreen: boolean
-  /** True fullscreen: not a single piece of app ui on screen, just the page. */
-  trueFullscreen: boolean
-  setFullscreenMode: (mode: 'off' | 'normal' | 'true') => void
+  setFullscreen: (on: boolean) => void
 
   init: () => Promise<void>
   refreshRoomData: (roomId?: string) => Promise<void>
@@ -128,10 +126,9 @@ export const useApp = create<AppState>((set, get) => ({
   setSplitLive: (live) => set({ splitLive: live }),
 
   fullscreen: false,
-  trueFullscreen: false,
-  setFullscreenMode: (mode) => {
-    void invoke('window:fullscreen', mode !== 'off')
-    set({ fullscreen: mode !== 'off', trueFullscreen: mode === 'true' })
+  setFullscreen: (on) => {
+    void invoke('window:fullscreen', on)
+    set({ fullscreen: on })
   },
 
   init: async () => {
@@ -142,11 +139,9 @@ export const useApp = create<AppState>((set, get) => ({
     window.wisp.on('room:updated', (roomId) => {
       if (roomId === get().activeRoomId) void get().refreshRoomData()
     })
-    // the wm can kick us out of fullscreen without asking. when that happens
-    // the ui has to come back too, or you end up trapped in a chromeless window.
+    // the wm can flip fullscreen without asking; mirror whatever it did
     window.wisp.on('window:fullscreen-changed', (on) => {
-      if (on) set({ fullscreen: true })
-      else set({ fullscreen: false, trueFullscreen: false })
+      set({ fullscreen: on === true })
     })
     // Screenshot tooling (WISP_SHOT): main asks for an overlay to be shown.
     window.wisp.on('shot:overlay', (name) => {

@@ -224,11 +224,31 @@ export function registerCoreIpc(ctx: WispContext): void {
     if (!win.isDestroyed()) win.webContents.send('window:fullscreen-changed', false)
   })
 
-  // address bar suggestions: what you searched before, then what you search a lot
+  // address bar suggestions: what you searched before, what you search a lot,
+  // and pages from this room's history so the list is useful from day one
+  // (an empty searches.json used to mean an empty dropdown, which looked broken)
   ipcMain.handle('searches:record', (_e, q: string) => store.recordSearch(String(q ?? '')))
-  ipcMain.handle('searches:suggest', (_e, prefix: string) =>
-    store.suggestSearches(String(prefix ?? ''))
-  )
+  ipcMain.handle('searches:suggest', (_e, prefix: string) => {
+    const p = String(prefix ?? '').trim().toLowerCase()
+    if (!p) return []
+    const out: { text: string; url?: string }[] = store
+      .suggestSearches(p)
+      .map((q) => ({ text: q }))
+    const roomId = tabs.currentRoomId()
+    if (roomId) {
+      const seen = new Set(out.map((s) => s.text.toLowerCase()))
+      const entries = store.loadHistory(roomId)
+      for (let i = entries.length - 1; i >= 0 && out.length < 8; i--) {
+        const h = entries[i]
+        const title = h.title || h.url
+        if (!title.toLowerCase().includes(p) && !h.url.toLowerCase().includes(p)) continue
+        if (seen.has(title.toLowerCase()) || seen.has(h.url.toLowerCase())) continue
+        seen.add(title.toLowerCase())
+        out.push({ text: title, url: h.url })
+      }
+    }
+    return out.slice(0, 8)
+  })
 
   ipcMain.handle('window:minimize', () => win.minimize())
   ipcMain.handle('window:maximize', () => (win.isMaximized() ? win.unmaximize() : win.maximize()))

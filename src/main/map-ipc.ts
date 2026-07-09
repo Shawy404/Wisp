@@ -281,6 +281,58 @@ export function registerMapIpc(ctx: WispContext): void {
     }
   )
 
+  // ---- group frames: a labeled box around a set of nodes. moving the box
+  // moves everyone inside, like the frames in every serious canvas tool. ----
+  ipcMain.handle('map:addGroup', (_e, roomId: string, title: string, members: string[]) => {
+    const clean = [...new Set(members)].filter(Boolean)
+    if (!title.trim() || clean.length === 0) return null
+    snapshot(roomId)
+    const map = store.loadMap(roomId)
+    // one node, one group. joining a new frame quietly leaves the old one.
+    for (const g of map.groups ?? []) g.members = g.members.filter((m) => !clean.includes(m))
+    const group = { id: `g-${stableId(title + Date.now())}`, title: title.trim(), members: clean }
+    map.groups = [...(map.groups ?? []).filter((g) => g.members.length > 0), group]
+    store.saveMap(roomId, map)
+    notify(roomId)
+    return group
+  })
+
+  ipcMain.handle('map:renameGroup', (_e, roomId: string, groupId: string, title: string) => {
+    if (!title.trim()) return null
+    snapshot(roomId)
+    const map = store.loadMap(roomId)
+    const group = (map.groups ?? []).find((g) => g.id === groupId)
+    if (group) {
+      group.title = title.trim()
+      store.saveMap(roomId, map)
+      notify(roomId)
+    }
+    return map
+  })
+
+  // dissolve the frame only; the nodes inside stay right where they are
+  ipcMain.handle('map:removeGroup', (_e, roomId: string, groupId: string) => {
+    snapshot(roomId)
+    const map = store.loadMap(roomId)
+    map.groups = (map.groups ?? []).filter((g) => g.id !== groupId)
+    store.saveMap(roomId, map)
+    notify(roomId)
+    return map
+  })
+
+  // note cards: a note node can show its actual text on the canvas
+  ipcMain.handle('map:toggleCard', (_e, roomId: string, nodeId: string) => {
+    snapshot(roomId)
+    const map = store.loadMap(roomId)
+    const cards = new Set(map.cards ?? [])
+    if (cards.has(nodeId)) cards.delete(nodeId)
+    else cards.add(nodeId)
+    map.cards = [...cards]
+    store.saveMap(roomId, map)
+    notify(roomId)
+    return map
+  })
+
   ipcMain.handle('map:removeConcept', (_e, roomId: string, conceptId: string) => {
     snapshot(roomId)
     const map = store.loadMap(roomId)

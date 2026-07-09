@@ -52,7 +52,6 @@ export default function Viewport({ children }: { children?: React.ReactNode }): 
   const tabs = useApp((s) => s.tabs)
   const overlay = useApp((s) => s.overlay)
   const draggingTab = useApp((s) => s.draggingTab)
-  const trueFullscreen = useApp((s) => s.trueFullscreen)
   const t = useT()
 
   useEffect(() => {
@@ -81,16 +80,10 @@ export default function Viewport({ children }: { children?: React.ReactNode }): 
   }, [])
 
   return (
-    <div
-      className={`relative flex-1 overflow-hidden ${trueFullscreen ? '' : 'bg-neutral-925 p-2 pl-0'}`}
-    >
+    <div className="relative flex-1 overflow-hidden bg-neutral-925 p-2 pl-0">
       <div
         ref={inner}
-        className={`relative h-full w-full overflow-hidden ${
-          trueFullscreen
-            ? ''
-            : 'wisp-glass rounded-xl border border-neutral-800/60 bg-neutral-950 shadow-[0_2px_16px_rgba(0,0,0,0.35)]'
-        }`}
+        className="wisp-glass relative h-full w-full overflow-hidden rounded-xl border border-neutral-800/60 bg-neutral-950 shadow-[0_2px_16px_rgba(0,0,0,0.35)]"
       >
         {/* the start page ducks out whenever a panel floats over it. with glass
             themes it used to grin at you straight through the settings panel,

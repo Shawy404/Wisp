@@ -85,7 +85,6 @@ function ReleaseNotes({ text }: { text: string }): React.JSX.Element {
 export default function UpdateBanner(): React.JSX.Element | null {
   const t = useT()
   const lang = useApp((s) => s.config?.language ?? 'tr')
-  const trueFullscreen = useApp((s) => s.trueFullscreen)
   const [update, setUpdate] = useState<UpdateState | null>(null)
   const [progress, setProgress] = useState<Progress | null>(null)
   const [error, setError] = useState('')
@@ -174,9 +173,7 @@ export default function UpdateBanner(): React.JSX.Element | null {
   }
 
   // --- The announcement bar (before the user commits to downloading). ---
-  // in true fullscreen the bar keeps quiet; the download overlay still shows
-  // because you asked for that one explicitly.
-  const banner = update.phase === 'available' && !trueFullscreen && (
+  const banner = update.phase === 'available' && (
     <div className="flex items-center gap-3 border-b border-accent/30 bg-accent/10 px-4 py-2">
       <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-accent/20 text-xs text-accent">
         ↑

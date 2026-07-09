@@ -133,6 +133,7 @@ export default function CommandPalette(): React.JSX.Element | null {
               hint: t('palette.hint.web'),
               run: () => {
                 const { newTab, setOverlay, config } = useApp.getState()
+                void invoke('searches:record', resolved.query ?? '')
                 newTab(webSearchUrl(config?.searchEngine, resolved.query ?? ''))
                 setOverlay('none')
                 setOpen(false)
@@ -143,6 +144,7 @@ export default function CommandPalette(): React.JSX.Element | null {
               label: t('palette.searchFor', { query: resolved.query ?? '' }),
               hint: t('palette.hint.search'),
               run: () => {
+                void invoke('searches:record', resolved.query ?? '')
                 useApp.getState().requestSearch(resolved.query ?? '')
                 setOpen(false)
               }

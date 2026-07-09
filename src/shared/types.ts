@@ -112,9 +112,22 @@ export interface ConceptNode {
   color?: string
 }
 
+/** A named frame drawn around a set of nodes — a visual group on the canvas. */
+export interface MapGroup {
+  id: string
+  title: string
+  /** Node ids living inside the frame. A node belongs to one group at most. */
+  members: string[]
+  color?: string
+}
+
 export interface MapData {
   concepts: ConceptNode[]
   edges: MapEdge[]
+  /** Labeled group frames; dragging a frame moves everything inside it. */
+  groups?: MapGroup[]
+  /** Note node ids that show their text on the canvas as a content card. */
+  cards?: string[]
   /** Node ids the user has hidden from the map (sources/notes they don't want shown). */
   hidden?: string[]
   /**
@@ -162,7 +175,8 @@ export interface WispConfig {
   devMode?: boolean
   /** Per-room pomodoro focus session length in minutes. */
   focusMinutes?: number
-  /** Background image: 'icon' (default watermark), 'none', or a stored filename. */
+  /** Background image: 'none' (or unset) for nothing, or a stored filename.
+   *  Hidden entirely while the window itself is transparent. */
   backgroundImage?: string
   /** Background layer opacity, 0–1 (default 0.15). */
   backgroundOpacity?: number
@@ -180,6 +194,8 @@ export interface WispConfig {
   sidebarWidgets?: { music?: boolean; ram?: boolean }
   /** Compact mode: the sidebar hides itself and reveals on hover. */
   compactSidebar?: boolean
+  /** Compact mode for the top toolbar: hides itself, reveals at the top edge. */
+  compactToolbar?: boolean
   /** Width in px of the hover strip that reveals the compact sidebar (default 10). */
   compactRevealPx?: number
   /** Delay in ms before the revealed sidebar tucks away again (default 400). */

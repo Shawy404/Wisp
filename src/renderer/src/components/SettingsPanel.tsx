@@ -89,8 +89,8 @@ export default function SettingsPanel(): React.JSX.Element {
       useApp.setState({ config: res.config })
     }
   }
-  const resetBackground = async (mode: 'icon' | 'none'): Promise<void> => {
-    const res = await invoke<{ dataUrl: string | null; config: WispConfig }>('bg:reset', mode)
+  const resetBackground = async (): Promise<void> => {
+    const res = await invoke<{ dataUrl: string | null; config: WispConfig }>('bg:reset')
     useApp.getState().setBackgroundUrl(res.dataUrl)
     useApp.setState({ config: res.config })
   }
@@ -225,13 +225,7 @@ export default function SettingsPanel(): React.JSX.Element {
               {t('settings.background.choose')}
             </button>
             <button
-              onClick={() => void resetBackground('icon')}
-              className="rounded-md px-3 py-1.5 text-xs text-neutral-500 hover:text-neutral-300"
-            >
-              {t('settings.background.icon')}
-            </button>
-            <button
-              onClick={() => void resetBackground('none')}
+              onClick={() => void resetBackground()}
               className="rounded-md px-3 py-1.5 text-xs text-neutral-500 hover:text-neutral-300"
             >
               {t('settings.background.none')}
@@ -333,16 +327,26 @@ export default function SettingsPanel(): React.JSX.Element {
         </Section>
 
         <Section cat="appearance" terms={t('settings.compact.hint')} title={t('settings.compact')}>
-          <label className="flex items-center gap-2 text-xs text-neutral-300">
-            <input
-              type="checkbox"
-              checked={config.compactSidebar ?? false}
-              onChange={(e) => void setConfig({ compactSidebar: e.target.checked })}
-            />
-            {t('settings.compact.toggle')}
-          </label>
+          <div className="space-y-2">
+            <label className="flex items-center gap-2 text-xs text-neutral-300">
+              <input
+                type="checkbox"
+                checked={config.compactSidebar ?? false}
+                onChange={(e) => void setConfig({ compactSidebar: e.target.checked })}
+              />
+              {t('settings.compact.sidebar')}
+            </label>
+            <label className="flex items-center gap-2 text-xs text-neutral-300">
+              <input
+                type="checkbox"
+                checked={config.compactToolbar ?? false}
+                onChange={(e) => void setConfig({ compactToolbar: e.target.checked })}
+              />
+              {t('settings.compact.toolbar')}
+            </label>
+          </div>
           <div className="mt-1 ml-6 text-[11px] text-neutral-600">{t('settings.compact.hint')}</div>
-          {config.compactSidebar && (
+          {(config.compactSidebar || config.compactToolbar) && (
             <div className="mt-3 ml-6 space-y-3">
               <div>
                 <div className="mb-1 flex justify-between text-[11px] text-neutral-500">

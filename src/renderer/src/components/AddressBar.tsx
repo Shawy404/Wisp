@@ -165,8 +165,9 @@ export default function AddressBar(): React.JSX.Element {
   const [value, setValue] = useState('')
   const [focused, setFocused] = useState(false)
   const inputRef = useRef<HTMLInputElement>(null)
-  // things you searched before, floating under the bar as you type
-  const [suggestions, setSuggestions] = useState<string[]>([])
+  // things you searched (and pages you visited), floating under the bar as
+  // you type. entries with a url navigate straight there, the rest re-search.
+  const [suggestions, setSuggestions] = useState<{ text: string; url?: string }[]>([])
   const [suggestIndex, setSuggestIndex] = useState(-1)
   const suggestTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
 
@@ -185,7 +186,7 @@ export default function AddressBar(): React.JSX.Element {
     }
     suggestTimer.current = setTimeout(() => {
       const q = value.trim().replace(/^\?/, '')
-      void invoke<string[]>('searches:suggest', q).then((list) => {
+      void invoke<{ text: string; url?: string }[]>('searches:suggest', q).then((list) => {
         setSuggestions(list)
         setSuggestIndex(-1)
       })
@@ -201,8 +202,8 @@ export default function AddressBar(): React.JSX.Element {
   useEffect(() => {
     if (suggestOpen) void invoke('viewport:visible', false)
     else void invoke('viewport:visible', useApp.getState().overlay === 'none')
-    // unmount cleanup matters: if the toolbar disappears (true fullscreen)
-    // while the list is open, the page must come back on its own
+    // unmount cleanup: if the toolbar goes away while the list is open, the
+    // page must come back on its own
     return () => {
       if (suggestOpen) void invoke('viewport:visible', useApp.getState().overlay === 'none')
     }
@@ -218,11 +219,20 @@ export default function AddressBar(): React.JSX.Element {
     return () => window.removeEventListener('wisp:focus-address', focus)
   }, [])
 
-  const submit = (chosen?: string): void => {
+  const submit = (chosen?: { text: string; url?: string }): void => {
     const { activeTabId, navigate, newTab, requestSearch, config, overlay, setOverlay } =
       useApp.getState()
-    const text = chosen ?? (suggestIndex >= 0 ? suggestions[suggestIndex] : value)
+    const picked = chosen ?? (suggestIndex >= 0 ? suggestions[suggestIndex] : undefined)
     setSuggestions([])
+    // a picked history entry goes straight to its page, no search detour
+    if (picked?.url) {
+      if (activeTabId) navigate(activeTabId, picked.url)
+      else newTab(picked.url)
+      if (useApp.getState().overlay !== 'none') setOverlay('none')
+      inputRef.current?.blur()
+      return
+    }
+    const text = picked?.text ?? value
     // "?" prefix targets Wisp's research search; anything else behaves like a
     // normal browser — URLs open, plain text goes to the web search engine.
     if (text.trim().startsWith('?')) {
@@ -369,7 +379,7 @@ export default function AddressBar(): React.JSX.Element {
         <div className="absolute top-full right-0 left-0 z-50 mt-1 overflow-hidden rounded-xl border border-neutral-700 bg-neutral-900 py-1 shadow-2xl">
           {suggestions.map((s, i) => (
             <button
-              key={s}
+              key={`${s.text}-${s.url ?? ''}`}
               // mousedown so picking one beats the input's blur to the punch
               onMouseDown={(e) => {
                 e.preventDefault()
@@ -380,11 +390,24 @@ export default function AddressBar(): React.JSX.Element {
                 i === suggestIndex ? 'bg-neutral-800 text-neutral-100' : 'text-neutral-300'
               }`}
             >
-              <svg width="10" height="10" viewBox="0 0 12 12" className="shrink-0 text-neutral-600">
-                <circle cx="5" cy="5" r="3.4" fill="none" stroke="currentColor" strokeWidth="1.2" />
-                <path d="M7.6 7.6 L10.6 10.6" stroke="currentColor" strokeWidth="1.2" />
-              </svg>
-              <span className="min-w-0 flex-1 truncate">{s}</span>
+              {s.url ? (
+                // little clock: this one comes from history and opens the page
+                <svg width="10" height="10" viewBox="0 0 12 12" className="shrink-0 text-neutral-600">
+                  <circle cx="6" cy="6" r="4.6" fill="none" stroke="currentColor" strokeWidth="1.2" />
+                  <path d="M6 3.4 V6 L8 7.4" fill="none" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" />
+                </svg>
+              ) : (
+                <svg width="10" height="10" viewBox="0 0 12 12" className="shrink-0 text-neutral-600">
+                  <circle cx="5" cy="5" r="3.4" fill="none" stroke="currentColor" strokeWidth="1.2" />
+                  <path d="M7.6 7.6 L10.6 10.6" stroke="currentColor" strokeWidth="1.2" />
+                </svg>
+              )}
+              <span className="min-w-0 flex-1 truncate">{s.text}</span>
+              {s.url && (
+                <span className="max-w-[40%] shrink-0 truncate text-[10px] text-neutral-600">
+                  {s.url.replace(/^https?:\/\/(www\.)?/, '')}
+                </span>
+              )}
             </button>
           ))}
         </div>

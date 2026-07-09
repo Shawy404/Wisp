@@ -21,7 +21,9 @@ export default function TitleBar(): React.JSX.Element {
   const { setOverlay, placeRailItem } = useApp.getState()
   const [dropHot, setDropHot] = useState(false)
 
-  const compact = config?.compactSidebar ?? false
+  // the toolbar has its own compact switch, separate from the sidebar's, so
+  // you can hide one without losing the other
+  const compact = config?.compactToolbar ?? false
   const [revealed, setRevealed] = useState(!compact)
   const root = useRef<HTMLDivElement>(null)
   const hideTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
@@ -33,7 +35,7 @@ export default function TitleBar(): React.JSX.Element {
     }
   }
   const scheduleHide = (): void => {
-    if (!useApp.getState().config?.compactSidebar) return
+    if (!useApp.getState().config?.compactToolbar) return
     cancelHide()
     hideTimer.current = setTimeout(() => {
       // typing in the address bar keeps the toolbar up. hiding an input while
@@ -52,7 +54,7 @@ export default function TitleBar(): React.JSX.Element {
   // asking for the address bar, or Ctrl+F wanting the find bar.
   useEffect(() => {
     const reveal = (): void => {
-      if (!useApp.getState().config?.compactSidebar) return
+      if (!useApp.getState().config?.compactToolbar) return
       cancelHide()
       setRevealed(true)
     }
@@ -102,10 +104,19 @@ export default function TitleBar(): React.JSX.Element {
           className={`transition-opacity duration-150 ${hidden ? 'pointer-events-none opacity-0' : 'opacity-100'}`}
         >
           <div className="drag-region wisp-chrome flex h-11 items-center gap-2 border-b border-neutral-800/60 bg-neutral-925 pr-1 pl-3">
-      <span className="no-drag flex items-center gap-1.5 select-none" data-tip="Wisp" data-tip-pos="bottom">
+      {/* the wisp itself is the settings button now. the bottom bar it used to
+          live in is gone, and honestly the little guy earned a job. */}
+      <button
+        className={`no-drag flex items-center gap-1.5 rounded-md px-1.5 py-1 select-none ${
+          overlay === 'settings' ? 'bg-accent/15' : 'hover:bg-neutral-800'
+        }`}
+        onClick={() => setOverlay(overlay === 'settings' ? 'none' : 'settings')}
+        data-tip={t('sidebar.settings')}
+        data-tip-pos="bottom"
+      >
         <span className="wisp-mascot" />
         <span className="text-xs font-semibold tracking-tight text-accent">Wisp</span>
-      </span>
+      </button>
       <AddressBar />
       <FindBar />
       <div

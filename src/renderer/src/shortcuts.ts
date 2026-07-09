@@ -40,12 +40,10 @@ function nameFromEvent(e: KeyboardEvent): string | null {
   // F5 (and Ctrl+R) reloads the active page.
   if (e.key === 'F5' && !e.ctrlKey && !e.altKey && !e.metaKey) return 'reload'
   if (e.key.toLowerCase() === 'r' && e.ctrlKey && !e.altKey && !e.metaKey) return 'reload'
-  // F11 fullscreen, shift+F11 true fullscreen (page only, zero chrome).
-  if (e.key === 'F11' && !e.ctrlKey && !e.altKey && !e.metaKey) {
-    return e.shiftKey ? 'true-fullscreen' : 'fullscreen'
+  // F11 toggles fullscreen.
+  if (e.key === 'F11' && !e.ctrlKey && !e.shiftKey && !e.altKey && !e.metaKey) {
+    return 'fullscreen'
   }
-  // escape is the emergency exit from true fullscreen when the shell has focus
-  if (e.key === 'Escape' && useApp.getState().trueFullscreen) return 'exit-fullscreen'
   return null
 }
 
@@ -81,16 +79,8 @@ function run(name: string): void {
     case 'reload':
       if (app.activeTabId) void invoke('tabs:reload', app.activeTabId)
       return
-    // two flavours of fullscreen. plain one keeps the ui around, the true one
-    // hides everything until you press it again (or shift+F11 back out).
     case 'fullscreen':
-      app.setFullscreenMode(app.fullscreen && !app.trueFullscreen ? 'off' : 'normal')
-      return
-    case 'true-fullscreen':
-      app.setFullscreenMode(app.trueFullscreen ? 'off' : 'true')
-      return
-    case 'exit-fullscreen':
-      app.setFullscreenMode('off')
+      app.setFullscreen(!app.fullscreen)
       return
   }
 

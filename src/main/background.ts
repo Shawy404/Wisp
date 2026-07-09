@@ -56,11 +56,9 @@ function importImage(dir: string, sourcePath: string, prefix: string): string | 
 
 function currentBackground(ctx: WispContext): string | null {
   const bg = ctx.config.backgroundImage
-  if (bg === 'none') return null
-  if (!bg || bg === 'icon') {
-    // Built-in default: the app icon (packaged at ../../build/icon.png).
-    return dataUrlFor(join(__dirname, '../../build/icon.png'))
-  }
+  // the old mascot watermark mode ('icon') is gone. old configs may still say
+  // 'icon'; they just mean "no background" now.
+  if (!bg || bg === 'none' || bg === 'icon') return null
   return dataUrlFor(join(bgDir(), bg))
 }
 
@@ -87,11 +85,10 @@ export function registerBackground(ctx: WispContext): void {
     return { dataUrl: dataUrlFor(join(bgDir(), name)), config: ctx.config }
   })
 
-  // Reset to the icon watermark (mode 'icon') or nothing (mode 'none').
-  ipcMain.handle('bg:reset', (_e, mode: 'icon' | 'none') => {
-    ctx.config.backgroundImage = mode
+  ipcMain.handle('bg:reset', () => {
+    ctx.config.backgroundImage = 'none'
     saveConfig(ctx.config)
-    return { dataUrl: currentBackground(ctx), config: ctx.config }
+    return { dataUrl: null, config: ctx.config }
   })
 
   // ---- the window icon. picking an image swaps it live and remembers it. ----

@@ -1,7 +1,7 @@
 // Wisp. © Shawy404, MIT.
 import { useEffect, useMemo, useRef, useState } from 'react'
-import cytoscape, { type Core, type ElementDefinition } from 'cytoscape'
-import type { MapData } from '@shared/types'
+import cytoscape, { type Core, type ElementDefinition, type NodeSingular } from 'cytoscape'
+import type { MapData, MapGroup } from '@shared/types'
 import type { TKey } from '@shared/i18n'
 import { buildGraph, type Graph } from '@shared/graph'
 import { highlightUrl } from '@shared/address'
@@ -104,6 +104,39 @@ function cyStyle(c: MapColors): cytoscape.StylesheetJson {
     },
     // nodes that belong to the same connected cluster share a soft tinted halo
     { selector: 'node[clusterColor]', style: { 'underlay-color': 'data(clusterColor)', 'underlay-opacity': 0.09, 'underlay-padding': 10 } },
+    // group frames: a labeled box around its members. label rides on top like
+    // a section header, the box itself stays quiet so the content leads.
+    {
+      selector: ':parent',
+      style: {
+        shape: 'round-rectangle',
+        'background-color': c.nodeBg,
+        'background-opacity': 0.3,
+        'border-width': 1.2,
+        'border-color': c.edge,
+        label: 'data(label)',
+        'text-valign': 'top',
+        'text-halign': 'center',
+        'text-margin-y': -8,
+        'font-size': '11px',
+        color: c.label,
+        padding: '26px'
+      }
+    },
+    // note cards: the note's actual text lives on the canvas, screenshot style
+    {
+      selector: 'node.card',
+      style: {
+        'text-wrap': 'wrap',
+        'text-max-width': '190px',
+        'text-justification': 'left',
+        'font-size': '9px',
+        width: 'label',
+        height: 'data(cardH)',
+        'text-valign': 'center',
+        padding: '10px'
+      }
+    },
     { selector: 'edge.manual', style: { 'line-color': '#a1a1aa', width: 1.6 } },
     { selector: 'edge.wikilink', style: { 'line-color': '#7dd3a8', opacity: 0.9 } },
     {
@@ -172,7 +205,7 @@ const CLUSTER_COLORS = ['#7dd3a8', '#8ab4f8', '#c58af8', '#f8b48a', '#f87d9a', '
 function paintClusters(c: Core): void {
   let i = 0
   for (const comp of c.elements().components()) {
-    const nodes = comp.nodes()
+    const nodes = comp.nodes().filter((n) => !n.isParent())
     if (nodes.length < 3) {
       nodes.forEach((n) => {
         n.removeData('clusterColor')
@@ -195,15 +228,23 @@ type NodePositions = Record<string, { x: number; y: number }>
  * into a neat grid band below instead of collapsing into an overlapping column.
  */
 function runLayout(c: Core, pinned: Set<string>): void {
-  const freeLinked = c.nodes().filter((n) => !pinned.has(n.id()) && n.degree(false) > 0)
-  const freeSingletons = c.nodes().filter((n) => !pinned.has(n.id()) && n.degree(false) === 0)
+  // group parents are containers, not physical nodes; layout ignores them and
+  // they follow their children around
+  const freeLinked = c
+    .nodes()
+    .filter((n) => !n.isParent() && !pinned.has(n.id()) && n.degree(false) > 0)
+  const freeSingletons = c
+    .nodes()
+    .filter((n) => !n.isParent() && !pinned.has(n.id()) && n.degree(false) === 0)
 
   if (freeLinked.length > 0) {
     // two traps found the hard way: cose run on a collection instead of the
     // core quietly gives up and stacks everything into one sad column, and
     // without a bounding box it has no room to breathe. so: lock what must
     // not move, run on the whole core with real space, unlock.
-    const frozen = c.nodes().filter((n) => pinned.has(n.id()) || n.degree(false) === 0)
+    const frozen = c
+      .nodes()
+      .filter((n) => !n.isParent() && (pinned.has(n.id()) || n.degree(false) === 0))
     frozen.lock()
     const side = Math.max(700, Math.round(Math.sqrt(freeLinked.length) * 260))
     c.layout({
@@ -236,23 +277,45 @@ function toElements(
   graph: Graph,
   positions: NodePositions,
   images: Record<string, string>,
-  sizes: Record<string, number>
+  sizes: Record<string, number>,
+  groups: MapGroup[],
+  cardText: Record<string, string>
 ): ElementDefinition[] {
+  // group frames become cytoscape compound parents; their members point at
+  // them and cytoscape does the "dragging the frame drags the family" part.
+  const nodeIds = new Set(graph.nodes.map((n) => n.id))
+  const parentOf = new Map<string, string>()
+  const parents: ElementDefinition[] = []
+  for (const g of groups) {
+    const present = g.members.filter((m) => nodeIds.has(m))
+    if (present.length === 0) continue
+    parents.push({
+      data: { id: `group:${g.id}`, label: g.title, fullLabel: g.title, type: 'group' },
+      classes: 'group'
+    })
+    for (const m of present) parentOf.set(m, `group:${g.id}`)
+  }
   const nodes = graph.nodes.map((n) => {
     // Image sources whose picture has resolved render as a photo node.
     const img = n.type === 'source' && n.kind === 'image' ? images[n.id] : undefined
+    const card = cardText[n.id]
     return {
       data: {
         id: n.id,
-        // Keep labels short so they don't overlap; the full title shows on hover.
-        label: n.label.length > 28 ? n.label.slice(0, 27) + '…' : n.label,
+        // Keep labels short so they don't overlap; the full title shows on
+        // hover. Card nodes carry their whole text instead.
+        label: card ?? (n.label.length > 28 ? n.label.slice(0, 27) + '…' : n.label),
         fullLabel: n.label,
         type: n.type,
+        ...(parentOf.has(n.id) ? { parent: parentOf.get(n.id) } : {}),
+        // rough height estimate for the card box; cytoscape can't size height
+        // from wrapped text, so we guess from length and call it design
+        ...(card ? { cardH: Math.min(240, 30 + Math.ceil(card.length / 32) * 13) } : {}),
         ...(n.color ? { color: n.color } : {}),
         ...(img ? { img, size: sizes[n.id] ?? 52 } : {})
       },
       position: positions[n.id] ? { ...positions[n.id] } : undefined,
-      classes: img ? `${n.type} image` : n.type
+      classes: [n.type, img ? 'image' : '', card ? 'card' : ''].filter(Boolean).join(' ')
     }
   })
   const edges = graph.edges.map((e) => ({
@@ -266,10 +329,10 @@ function toElements(
     },
     classes: e.kind
   }))
-  return [...nodes, ...edges]
+  return [...parents, ...nodes, ...edges]
 }
 
-type NodeType = 'source' | 'note' | 'concept'
+type NodeType = 'source' | 'note' | 'concept' | 'group'
 
 interface CtxMenu {
   x: number
@@ -343,7 +406,7 @@ export default function MapPanel(): React.JSX.Element {
   }
 
   // View filters — edges stay explicit by default; tag links are opt-in.
-  const [showTypes, setShowTypes] = useState<Record<NodeType, boolean>>({
+  const [showTypes, setShowTypes] = useState<Record<'source' | 'note' | 'concept', boolean>>({
     source: true,
     note: true,
     concept: true
@@ -352,6 +415,8 @@ export default function MapPanel(): React.JSX.Element {
   const [showMentionLinks, setShowMentionLinks] = useState(true)
   const [ctx, setCtx] = useState<CtxMenu | null>(null)
   const [renaming, setRenaming] = useState<Renaming | null>(null)
+  /** Naming a new group frame for the current selection. */
+  const [grouping, setGrouping] = useState<{ x: number; y: number; members: string[]; value: string } | null>(null)
   const [edgeEdit, setEdgeEdit] = useState<{ x: number; y: number; edgeId: string; value: string } | null>(null)
   const [tplOpen, setTplOpen] = useState(false)
   const [historyOpen, setHistoryOpen] = useState(false)
@@ -380,6 +445,23 @@ export default function MapPanel(): React.JSX.Element {
       }
     }
   }, [sources, activeRoomId, images])
+
+  // note cards: the on-canvas text for nodes the user flipped to card mode
+  const cardText = useMemo(() => {
+    const out: Record<string, string> = {}
+    for (const id of map.cards ?? []) {
+      if (!id.startsWith('note:')) continue
+      const note = notes.find((n) => `note:${n.id}` === id)
+      if (!note) continue
+      const body = note.body.replace(/^#[^\n]*\n?/, '').replace(/\s+/g, ' ').trim()
+      out[id] = `${note.title}\n\n${body.slice(0, 240)}${body.length > 240 ? '…' : ''}`
+    }
+    return out
+  }, [map.cards, notes])
+  const cardTextRef = useRef(cardText)
+  cardTextRef.current = cardText
+  const groupsRef = useRef<MapGroup[]>([])
+  groupsRef.current = map.groups ?? []
 
   // Hand-placed coordinates, kept in a ref so the long-lived cytoscape event
   // handlers always see the latest set (drags update it without a re-render).
@@ -439,7 +521,14 @@ export default function MapPanel(): React.JSX.Element {
     if (!host.current) return
     cy.current = cytoscape({
       container: host.current,
-      elements: toElements(graph, positionsRef.current, imagesRef.current, sizesRef.current),
+      elements: toElements(
+        graph,
+        positionsRef.current,
+        imagesRef.current,
+        sizesRef.current,
+        groupsRef.current,
+        cardTextRef.current
+      ),
       style: cyStyle(mapColors(useApp.getState().config?.theme ?? 'dark')),
       layout: { name: 'preset' },
       wheelSensitivity: 0.6,
@@ -456,10 +545,21 @@ export default function MapPanel(): React.JSX.Element {
       const moved = target.selected()
         ? cy.current!.$('node:selected').union(target)
         : target
-      moved.forEach((n) => {
+      const persistNode = (n: NodeSingular): void => {
         const p = n.position()
         positionsRef.current[n.id()] = { x: p.x, y: p.y }
         if (activeRoomId) void invoke('map:setPosition', activeRoomId, n.id(), p.x, p.y)
+      }
+      moved.forEach((n) => {
+        // a dragged group frame has no position of its own; what actually
+        // moved is everyone living inside it
+        if (n.isParent()) {
+          n.children().forEach((ch) => {
+            persistNode(ch)
+          })
+        } else {
+          persistNode(n)
+        }
       })
     })
 
@@ -477,6 +577,8 @@ export default function MapPanel(): React.JSX.Element {
 
     cy.current.on('tap', 'node', (evt) => {
       setCtx(null)
+      // tapping a group frame is just grabbing the box, no focus theatrics
+      if ((evt.target as cytoscape.NodeSingular).isParent()) return
       const id = evt.target.id()
       // Shift-click chains two nodes into a manual link.
       if (evt.originalEvent.shiftKey) {
@@ -567,15 +669,20 @@ export default function MapPanel(): React.JSX.Element {
       setCtx({ x: p.x, y: p.y, edgeId: evt.target.id(), edgeKind: evt.target.data('kind') })
     })
 
-    // Hover shows the full title and lifts the node.
+    // Hover shows the full title and lifts the node. Cards and group frames
+    // keep their label as is (swapping it would eat the card text).
     cy.current.on('mouseover', 'node', (evt) => {
-      evt.target.data('label', evt.target.data('fullLabel'))
-      evt.target.addClass('hovered')
+      const n = evt.target as cytoscape.NodeSingular
+      if (n.isParent() || n.hasClass('card')) return
+      n.data('label', n.data('fullLabel'))
+      n.addClass('hovered')
     })
     cy.current.on('mouseout', 'node', (evt) => {
-      const full = evt.target.data('fullLabel') as string
-      evt.target.data('label', full.length > 28 ? full.slice(0, 27) + '…' : full)
-      evt.target.removeClass('hovered')
+      const n = evt.target as cytoscape.NodeSingular
+      if (n.isParent() || n.hasClass('card')) return
+      const full = n.data('fullLabel') as string
+      n.data('label', full.length > 28 ? full.slice(0, 27) + '…' : full)
+      n.removeClass('hovered')
     })
 
     return () => {
@@ -592,10 +699,12 @@ export default function MapPanel(): React.JSX.Element {
     const c = cy.current
     c.batch(() => {
       c.elements().remove()
-      c.add(toElements(graph, positionsRef.current, images, sizesRef.current))
+      c.add(
+        toElements(graph, positionsRef.current, images, sizesRef.current, map.groups ?? [], cardText)
+      )
     })
     runLayout(c, new Set(Object.keys(positionsRef.current)))
-  }, [graph, images, map.sizes])
+  }, [graph, images, map.sizes, map.groups, cardText])
 
   // Undo/redo — buttons in the filter bar plus Ctrl+Z / Ctrl+Shift+Z / Ctrl+Y,
   // and Delete clears the current (box) selection.
@@ -634,7 +743,8 @@ export default function MapPanel(): React.JSX.Element {
       if (el.isNode()) {
         const id = el.id()
         const type = el.data('type') as NodeType
-        if (type === 'concept') await invoke('map:removeConcept', activeRoomId, id.replace(/^concept:/, ''))
+        if (type === 'group') await invoke('map:removeGroup', activeRoomId, id.replace(/^group:/, ''))
+        else if (type === 'concept') await invoke('map:removeConcept', activeRoomId, id.replace(/^concept:/, ''))
         else if (type === 'source') await invoke('map:excludeNode', activeRoomId, id)
         else await invoke('map:hideNode', activeRoomId, id)
       } else {
@@ -730,13 +840,37 @@ export default function MapPanel(): React.JSX.Element {
     const { nodeId, nodeType } = renaming
     setRenaming(null)
     if (!title) return
-    if (nodeType === 'concept') {
+    if (nodeType === 'group') {
+      await invoke('map:renameGroup', activeRoomId, nodeId.replace(/^group:/, ''), title)
+    } else if (nodeType === 'concept') {
       await invoke('map:renameConcept', activeRoomId, nodeId.replace(/^concept:/, ''), title)
     } else if (nodeType === 'note') {
       await invoke('notes:rename', activeRoomId, nodeId.replace(/^note:/, ''), title)
     } else {
       await invoke('sources:rename', activeRoomId, nodeId, title)
     }
+    await applyRoomData()
+  }
+
+  // group frames: name the box, the box holds the selection
+  const submitGroup = async (): Promise<void> => {
+    if (!grouping || !activeRoomId) return
+    const { members, value } = grouping
+    setGrouping(null)
+    if (!value.trim()) return
+    await invoke('map:addGroup', activeRoomId, value.trim(), members)
+    await applyRoomData()
+  }
+  const ungroup = async (groupNodeId: string): Promise<void> => {
+    if (!activeRoomId) return
+    setCtx(null)
+    await invoke('map:removeGroup', activeRoomId, groupNodeId.replace(/^group:/, ''))
+    await applyRoomData()
+  }
+  const toggleCard = async (nodeId: string): Promise<void> => {
+    if (!activeRoomId) return
+    setCtx(null)
+    await invoke('map:toggleCard', activeRoomId, nodeId)
     await applyRoomData()
   }
 
@@ -759,7 +893,7 @@ export default function MapPanel(): React.JSX.Element {
     await useApp.getState().refreshRoomData()
   }
 
-  const TypeChip = ({ type, label }: { type: NodeType; label: string }): React.JSX.Element => (
+  const TypeChip = ({ type, label }: { type: 'source' | 'note' | 'concept'; label: string }): React.JSX.Element => (
     <button
       onClick={() => setShowTypes((s) => ({ ...s, [type]: !s[type] }))}
       className={`flex items-center gap-1 rounded-full border px-2 py-0.5 text-[10px] transition ${
@@ -965,15 +1099,31 @@ export default function MapPanel(): React.JSX.Element {
           >
             {/* Right-clicking inside a multi-selection acts on the whole set. */}
             {(ctx.selCount ?? 0) > 1 && (
-              <button
-                className="block w-full px-3 py-1.5 text-left text-red-400 hover:bg-neutral-800"
-                onClick={() => {
-                  setCtx(null)
-                  void deleteSelection()
-                }}
-              >
-                {t('map.ctx.deleteSelected', { count: ctx.selCount! })}
-              </button>
+              <>
+                <button
+                  className="block w-full px-3 py-1.5 text-left text-neutral-200 hover:bg-neutral-800"
+                  onClick={() => {
+                    const members =
+                      cy.current
+                        ?.$('node:selected')
+                        .filter((n) => !(n as NodeSingular).isParent())
+                        .map((n) => n.id()) ?? []
+                    setGrouping({ x: ctx.x, y: ctx.y, members, value: '' })
+                    setCtx(null)
+                  }}
+                >
+                  {t('map.ctx.groupSelection', { count: ctx.selCount! })}
+                </button>
+                <button
+                  className="block w-full px-3 py-1.5 text-left text-red-400 hover:bg-neutral-800"
+                  onClick={() => {
+                    setCtx(null)
+                    void deleteSelection()
+                  }}
+                >
+                  {t('map.ctx.deleteSelected', { count: ctx.selCount! })}
+                </button>
+              </>
             )}
             {ctx.nodeId && ctx.nodeType && (
               <button
@@ -1016,11 +1166,27 @@ export default function MapPanel(): React.JSX.Element {
               </button>
             )}
             {ctx.nodeId && ctx.nodeType === 'note' && (
+              <>
+                <button
+                  className="block w-full px-3 py-1.5 text-left text-neutral-200 hover:bg-neutral-800"
+                  onClick={() => void toggleCard(ctx.nodeId!)}
+                >
+                  {t((map.cards ?? []).includes(ctx.nodeId) ? 'map.ctx.hideCard' : 'map.ctx.showCard')}
+                </button>
+                <button
+                  className="block w-full px-3 py-1.5 text-left text-neutral-200 hover:bg-neutral-800"
+                  onClick={() => void hideNode(ctx.nodeId!)}
+                >
+                  {t('map.ctx.hideNode')}
+                </button>
+              </>
+            )}
+            {ctx.nodeId && ctx.nodeType === 'group' && (
               <button
                 className="block w-full px-3 py-1.5 text-left text-neutral-200 hover:bg-neutral-800"
-                onClick={() => void hideNode(ctx.nodeId!)}
+                onClick={() => void ungroup(ctx.nodeId!)}
               >
-                {t('map.ctx.hideNode')}
+                {t('map.ctx.ungroup')}
               </button>
             )}
             {ctx.edgeId && (ctx.edgeKind === 'manual' || ctx.edgeKind === 'ai-suggested') && (
@@ -1083,6 +1249,24 @@ export default function MapPanel(): React.JSX.Element {
             placeholder={t('map.ctx.editLabel')}
             className="absolute z-50 w-44 rounded-md border border-accent/60 bg-neutral-900 px-2 py-1.5 text-xs text-neutral-100 shadow-2xl shadow-black/50 outline-none"
             style={{ left: edgeEdit.x, top: edgeEdit.y }}
+          />
+        )}
+
+        {/* Naming the new group frame, anchored where the menu was. */}
+        {grouping && (
+          <input
+            autoFocus
+            value={grouping.value}
+            onChange={(e) => setGrouping({ ...grouping, value: e.target.value })}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter') void submitGroup()
+              if (e.key === 'Escape') setGrouping(null)
+            }}
+            onBlur={() => setGrouping(null)}
+            onClick={(e) => e.stopPropagation()}
+            placeholder={t('map.groupNamePlaceholder')}
+            className="absolute z-50 w-52 rounded-md border border-accent/60 bg-neutral-900 px-2 py-1.5 text-xs text-neutral-100 shadow-2xl shadow-black/50 outline-none"
+            style={{ left: grouping.x, top: grouping.y }}
           />
         )}
 

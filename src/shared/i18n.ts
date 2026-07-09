@@ -43,7 +43,6 @@ const tr = {
   'settings.adblock.allowlistPlaceholder': 'example.com\nnews.site',
   'settings.background': 'Arka plan',
   'settings.background.choose': 'Resim seç…',
-  'settings.background.icon': 'Maskot filigranı',
   'settings.theme.system': 'Sistem temasına uy (koyu/açık kendiliğinden değişir)',
   'settings.appIcon': 'Uygulama ikonu',
   'settings.appIcon.hint': 'Pencere ve görev çubuğu ikonu seçtiğin görsel olur. Arka planla alakası yok, o ayrı ayar.',
@@ -185,7 +184,6 @@ const tr = {
   'shortcuts.roomSearch': 'Odada ara (tam metin)',
   'shortcuts.history': 'Geçmiş',
   'shortcuts.fullscreen': 'Tam ekran',
-  'shortcuts.trueFullscreen': 'Gerçek tam ekran (arayüz komple gizlenir, sadece sayfa)',
   'shortcuts.help': 'Bu listeyi aç/kapat',
 
   'video.button': 'Videoyu odaya indir / klipsle (yt-dlp)',
@@ -241,6 +239,9 @@ const tr = {
   'onboard.keys.title': 'Kısayollar',
   'onboard.keys.body':
     'Ctrl+T komut çubuğu (yeni sekme, arama, komutlar) · Ctrl+F sayfada bul · Ctrl+Shift+F odada ara. Tam liste için istediğin an "?" tuşuna bas.',
+  'onboard.settings.title': 'Ayarlar maskotun altında',
+  'onboard.settings.body':
+    'Sol üstteki wisp’e (maskota) tıkla, ayarlar açılır. Tema, arka plan, arama motoru, compact mod, hepsi orada. Küçük adam süs değil yani.',
   'onboard.welcome.title': 'İşte bu kadar',
   'onboard.welcome.body':
     'Wisp bu. Tek kişinin işi, sonsuza dek ücretsiz, MIT lisanslı — hesap yok, bulut yok, gizli bir şey yok. Bir yerde takılırsan ya da fikrin olursa GitHub kapımız açık. Beğenirsen bir ⭐ günümü yapar. Hadi git bir şeyler araştır.',
@@ -321,6 +322,11 @@ const tr = {
   'map.tagLinks.hint': 'Aynı etiketi paylaşan düğümler arasında yumuşak bağlar göster (varsayılan kapalı)',
   'map.find': 'Haritada bul…',
   'map.fit': 'Tümünü sığdır',
+  'map.ctx.groupSelection': 'Seçimi çerçevele ({count})',
+  'map.groupNamePlaceholder': 'Grup adı…',
+  'map.ctx.ungroup': 'Çerçeveyi dağıt (içindekiler kalır)',
+  'map.ctx.showCard': 'Not metnini kartta göster',
+  'map.ctx.hideCard': 'Kart metnini gizle',
   'map.mentionLinks': 'Ad bağları',
   'map.mentionLinks.hint':
     'Bir not başka bir düğümün adını geçirdiğinde otomatik bağ kur (ör. "monosodium" yazan not, monosodium kavramına bağlanır)',
@@ -467,9 +473,10 @@ const tr = {
   'update.noLog': 'Bu sürüm için not bulunamadı.',
 
   'settings.compact': 'Compact mod',
-  'settings.compact.toggle': 'Kenar çubuğu ve üst çubuk kullanılmadığında kenara çekilsin',
+  'settings.compact.sidebar': 'Kenar çubuğu kullanılmadığında gizlensin',
+  'settings.compact.toolbar': 'Üst çubuk kullanılmadığında gizlensin',
   'settings.compact.hint':
-    'Fare sol kenardaki ince şeride gelince kenar çubuğu, üst kenara gelince araç çubuğu geri açılır.',
+    'Fare sol kenardaki ince şeride gelince kenar çubuğu, üst kenara gelince araç çubuğu geri açılır. İkisi ayrı ayrı açılıp kapanır.',
   'settings.compact.reveal': 'Açılma şeridi genişliği (hassasiyet)',
   'settings.compact.delay': 'Gizlenme gecikmesi',
   'rail.dropHere': 'Buraya bırak',
@@ -553,7 +560,6 @@ const en: typeof tr = {
   'settings.adblock.allowlistPlaceholder': 'example.com\nnews.site',
   'settings.background': 'Background',
   'settings.background.choose': 'Choose image…',
-  'settings.background.icon': 'Mascot watermark',
   'settings.background.none': 'None',
   'settings.theme.system': 'Follow the system theme (dark/light flips on its own)',
   'settings.appIcon': 'App icon',
@@ -695,7 +701,6 @@ const en: typeof tr = {
   'shortcuts.roomSearch': 'Search in room (full text)',
   'shortcuts.history': 'History',
   'shortcuts.fullscreen': 'Fullscreen',
-  'shortcuts.trueFullscreen': 'True fullscreen (every bit of ui hides, page only)',
   'shortcuts.help': 'Toggle this list',
 
   'video.button': 'Download / clip video into the room (yt-dlp)',
@@ -755,6 +760,9 @@ const en: typeof tr = {
   'onboard.keys.title': 'Shortcuts',
   'onboard.keys.body':
     'Ctrl+T command bar (new tab, search, commands) · Ctrl+F find in page · Ctrl+Shift+F search the room. Press "?" anytime for the full list.',
+  'onboard.settings.title': 'Settings live under the mascot',
+  'onboard.settings.body':
+    'Click the wisp in the top left corner and settings open. Theme, background, search engine, compact mode, all of it. The little guy is not just decoration.',
 
   'map.templates': 'Templates',
   'map.templates.hint': 'Start from a ready-made scheme — all plain nodes, edit freely.',
@@ -831,6 +839,11 @@ const en: typeof tr = {
   'map.tagLinks.hint': 'Show soft links between nodes that share a tag (off by default)',
   'map.find': 'Find on map…',
   'map.fit': 'Fit everything',
+  'map.ctx.groupSelection': 'Frame the selection ({count})',
+  'map.groupNamePlaceholder': 'Group name…',
+  'map.ctx.ungroup': 'Dissolve the frame (contents stay)',
+  'map.ctx.showCard': 'Show note text on the card',
+  'map.ctx.hideCard': 'Hide the card text',
   'map.mentionLinks': 'Name links',
   'map.mentionLinks.hint':
     'Auto-link when a note mentions another node\'s name (e.g. a note that says "monosodium" links to the monosodium concept)',
@@ -977,9 +990,10 @@ const en: typeof tr = {
   'update.noLog': 'No notes for this release.',
 
   'settings.compact': 'Compact mode',
-  'settings.compact.toggle': 'Tuck the sidebar and the toolbar away when unused',
+  'settings.compact.sidebar': 'Tuck the sidebar away when unused',
+  'settings.compact.toolbar': 'Tuck the top toolbar away when unused',
   'settings.compact.hint':
-    'The sidebar glides back when the pointer touches the thin strip on the left edge, the toolbar when it touches the top.',
+    'The sidebar glides back when the pointer touches the thin strip on the left edge, the toolbar when it touches the top. Each one toggles on its own.',
   'settings.compact.reveal': 'Reveal strip width (sensitivity)',
   'settings.compact.delay': 'Hide delay',
   'rail.dropHere': 'Drop here',

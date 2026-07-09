@@ -36,10 +36,9 @@ function shortcutFor(input: Input): string | null {
   if (input.type !== 'keyDown') return null
   // F5 reloads even without a modifier, and works while a page has key focus.
   if (input.key === 'F5' && !input.control && !input.alt && !input.meta) return 'reload'
-  // F11 fullscreen, shift+F11 true fullscreen (the one where the whole ui gets
-  // out of your face). these must work while a page has focus, obviously.
-  if (input.key === 'F11' && !input.control && !input.alt && !input.meta) {
-    return input.shift ? 'true-fullscreen' : 'fullscreen'
+  // F11 fullscreen, works while a page has focus too, obviously.
+  if (input.key === 'F11' && !input.control && !input.shift && !input.alt && !input.meta) {
+    return 'fullscreen'
   }
   if (!input.control || input.alt || input.meta) return null
   const key = input.key.toLowerCase()
