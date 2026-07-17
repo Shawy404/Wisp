@@ -180,8 +180,15 @@ async function openverse(query: string, f: FetchFn): Promise<SourceItem[]> {
 }
 
 /** Optional clean general web via DuckDuckGo's HTML endpoint (best effort). */
-async function duckduckgo(query: string, f: FetchFn): Promise<SourceItem[]> {
-  const url = `https://html.duckduckgo.com/html/?q=${encodeURIComponent(query)}`
+async function duckduckgo(
+  query: string,
+  f: FetchFn,
+  opts: { kind: 'web' | 'pdf'; region?: string } = { kind: 'web' }
+): Promise<SourceItem[]> {
+  // kl is ddg's region knob ("tr-tr", "us-en"…) — without it the endpoint
+  // guesses from the server's side and everyone gets someone else's internet.
+  const kl = opts.region ? `&kl=${encodeURIComponent(opts.region)}` : ''
+  const url = `https://html.duckduckgo.com/html/?q=${encodeURIComponent(query)}${kl}`
   const res = await f(url, { headers: UA })
   if (!res.ok) throw new Error(`DuckDuckGo ${res.status}`)
   const html = await res.text()
@@ -204,7 +211,7 @@ async function duckduckgo(query: string, f: FetchFn): Promise<SourceItem[]> {
     out.push(
       makeSource(
         {
-          kind: 'web',
+          kind: opts.kind,
           title: strip(m[2]),
           abstract: m[3] ? strip(m[3]).slice(0, 400) : undefined,
           venue: new URL(href).hostname,
@@ -215,6 +222,14 @@ async function duckduckgo(query: string, f: FetchFn): Promise<SourceItem[]> {
     )
   }
   return out
+}
+
+/** The PDF bucket: same ddg endpoint, query pinned to filetype:pdf. */
+async function duckduckgoPdfs(query: string, f: FetchFn, region?: string): Promise<SourceItem[]> {
+  const items = await duckduckgo(`${query} filetype:pdf`, f, { kind: 'pdf', region })
+  // ddg mostly honors filetype:, but the odd html page sneaks through — keep
+  // the tab honest and only show links that actually end in .pdf.
+  return items.filter((s) => s.url && /\.pdf(\?|#|$)/i.test(s.url))
 }
 
 async function settle(
@@ -230,17 +245,33 @@ async function settle(
   }
 }
 
-/** Fires every backend in parallel and aggregates. Never throws. */
-export async function runSearch(query: string, fetchFn: FetchFn): Promise<SearchResults> {
+/**
+ * Fires every backend in parallel and aggregates. Never throws.
+ * `locale` is the OS locale ("tr-TR", "en-US", "de-DE"…) — it used to be
+ * hardcoded to turkish-first, which was great for exactly one person (me).
+ * Now the local-language wikipedia leads (english still tags along) and
+ * duckduckgo gets the matching region.
+ */
+export async function runSearch(
+  query: string,
+  fetchFn: FetchFn,
+  locale?: string
+): Promise<SearchResults> {
   const errors: string[] = []
-  const [s2, cr, ax, wtr, wen, img, web] = await Promise.all([
+  const lang = (locale?.split('-')[0] ?? 'en').toLowerCase() || 'en'
+  const country = locale?.split('-')[1]?.toLowerCase()
+  const region = lang && country ? `${country}-${lang}` : undefined
+  // Local-language wiki first, english as the fallback column; when the system
+  // already speaks english that's just one wiki instead of a duplicate pair.
+  const wikiLangs = [...new Set([lang, 'en'])]
+  const [s2, cr, ax, img, web, pdfs, ...wikis] = await Promise.all([
     settle('semantic-scholar', semanticScholar(query, fetchFn), errors),
     settle('crossref', crossref(query, fetchFn), errors),
     settle('arxiv', arxiv(query, fetchFn), errors),
-    settle('wikipedia-tr', wikipedia(query, 'tr', fetchFn), errors),
-    settle('wikipedia-en', wikipedia(query, 'en', fetchFn), errors),
     settle('openverse', openverse(query, fetchFn), errors),
-    settle('duckduckgo', duckduckgo(query, fetchFn), errors)
+    settle('duckduckgo', duckduckgo(query, fetchFn, { kind: 'web', region }), errors),
+    settle('duckduckgo-pdf', duckduckgoPdfs(query, fetchFn, region), errors),
+    ...wikiLangs.map((wl) => settle(`wikipedia-${wl}`, wikipedia(query, wl, fetchFn), errors))
   ])
   const dedupe = (items: SourceItem[]): SourceItem[] => {
     const seen = new Set<string>()
@@ -250,9 +281,10 @@ export async function runSearch(query: string, fetchFn: FetchFn): Promise<Search
     query,
     classification: classifyQuery(query),
     academic: dedupe([...s2, ...ax, ...cr]),
-    wiki: dedupe([...wtr, ...wen]),
+    wiki: dedupe(wikis.flat()),
     images: dedupe(img),
     web: dedupe(web),
+    pdfs: dedupe(pdfs),
     errors
   }
 }

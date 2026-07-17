@@ -1,9 +1,10 @@
 // Wisp. © Shawy404, MIT.
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { changelogFor } from '@shared/changelog'
 import { invoke, useApp, useT } from '@/store'
+import { Icon } from './icons'
 
-type Phase = 'available' | 'downloading' | 'ready' | 'error'
+type Phase = 'available' | 'downloading' | 'paused' | 'ready' | 'error'
 
 interface UpdateState {
   version: string
@@ -90,6 +91,8 @@ export default function UpdateBanner(): React.JSX.Element | null {
   const [error, setError] = useState('')
   const [dismissed, setDismissed] = useState(false)
   const [showLog, setShowLog] = useState(false)
+  // The demo download's fake ticker, kept in a ref so pause can freeze it.
+  const demoTimer = useRef<ReturnType<typeof setInterval> | null>(null)
 
   useEffect(() => {
     const offAvailable = window.wisp.on('update:available', (info) => {
@@ -102,7 +105,9 @@ export default function UpdateBanner(): React.JSX.Element | null {
     })
     const offProgress = window.wisp.on('update:progress', (p) => {
       setProgress(p as Progress)
-      setUpdate((prev) => (prev ? { ...prev, phase: 'downloading' } : prev))
+      // A straggler progress event can land right after a pause — don't let
+      // it flip the phase back and make the pause button lie.
+      setUpdate((prev) => (prev && prev.phase !== 'paused' ? { ...prev, phase: 'downloading' } : prev))
     })
     const offReady = window.wisp.on('update:ready', (info) => {
       const { version, notes } = info as { version: string; notes?: string }
@@ -113,6 +118,9 @@ export default function UpdateBanner(): React.JSX.Element | null {
     const offError = window.wisp.on('update:error', (info) => {
       setError((info as { message?: string }).message ?? '')
       setUpdate((prev) => (prev && prev.phase === 'downloading' ? { ...prev, phase: 'error' } : prev))
+    })
+    const offPaused = window.wisp.on('update:paused', () => {
+      setUpdate((prev) => (prev && prev.phase === 'downloading' ? { ...prev, phase: 'paused' } : prev))
     })
     // Settings → "Preview update" fires this so the whole banner→download→ready
     // animation can be seen without waiting for a real release.
@@ -128,13 +136,14 @@ export default function UpdateBanner(): React.JSX.Element | null {
       offProgress()
       offReady()
       offError()
+      offPaused()
       window.removeEventListener('wisp:demo-update', onDemo)
     }
   }, [])
 
   // Hide the native page view while the download/log overlay is up, same trick
   // the command palette uses, so the overlay isn't drawn underneath it.
-  const overlayUp = showLog || (!!update && (update.phase === 'downloading' || update.phase === 'ready' || update.phase === 'error'))
+  const overlayUp = showLog || (!!update && update.phase !== 'available')
   useEffect(() => {
     if (overlayUp) void invoke('viewport:visible', false)
     else void invoke('viewport:visible', useApp.getState().overlay === 'none')
@@ -145,38 +154,66 @@ export default function UpdateBanner(): React.JSX.Element | null {
   const fallback = changelogFor(update.version)
   const logText = update.notes.trim() || fallback?.notes[lang].map((n) => `• ${n}`).join('\n') || ''
 
+  // Fake a ~4s download so the animation can be watched end to end. Takes a
+  // starting percent so the demo's pause button resumes where it stopped.
+  const runDemoTicker = (fromPct: number): void => {
+    const total = 158 * 1024 ** 2
+    let pct = fromPct
+    if (demoTimer.current) clearInterval(demoTimer.current)
+    demoTimer.current = setInterval(() => {
+      pct = Math.min(100, pct + 4 + Math.random() * 6)
+      setProgress({
+        percent: pct,
+        transferred: (pct / 100) * total,
+        total,
+        bytesPerSecond: (12 + Math.random() * 8) * 1024 ** 2
+      })
+      if (pct >= 100) {
+        if (demoTimer.current) clearInterval(demoTimer.current)
+        demoTimer.current = null
+        setProgress(null)
+        setUpdate({ version: '0.1.7 (demo)', notes: '', phase: 'ready', demo: true })
+      }
+    }, 250)
+  }
+
   const startDownload = (): void => {
     setError('')
     setProgress({ percent: 0, transferred: 0, total: 0, bytesPerSecond: 0 })
     setUpdate((prev) => (prev ? { ...prev, phase: 'downloading' } : prev))
     if (update?.demo) {
-      // Fake a ~4s download so the animation can be watched end to end.
-      const total = 158 * 1024 ** 2
-      let pct = 0
-      const timer = setInterval(() => {
-        pct = Math.min(100, pct + 4 + Math.random() * 6)
-        setProgress({
-          percent: pct,
-          transferred: (pct / 100) * total,
-          total,
-          bytesPerSecond: (12 + Math.random() * 8) * 1024 ** 2
-        })
-        if (pct >= 100) {
-          clearInterval(timer)
-          setProgress(null)
-          setUpdate({ version: '0.1.7 (demo)', notes: '', phase: 'ready', demo: true })
-        }
-      }, 250)
+      runDemoTicker(0)
       return
     }
+    void invoke('update:download')
+  }
+
+  const pauseDownload = (): void => {
+    if (update?.demo) {
+      if (demoTimer.current) clearInterval(demoTimer.current)
+      demoTimer.current = null
+      setUpdate((prev) => (prev ? { ...prev, phase: 'paused' } : prev))
+      return
+    }
+    void invoke('update:pause')
+  }
+
+  const resumeDownload = (): void => {
+    setUpdate((prev) => (prev ? { ...prev, phase: 'downloading' } : prev))
+    if (update?.demo) {
+      runDemoTicker(progress?.percent ?? 0)
+      return
+    }
+    // A "resume" is really a fresh downloadUpdate(); the differential
+    // downloader reuses what already landed so the bar catches up fast.
     void invoke('update:download')
   }
 
   // --- The announcement bar (before the user commits to downloading). ---
   const banner = update.phase === 'available' && (
     <div className="flex items-center gap-3 border-b border-accent/30 bg-accent/10 px-4 py-2">
-      <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-accent/20 text-xs text-accent">
-        ↑
+      <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-accent/20 text-accent">
+        <Icon name="arrow-up" size={12} />
       </span>
       <div className="min-w-0 flex-1 truncate text-xs text-neutral-100">
         {t('update.available', { version: update.version })}
@@ -203,11 +240,12 @@ export default function UpdateBanner(): React.JSX.Element | null {
   )
 
   // --- The in-app download / ready / error overlay, with the wisp bobbing. ---
-  const overlay = (update.phase === 'downloading' || update.phase === 'ready' || update.phase === 'error') && (
+  const overlay = (update.phase === 'downloading' || update.phase === 'paused' || update.phase === 'ready' || update.phase === 'error') && (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60">
-      <div className="w-[380px] rounded-2xl border border-neutral-700 bg-neutral-900 p-6 shadow-2xl">
+      <div className="wisp-pop w-[380px] rounded-2xl border border-neutral-700 bg-neutral-900 p-6 shadow-2xl">
         <div className="flex flex-col items-center gap-4">
-          <div className="wisp-orb wisp-orb--update">
+          {/* the wisp holds its breath while the download is paused */}
+          <div className={`wisp-orb wisp-orb--update ${update.phase === 'paused' ? 'wisp-orb--paused' : ''}`}>
             <span className="wisp-eye" />
             <span className="wisp-eye" />
           </div>
@@ -255,11 +293,21 @@ export default function UpdateBanner(): React.JSX.Element | null {
           ) : (
             <>
               <div className="text-sm font-semibold text-neutral-100">
-                {t('update.downloading', { version: update.version })}
+                {update.phase === 'paused'
+                  ? t('update.pausedTitle')
+                  : t('update.downloading', { version: update.version })}
               </div>
-              <div className="h-1.5 w-full overflow-hidden rounded-full bg-neutral-800">
+              <div
+                className="h-1.5 w-full overflow-hidden rounded-full bg-neutral-800"
+                role="progressbar"
+                aria-valuenow={Math.round(progress?.percent ?? 0)}
+                aria-valuemin={0}
+                aria-valuemax={100}
+              >
                 <div
-                  className="h-full rounded-full bg-accent transition-[width] duration-200"
+                  className={`h-full rounded-full bg-accent transition-[width] duration-200 ${
+                    update.phase === 'paused' ? 'opacity-50' : ''
+                  }`}
                   style={{ width: `${Math.round(progress?.percent ?? 0)}%` }}
                 />
               </div>
@@ -268,8 +316,25 @@ export default function UpdateBanner(): React.JSX.Element | null {
                 {progress && progress.total > 0 && (
                   <span>
                     {fmtMB(progress.transferred)} / {fmtMB(progress.total)} MB
-                    {progress.bytesPerSecond > 0 && ` · ${fmtMB(progress.bytesPerSecond)} MB/s`}
+                    {update.phase === 'downloading' && progress.bytesPerSecond > 0 && ` · ${fmtMB(progress.bytesPerSecond)} MB/s`}
                   </span>
+                )}
+              </div>
+              <div className="mt-1 flex gap-2">
+                {update.phase === 'paused' ? (
+                  <button
+                    className="rounded-md bg-accent/80 px-3 py-1.5 text-xs font-medium text-neutral-950 hover:bg-accent"
+                    onClick={resumeDownload}
+                  >
+                    {t('update.resume')}
+                  </button>
+                ) : (
+                  <button
+                    className="rounded-md bg-neutral-800 px-3 py-1.5 text-xs text-neutral-200 hover:bg-neutral-700"
+                    onClick={pauseDownload}
+                  >
+                    {t('update.pause')}
+                  </button>
                 )}
               </div>
             </>
@@ -290,7 +355,7 @@ export default function UpdateBanner(): React.JSX.Element | null {
           onClick={() => setShowLog(false)}
         >
           <div
-            className="flex max-h-[70vh] w-[440px] flex-col overflow-hidden rounded-xl border border-neutral-700 bg-neutral-900 shadow-2xl"
+            className="wisp-pop flex max-h-[70vh] w-[440px] flex-col overflow-hidden rounded-xl border border-neutral-700 bg-neutral-900 shadow-2xl"
             onClick={(e) => e.stopPropagation()}
           >
             <div className="flex items-center gap-2 border-b border-neutral-800 px-4 py-3">
@@ -300,8 +365,9 @@ export default function UpdateBanner(): React.JSX.Element | null {
               <button
                 className="ml-auto rounded px-2 py-0.5 text-xs text-neutral-500 hover:bg-neutral-800 hover:text-neutral-200"
                 onClick={() => setShowLog(false)}
+                aria-label={t('update.later')}
               >
-                ✕
+                <Icon name="close" size={12} />
               </button>
             </div>
             <div className="flex-1 overflow-y-auto px-4 py-3">

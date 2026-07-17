@@ -1,6 +1,15 @@
 // Wisp. © Shawy404, MIT.
 import { create } from 'zustand'
-import type { MapData, NoteInfo, RoomData, RoomMeta, SourceItem, TabInfo, WispConfig } from '@shared/types'
+import {
+  PRIVATE_ROOM_ID,
+  type MapData,
+  type NoteInfo,
+  type RoomData,
+  type RoomMeta,
+  type SourceItem,
+  type TabInfo,
+  type WispConfig
+} from '@shared/types'
 import { translate, type TKey } from '@shared/i18n'
 
 export type Overlay =
@@ -60,6 +69,9 @@ interface AppState {
   fullscreen: boolean
   setFullscreen: (on: boolean) => void
 
+  /** Enter/leave the private room (in-memory session, no history, no traces). */
+  togglePrivateMode: () => Promise<void>
+
   init: () => Promise<void>
   refreshRoomData: (roomId?: string) => Promise<void>
   setOverlay: (overlay: Overlay) => void
@@ -74,6 +86,7 @@ interface AppState {
   createRoom: (name: string) => Promise<void>
   deleteRoom: (id: string) => Promise<void>
   renameRoom: (id: string, name: string) => Promise<void>
+  setRoomColor: (id: string, color: string) => Promise<void>
   archiveRoom: (id: string) => Promise<void>
   restoreRoom: (id: string) => Promise<void>
   switchRoom: (id: string) => Promise<void>
@@ -129,6 +142,14 @@ export const useApp = create<AppState>((set, get) => ({
   setFullscreen: (on) => {
     void invoke('window:fullscreen', on)
     set({ fullscreen: on })
+  },
+
+  togglePrivateMode: async () => {
+    const inPrivate = get().activeRoomId === PRIVATE_ROOM_ID
+    const res = await invoke<{ on: boolean; activeRoomId: string | null }>('private:set', !inPrivate)
+    set({ activeRoomId: res.activeRoomId, overlay: 'none' })
+    void invoke('viewport:visible', true)
+    await get().refreshRoomData(res.activeRoomId ?? undefined)
   },
 
   init: async () => {
@@ -233,6 +254,11 @@ export const useApp = create<AppState>((set, get) => ({
 
   renameRoom: async (id, name) => {
     await invoke('rooms:rename', id, name)
+    set({ rooms: await invoke<RoomMeta[]>('rooms:list') })
+  },
+
+  setRoomColor: async (id, color) => {
+    await invoke('rooms:color', id, color)
     set({ rooms: await invoke<RoomMeta[]>('rooms:list') })
   },
 

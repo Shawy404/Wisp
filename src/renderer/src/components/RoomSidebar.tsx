@@ -1,9 +1,10 @@
 // Wisp. © Shawy404, MIT.
 import { useEffect, useRef, useState } from 'react'
-import type { RoomMeta } from '@shared/types'
+import { PRIVATE_ROOM_ID, type RoomMeta } from '@shared/types'
 import { invoke, useApp, useT, type Overlay } from '@/store'
 import VerticalTabs from './VerticalTabs'
 import SidebarWidgets from './SidebarWidgets'
+import { Icon } from './icons'
 import { RAIL_DND_TYPE, railItemsFor, type RailItem } from './railItems'
 
 export function RailButton(props: {
@@ -32,6 +33,9 @@ export function RailButton(props: {
 
 const EXPANDED_W = 224
 
+/** The room color palette: distinct at 5px, not neon at 20. Custom via the picker. */
+const ROOM_COLORS = ['#7dd3a8', '#8ab4f8', '#f8b48a', '#c58af8', '#f87d9a', '#e8d47d', '#7dd3ce', '#b0b7c3']
+
 /**
  * Sidebar: rooms as a dot row up top, pinned tabs and the vertical tab list
  * in the middle, panel rail at the bottom. Collapsible to an icon-only rail —
@@ -44,7 +48,7 @@ export default function RoomSidebar(): React.JSX.Element {
   const overlay = useApp((s) => s.overlay)
   const config = useApp((s) => s.config)
   const draggingTab = useApp((s) => s.draggingTab)
-  const { switchRoom, createRoom, deleteRoom, renameRoom, archiveRoom, restoreRoom, setOverlay, placeRailItem } =
+  const { switchRoom, createRoom, deleteRoom, renameRoom, setRoomColor, archiveRoom, restoreRoom, setOverlay, placeRailItem } =
     useApp.getState()
   const [railDropHot, setRailDropHot] = useState(false)
   const t = useT()
@@ -122,6 +126,7 @@ export default function RoomSidebar(): React.JSX.Element {
   }
 
   const room = rooms.find((r) => r.id === activeRoomId)
+  const inPrivate = activeRoomId === PRIVATE_ROOM_ID
   const toggle = (o: Overlay): void => setOverlay(overlay === o ? 'none' : o)
 
   // Rail buttons placed on the sidebar, split by group so the divider only
@@ -141,7 +146,7 @@ export default function RoomSidebar(): React.JSX.Element {
       onClick={() => toggle(item.id)}
       onDragStart={(e) => startRailDrag(e, item)}
     >
-      {item.icon}
+      <Icon name={item.icon} size={16} />
     </RailButton>
   )
 
@@ -174,16 +179,18 @@ export default function RoomSidebar(): React.JSX.Element {
     >
       {/* The sliver that stays visible while the compact sidebar is tucked away. */}
       {hidden && (
-        <div className="absolute inset-y-0 left-0 w-full border-r border-neutral-800/60 bg-neutral-925">
+        <div className="absolute inset-y-0 left-0 w-full bg-transparent">
           <div className="absolute inset-y-[35%] left-[2px] w-[3px] rounded-full bg-accent/40" />
         </div>
       )}
 
+      {/* the sidebar floats as its own card on the workspace, page-card style.
+          no overflow-hidden here: it was decapitating the room dropdown menu */}
       <div
-        className={`wisp-chrome flex h-full flex-col border-r border-neutral-800/60 bg-neutral-925 transition-opacity duration-150 ${
-          hidden ? 'pointer-events-none opacity-0' : 'opacity-100'
-        }`}
-        style={{ width: compact ? EXPANDED_W : undefined }}
+        className={`wisp-chrome flex h-[calc(100%-16px)] flex-col rounded-xl border border-white/[0.06] shadow-[0_4px_16px_rgba(0,0,0,0.3)] transition-opacity duration-150 ${
+          config?.chromeBlur ? 'bg-neutral-925/85 backdrop-blur-md' : 'bg-neutral-925'
+        } ${hidden ? 'pointer-events-none opacity-0' : 'opacity-100'} my-2 ml-2`}
+        style={{ width: compact ? EXPANDED_W - 8 : undefined }}
       >
         {/* Oda değiştirici: her oda bir renk noktası */}
         <div
@@ -197,12 +204,28 @@ export default function RoomSidebar(): React.JSX.Element {
               onClick={() => void switchRoom(r.id)}
               data-tip={r.name}
               data-tip-pos="bottom"
+              aria-label={r.name}
               className={`flex h-5 w-5 items-center justify-center rounded-full transition-transform hover:scale-110 ${
                 r.id === activeRoomId ? 'ring-2 ring-white/70 ring-offset-1 ring-offset-neutral-925' : ''
               }`}
               style={{ background: r.color }}
             />
           ))}
+          {/* the private room rides along as a shaded dot while you're in it —
+              it's not a real (disk) room, so it's not in the rooms list */}
+          {inPrivate && (
+            <span
+              className="flex h-5 w-5 items-center justify-center rounded-full bg-neutral-800 ring-2 ring-accent/70 ring-offset-1 ring-offset-neutral-925"
+              data-tip={t('private.roomName')}
+              data-tip-pos="bottom"
+            >
+              <svg width="11" height="11" viewBox="0 0 14 14" fill="none" aria-hidden="true">
+                <path d="M1 5 h12" stroke="#a3a3a3" strokeWidth="1.4" strokeLinecap="round" />
+                <path d="M2.2 5 a2.3 2.3 0 1 0 4.6 0" stroke="#a3a3a3" strokeWidth="1.4" fill="#a3a3a3" />
+                <path d="M7.2 5 a2.3 2.3 0 1 0 4.6 0" stroke="#a3a3a3" strokeWidth="1.4" fill="#a3a3a3" />
+              </svg>
+            </span>
+          )}
           <button
             onClick={() => {
               setCollapsed(false)
@@ -210,9 +233,10 @@ export default function RoomSidebar(): React.JSX.Element {
             }}
             data-tip={t('sidebar.newRoom')}
             data-tip-pos="bottom"
-            className="flex h-5 w-5 items-center justify-center rounded-full border border-dashed border-neutral-600 text-[11px] text-neutral-500 hover:border-neutral-400 hover:text-neutral-300"
+            aria-label={t('sidebar.newRoom')}
+            className="flex h-5 w-5 items-center justify-center rounded-full border border-dashed border-neutral-600 text-neutral-500 hover:border-neutral-400 hover:text-neutral-300"
           >
-            +
+            <Icon name="plus" size={10} />
           </button>
         </div>
 
@@ -287,21 +311,53 @@ export default function RoomSidebar(): React.JSX.Element {
             ) : (
               <button
                 className="group flex w-full items-center gap-2 text-left"
-                onClick={() => setMenuOpen((v) => !v)}
-                title={t('sidebar.roomMenu')}
+                onClick={() => !inPrivate && setMenuOpen((v) => !v)}
+                title={inPrivate ? undefined : t('sidebar.roomMenu')}
               >
                 <span
                   className="inline-block h-2 w-2 shrink-0 rounded-full"
-                  style={{ background: room?.color ?? '#666' }}
+                  style={{ background: inPrivate ? '#3f3f4a' : (room?.color ?? '#666') }}
                 />
                 <span className="min-w-0 flex-1 truncate text-xs font-medium text-neutral-200">
-                  {room?.name ?? 'Wisp'}
+                  {inPrivate ? t('private.roomName') : (room?.name ?? 'Wisp')}
                 </span>
-                <span className="text-neutral-600 group-hover:text-neutral-300">⌄</span>
+                {/* the private room has no rename/archive/delete — it deletes itself */}
+                {!inPrivate && (
+                  <span className="text-neutral-600 group-hover:text-neutral-300">
+                    <Icon name="chevron-down" size={12} />
+                  </span>
+                )}
               </button>
             )}
             {menuOpen && room && (
-              <div className="absolute left-3 z-30 mt-1 w-40 rounded-md border border-neutral-700 bg-neutral-900 py-1 text-xs shadow-xl">
+              <div className="wisp-menu absolute left-3 z-50 mt-1 w-44 rounded-md py-1 text-xs">
+                {/* room color: tap a swatch, or bring your own hex */}
+                <div className="px-3 pt-1 pb-1.5">
+                  <div className="mb-1.5 text-[10px] tracking-wide text-neutral-500 uppercase">
+                    {t('sidebar.color')}
+                  </div>
+                  <div className="flex flex-wrap items-center gap-1.5">
+                    {ROOM_COLORS.map((c) => (
+                      <button
+                        key={c}
+                        className={`h-4 w-4 rounded-full border ${
+                          room.color === c ? 'border-white' : 'border-transparent hover:border-white/50'
+                        }`}
+                        style={{ background: c }}
+                        onClick={() => void setRoomColor(room.id, c)}
+                        aria-label={c}
+                      />
+                    ))}
+                    <input
+                      type="color"
+                      value={room.color}
+                      onChange={(e) => void setRoomColor(room.id, e.target.value)}
+                      className="h-4 w-6 cursor-pointer rounded bg-transparent"
+                      aria-label={t('sidebar.color')}
+                    />
+                  </div>
+                </div>
+                <div className="mx-3 my-0.5 h-px bg-neutral-800" />
                 <button
                   className="block w-full px-3 py-1.5 text-left text-neutral-300 hover:bg-neutral-800"
                   onClick={() => {
@@ -370,7 +426,7 @@ export default function RoomSidebar(): React.JSX.Element {
                 title={collapsed ? t('sidebar.expand') : t('sidebar.collapse')}
                 onClick={() => setCollapsed((v) => !v)}
               >
-                {collapsed ? '»' : '«'}
+                <Icon name={collapsed ? 'chevron-right' : 'chevron-left'} size={14} />
               </RailButton>
             </>
           )}

@@ -12,6 +12,16 @@ export const WEB_PARTITION = 'persist:web'
 
 export const webSession = (): Session => session.fromPartition(WEB_PARTITION)
 
+/**
+ * Private-mode pages: no `persist:` prefix means the whole partition lives in
+ * memory — cookies, storage, cache, all of it evaporates when the app closes
+ * (or when private mode is switched off and its tabs close). Same hardening
+ * and adblock as the normal web session; the difference is purely persistence.
+ */
+export const PRIVATE_PARTITION = 'wisp-private'
+
+export const privateSession = (): Session => session.fromPartition(PRIVATE_PARTITION)
+
 const SAFE_EXTERNAL = new Set(['http:', 'https:', 'mailto:'])
 
 /** Only hand well-known schemes to the OS — never file:, javascript:, etc. */
@@ -154,6 +164,7 @@ export function hardenApp(
 ): void {
   lockDownSession(session.defaultSession)
   attachPermissionPrompt(webSession(), getWin, config)
+  attachPermissionPrompt(privateSession(), getWin, config)
   registerPermissionIpc(config)
 
   app.on('web-contents-created', (_e, contents) => {

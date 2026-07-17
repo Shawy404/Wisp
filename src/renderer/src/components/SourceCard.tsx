@@ -12,7 +12,8 @@ const KIND_KEY: Record<SourceItem['kind'], TKey> = {
   image: 'sourceCard.kind.image',
   web: 'sourceCard.kind.web',
   clip: 'sourceCard.kind.clip',
-  video: 'sourceCard.kind.video'
+  video: 'sourceCard.kind.video',
+  pdf: 'sourceCard.kind.pdf'
 }
 
 const KIND_COLOR: Record<SourceItem['kind'], string> = {
@@ -21,7 +22,8 @@ const KIND_COLOR: Record<SourceItem['kind'], string> = {
   image: 'text-fuchsia-400 border-fuchsia-400/30',
   web: 'text-neutral-400 border-neutral-500/30',
   clip: 'text-accent border-accent/30',
-  video: 'text-rose-400 border-rose-400/30'
+  video: 'text-rose-400 border-rose-400/30',
+  pdf: 'text-orange-400 border-orange-400/30'
 }
 
 export default function SourceCard(props: {

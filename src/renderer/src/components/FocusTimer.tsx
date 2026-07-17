@@ -1,8 +1,37 @@
 // Wisp. © Shawy404, MIT.
 import { useEffect, useRef, useState } from 'react'
 import { invoke, useApp, useT } from '@/store'
+import { Icon } from './icons'
 
 const PRESETS = [15, 25, 45, 60]
+
+/**
+ * A soft two-note chime, straight from the web audio api — no sound file to
+ * ship, no asset to load. Notes picked by ear until it stopped sounding like
+ * a microwave.
+ */
+function playChime(): void {
+  try {
+    const audio = new AudioContext()
+    const note = (freq: number, at: number): void => {
+      const osc = audio.createOscillator()
+      const gain = audio.createGain()
+      osc.type = 'sine'
+      osc.frequency.value = freq
+      gain.gain.setValueAtTime(0, audio.currentTime + at)
+      gain.gain.linearRampToValueAtTime(0.18, audio.currentTime + at + 0.02)
+      gain.gain.exponentialRampToValueAtTime(0.001, audio.currentTime + at + 0.9)
+      osc.connect(gain).connect(audio.destination)
+      osc.start(audio.currentTime + at)
+      osc.stop(audio.currentTime + at + 1)
+    }
+    note(880, 0)
+    note(1174.66, 0.18)
+    setTimeout(() => void audio.close(), 1600)
+  } catch {
+    /* no audio device — the toast still shows, silence is survivable */
+  }
+}
 
 /**
  * Per-room focus timer. The countdown lives in the title bar; clicking it
@@ -38,6 +67,7 @@ export default function FocusTimer(): React.JSX.Element {
             window.dispatchEvent(
               new CustomEvent('wisp:toast-local', { detail: t('focus.sessionDone') })
             )
+            if (useApp.getState().config?.timerSound !== false) playChime()
             return 0
           }
           return r - 1
@@ -77,7 +107,7 @@ export default function FocusTimer(): React.JSX.Element {
         data-tip={t('focus.title')}
         data-tip-pos="bottom"
       >
-        <span>◔</span>
+        <Icon name="clock" size={14} />
         {active && <span className="tabular-nums">{mm}:{ss}</span>}
       </button>
       {open && (
@@ -86,7 +116,7 @@ export default function FocusTimer(): React.JSX.Element {
           onClick={() => setOpen(false)}
         >
           <div
-            className="w-72 rounded-xl border border-neutral-700 bg-neutral-900 p-4 shadow-2xl"
+            className="wisp-pop w-72 rounded-xl border border-neutral-700 bg-neutral-900 p-4 shadow-2xl"
             onClick={(e) => e.stopPropagation()}
           >
             <div className="text-center text-4xl font-semibold tabular-nums text-neutral-100">
@@ -117,8 +147,20 @@ export default function FocusTimer(): React.JSX.Element {
                     setCustom('')
                   }
                 }}
+                // enter-only was too well hidden: people typed a number,
+                // clicked away and assumed custom timers just don't exist.
+                // now clicking away applies it too.
+                onBlur={() => {
+                  if (custom) {
+                    setMinutes(Number(custom))
+                    setCustom('')
+                  }
+                }}
+                inputMode="numeric"
                 placeholder={t('focus.customMin')}
-                className="h-6 w-14 rounded-md border border-neutral-800 bg-neutral-950 px-1.5 text-center text-[11px] text-neutral-100 outline-none placeholder:text-neutral-600 focus:border-accent/60"
+                data-tip={t('focus.customHint')}
+                aria-label={t('focus.customHint')}
+                className="h-6 w-16 rounded-md border border-neutral-800 bg-neutral-950 px-1.5 text-center text-[11px] text-neutral-100 outline-none placeholder:text-neutral-600 focus:border-accent/60"
               />
             </div>
 
@@ -140,7 +182,23 @@ export default function FocusTimer(): React.JSX.Element {
               </button>
             </div>
 
-            <div className="mt-2.5 text-center text-[10px] text-neutral-600">
+            <label className="mt-2.5 flex items-center justify-center gap-1.5 text-[10px] text-neutral-500">
+              <input
+                type="checkbox"
+                checked={config?.timerSound !== false}
+                onChange={(e) => void useApp.getState().setConfig({ timerSound: e.target.checked })}
+              />
+              {t('focus.sound')}
+              <button
+                className="text-neutral-600 hover:text-neutral-300"
+                onClick={playChime}
+                data-tip={t('focus.soundPreview')}
+                aria-label={t('focus.soundPreview')}
+              >
+                <Icon name="music" size={11} />
+              </button>
+            </label>
+            <div className="mt-1.5 text-center text-[10px] text-neutral-600">
               {t('focus.minutesRoom', {
                 minutes: config?.focusMinutes ?? 25,
                 room: activeRoomId ?? t('focus.room')

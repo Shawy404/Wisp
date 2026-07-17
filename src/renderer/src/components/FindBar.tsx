@@ -1,6 +1,7 @@
 // Wisp. © Shawy404, MIT.
 import { useEffect, useRef, useState } from 'react'
 import { invoke, useT } from '@/store'
+import { Icon } from './icons'
 
 /**
  * Find-in-page. Lives in the title-bar row (the only place a DOM element can
@@ -66,24 +67,27 @@ export default function FindBar(): React.JSX.Element | null {
         onClick={() => void invoke('find:next', false)}
         data-tip={t('find.prev')}
         data-tip-pos="bottom"
+        aria-label={t('find.prev')}
       >
-        ↑
+        <Icon name="chevron-up" size={12} />
       </button>
       <button
         className="flex h-5 w-5 items-center justify-center rounded text-neutral-400 hover:bg-neutral-800 hover:text-neutral-100"
         onClick={() => void invoke('find:next', true)}
         data-tip={t('find.next')}
         data-tip-pos="bottom"
+        aria-label={t('find.next')}
       >
-        ↓
+        <Icon name="chevron-down" size={12} />
       </button>
       <button
         className="flex h-5 w-5 items-center justify-center rounded text-neutral-400 hover:bg-neutral-800 hover:text-neutral-100"
         onClick={close}
         data-tip={t('find.close')}
         data-tip-pos="bottom"
+        aria-label={t('find.close')}
       >
-        ×
+        <Icon name="close" size={11} />
       </button>
     </div>
   )

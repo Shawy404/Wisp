@@ -6,7 +6,7 @@ import { invoke, useApp, useT } from '@/store'
 import type { TKey } from '@shared/i18n'
 import SourceCard from './SourceCard'
 
-type ResultTab = 'academic' | 'wiki' | 'images' | 'web'
+type ResultTab = 'academic' | 'wiki' | 'images' | 'web' | 'pdfs'
 
 /** The wisp drifts around while every source is queried — nicer than a spinner. */
 function WispLoader(): React.JSX.Element {
@@ -36,7 +36,8 @@ const TAB_KEY: Record<ResultTab, TKey> = {
   academic: 'search.tab.academic',
   wiki: 'search.tab.wiki',
   images: 'search.tab.images',
-  web: 'search.tab.web'
+  web: 'search.tab.web',
+  pdfs: 'search.tab.pdfs'
 }
 
 export default function SearchPanel(): React.JSX.Element {
@@ -106,7 +107,8 @@ export default function SearchPanel(): React.JSX.Element {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
-  const items: SourceItem[] = results ? results[tab] : []
+  // `?? []`: results cached before the pdf tab existed have no pdfs array.
+  const items: SourceItem[] = results ? (results[tab] ?? []) : []
 
   // The backends return large result sets in one go; page through them so a
   // query stays browsable instead of one endless scroll.
@@ -203,7 +205,7 @@ export default function SearchPanel(): React.JSX.Element {
                 }`}
               >
                 {t(TAB_KEY[rt])}
-                <span className="ml-1.5 text-[10px] text-neutral-600">{results[rt].length}</span>
+                <span className="ml-1.5 text-[10px] text-neutral-600">{(results[rt] ?? []).length}</span>
               </button>
             ))}
             <span className="ml-auto flex items-center gap-2">

@@ -1,9 +1,11 @@
 // Wisp. © Shawy404, MIT.
-import { useEffect, useRef, useState } from 'react'
+import { useState } from 'react'
+import { PRIVATE_ROOM_ID } from '@shared/types'
 import { invoke, useApp, useT } from '@/store'
 import AddressBar from './AddressBar'
 import FindBar from './FindBar'
 import FocusTimer from './FocusTimer'
+import { Icon } from './icons'
 import { RAIL_DND_TYPE, railItemsFor, type RailItem } from './railItems'
 
 /**
@@ -11,66 +13,17 @@ import { RAIL_DND_TYPE, railItemsFor, type RailItem } from './railItems'
  * Any rail buttons the user has dragged up here (config.railPlacement) sit left
  * of the timer; this row is also a drop target, so a button dropped anywhere on
  * it moves to the title bar. Dragging one back onto the sidebar rail returns it.
- * In compact mode the whole bar tucks itself away like the sidebar does and
- * slides back when the pointer touches the top edge (or Ctrl+L calls for it).
+ * (the compact auto-hiding toolbar is gone: it kept eating the address bar
+ * mid-typing and clipping the suggestion list. the sidebar's compact mode
+ * survives, that one behaves.)
  */
 export default function TitleBar(): React.JSX.Element {
   const t = useT()
   const overlay = useApp((s) => s.overlay)
   const config = useApp((s) => s.config)
-  const { setOverlay, placeRailItem } = useApp.getState()
+  const privateMode = useApp((s) => s.activeRoomId === PRIVATE_ROOM_ID)
+  const { setOverlay, placeRailItem, togglePrivateMode } = useApp.getState()
   const [dropHot, setDropHot] = useState(false)
-
-  // the toolbar has its own compact switch, separate from the sidebar's, so
-  // you can hide one without losing the other
-  const compact = config?.compactToolbar ?? false
-  const [revealed, setRevealed] = useState(!compact)
-  const root = useRef<HTMLDivElement>(null)
-  const hideTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
-
-  const cancelHide = (): void => {
-    if (hideTimer.current) {
-      clearTimeout(hideTimer.current)
-      hideTimer.current = null
-    }
-  }
-  const scheduleHide = (): void => {
-    if (!useApp.getState().config?.compactToolbar) return
-    cancelHide()
-    hideTimer.current = setTimeout(() => {
-      // typing in the address bar keeps the toolbar up. hiding an input while
-      // someone is mid sentence is a war crime.
-      if (root.current?.contains(document.activeElement)) return
-      setRevealed(false)
-    }, useApp.getState().config?.compactHideDelayMs ?? 400)
-  }
-
-  useEffect(() => {
-    setRevealed(!compact)
-    return cancelHide
-  }, [compact])
-
-  // reveal triggers: the pointer grazing the top edge of a live page, Ctrl+L
-  // asking for the address bar, or Ctrl+F wanting the find bar.
-  useEffect(() => {
-    const reveal = (): void => {
-      if (!useApp.getState().config?.compactToolbar) return
-      cancelHide()
-      setRevealed(true)
-    }
-    const offEdge = window.wisp.on('shell:edge-top', (near) => {
-      if (near) reveal()
-      else scheduleHide()
-    })
-    window.addEventListener('wisp:focus-address', reveal)
-    window.addEventListener('wisp:find-open', reveal)
-    return () => {
-      offEdge()
-      window.removeEventListener('wisp:focus-address', reveal)
-      window.removeEventListener('wisp:find-open', reveal)
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [])
 
   const items = railItemsFor(config, 'titlebar')
 
@@ -79,34 +32,15 @@ export default function TitleBar(): React.JSX.Element {
     e.dataTransfer.effectAllowed = 'move'
   }
 
-  const hidden = compact && !revealed
-
   return (
-    <div
-      ref={root}
-      className="relative shrink-0"
-      onMouseEnter={() => {
-        cancelHide()
-        if (compact) setRevealed(true)
-      }}
-      onMouseLeave={scheduleHide}
-    >
-      {/* the sliver that marks where the toolbar sleeps in compact mode */}
-      {hidden && (
-        <div className="absolute inset-x-0 top-0 z-10 h-[6px] border-b border-neutral-800/60 bg-neutral-925">
-          <div className="absolute inset-x-[42%] top-[2px] h-[3px] rounded-full bg-accent/40" />
-        </div>
-      )}
-      {/* overflow must stay visible when the bar is up, or it clips the address
-          suggestions and the find bar that hang below it. only clip while the
-          bar is tucked away (and animating down into) the sliver. */}
-      <div
-        className={`transition-[height] duration-200 ease-out ${hidden ? 'h-[6px] overflow-hidden' : 'h-11 overflow-visible'}`}
-      >
-        <div
-          className={`transition-opacity duration-150 ${hidden ? 'pointer-events-none opacity-0' : 'opacity-100'}`}
-        >
-          <div className="drag-region wisp-chrome flex h-11 items-center gap-2 border-b border-neutral-800/60 bg-neutral-925 pr-1 pl-3">
+    <div className="relative shrink-0">
+      <div className="h-11 overflow-visible">
+        <div>
+          <div
+            className={`drag-region wisp-chrome flex h-11 items-center gap-2 border-b border-white/[0.05] pr-1 pl-3 ${
+              config?.chromeBlur ? 'bg-neutral-925/70 backdrop-blur-md' : 'bg-neutral-925'
+            }`}
+          >
       {/* the wisp itself is the settings button now. the bottom bar it used to
           live in is gone, and honestly the little guy earned a job. */}
       <button
@@ -116,9 +50,12 @@ export default function TitleBar(): React.JSX.Element {
         onClick={() => setOverlay(overlay === 'settings' ? 'none' : 'settings')}
         data-tip={t('sidebar.settings')}
         data-tip-pos="bottom"
+        aria-label={t('sidebar.settings')}
       >
-        <span className="wisp-mascot" />
-        <span className="text-xs font-semibold tracking-tight text-accent">Wisp</span>
+        {/* in private mode the little guy puts his sunglasses on. he takes
+            operational security very seriously. */}
+        <span className={`wisp-mascot ${privateMode ? 'wisp-mascot--private' : ''}`} />
+        <span className="wisp-display text-xs font-semibold text-accent">Wisp</span>
       </button>
       <AddressBar />
       <FindBar />
@@ -152,7 +89,7 @@ export default function TitleBar(): React.JSX.Element {
             data-tip-pos="bottom"
             data-tip-align="end"
           >
-            {item.icon}
+            <Icon name={item.icon} size={15} />
           </button>
         ))}
         {/* An empty landing strip so buttons can be dropped even when none are
@@ -160,6 +97,20 @@ export default function TitleBar(): React.JSX.Element {
         {items.length === 0 && dropHot && (
           <span className="px-3 text-[10px] text-accent">{t('rail.dropHere')}</span>
         )}
+        <button
+          className={`flex h-8 w-9 items-center justify-center rounded-md ${
+            privateMode
+              ? 'bg-accent/15 text-accent'
+              : 'text-neutral-500 hover:bg-neutral-800 hover:text-neutral-200'
+          }`}
+          onClick={() => void togglePrivateMode()}
+          data-tip={t(privateMode ? 'private.off' : 'private.on')}
+          data-tip-pos="bottom"
+          data-tip-align="end"
+          aria-label={t(privateMode ? 'private.off' : 'private.on')}
+        >
+          <Icon name="glasses" size={15} />
+        </button>
         <div className="mx-1.5 h-5 w-px bg-neutral-800" />
         <FocusTimer />
         <button
@@ -168,8 +119,9 @@ export default function TitleBar(): React.JSX.Element {
           data-tip={t('titlebar.minimize')}
           data-tip-pos="bottom"
           data-tip-align="end"
+          aria-label={t('titlebar.minimize')}
         >
-          <svg width="10" height="10" viewBox="0 0 10 10">
+          <svg width="10" height="10" viewBox="0 0 10 10" aria-hidden="true">
             <line x1="0" y1="5" x2="10" y2="5" stroke="currentColor" strokeWidth="1.2" />
           </svg>
         </button>
@@ -179,8 +131,9 @@ export default function TitleBar(): React.JSX.Element {
           data-tip={t('titlebar.maximize')}
           data-tip-pos="bottom"
           data-tip-align="end"
+          aria-label={t('titlebar.maximize')}
         >
-          <svg width="10" height="10" viewBox="0 0 10 10">
+          <svg width="10" height="10" viewBox="0 0 10 10" aria-hidden="true">
             <rect x="0.6" y="0.6" width="8.8" height="8.8" fill="none" stroke="currentColor" strokeWidth="1.2" />
           </svg>
         </button>
@@ -190,8 +143,9 @@ export default function TitleBar(): React.JSX.Element {
           data-tip={t('titlebar.close')}
           data-tip-pos="bottom"
           data-tip-align="end"
+          aria-label={t('titlebar.close')}
         >
-          <svg width="10" height="10" viewBox="0 0 10 10">
+          <svg width="10" height="10" viewBox="0 0 10 10" aria-hidden="true">
             <path d="M0 0 L10 10 M10 0 L0 10" stroke="currentColor" strokeWidth="1.2" />
           </svg>
         </button>

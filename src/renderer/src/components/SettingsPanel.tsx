@@ -29,6 +29,35 @@ const CATS: { id: Cat; key: TKey }[] = [
 /** Tab sleep choices, in minutes; 0 = never unload. */
 const SLEEP_CHOICES = [5, 10, 20, 45, 0]
 
+/**
+ * A section shows when its tab is active, or — while searching — whenever the
+ * query matches its title or its keyword terms (search ignores tabs).
+ * Lives OUTSIDE the panel component on purpose: defined inside, react saw a
+ * brand new component type on every keystroke and remounted the whole section,
+ * which threw your focus out of the allowlist textarea after every single
+ * letter. i typed "example.com" eleven clicks deep before i understood why.
+ */
+function Section(props: {
+  title: string
+  cat: Cat
+  terms?: string
+  q: string
+  activeCat: Cat
+  children: React.ReactNode
+}): React.JSX.Element | null {
+  const hay = `${props.title} ${props.terms ?? ''}`.toLowerCase()
+  const visible = props.q ? hay.includes(props.q) : props.cat === props.activeCat
+  if (!visible) return null
+  return (
+    <div className="wisp-section border-b border-neutral-800 py-5">
+      <div className="mb-3 text-[11px] font-semibold tracking-wider text-neutral-500 uppercase">
+        {props.title}
+      </div>
+      {props.children}
+    </div>
+  )
+}
+
 export default function SettingsPanel(): React.JSX.Element {
   const config = useApp((s) => s.config)
   const { setConfig } = useApp.getState()
@@ -49,27 +78,7 @@ export default function SettingsPanel(): React.JSX.Element {
     void invoke<string>('app:version').then(setVersion)
   }, [])
 
-  // A section shows when its tab is active, or — while searching — whenever the
-  // query matches its title or its keyword terms (search ignores tabs).
   const q = query.trim().toLowerCase()
-  const Section = (props: {
-    title: string
-    cat: Cat
-    terms?: string
-    children: React.ReactNode
-  }): React.JSX.Element | null => {
-    const hay = `${props.title} ${props.terms ?? ''}`.toLowerCase()
-    const visible = q ? hay.includes(q) : props.cat === activeCat
-    if (!visible) return null
-    return (
-      <div className="border-b border-neutral-800 py-5">
-        <div className="mb-3 text-[11px] font-semibold tracking-wider text-neutral-500 uppercase">
-          {props.title}
-        </div>
-        {props.children}
-      </div>
-    )
-  }
 
   const checkUpdates = async (): Promise<void> => {
     setCheckState('checking')
@@ -100,7 +109,7 @@ export default function SettingsPanel(): React.JSX.Element {
   return (
     <div className="wisp-panel absolute inset-0 overflow-y-auto bg-neutral-950">
       <div className="mx-auto max-w-2xl px-8 py-6">
-        <h1 className="mb-2 text-xl font-semibold text-neutral-100">{t('settings.title')}</h1>
+        <h1 className="wisp-display mb-2 text-xl font-semibold text-neutral-100">{t('settings.title')}</h1>
         <p className="mb-4 text-xs text-neutral-600">
           {t('settings.subtitle')} <code className="text-neutral-500">~/Wisp/config.json</code>.{' '}
           {t('settings.subtitle.noCloud')}
@@ -112,6 +121,7 @@ export default function SettingsPanel(): React.JSX.Element {
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             placeholder={t('settings.searchPlaceholder')}
+            aria-label={t('settings.searchPlaceholder')}
             className="mb-3 w-full rounded-lg border border-neutral-800 bg-neutral-900 px-3 py-2 text-xs text-neutral-100 outline-none placeholder:text-neutral-600 focus:border-accent/60"
             spellCheck={false}
           />
@@ -135,7 +145,7 @@ export default function SettingsPanel(): React.JSX.Element {
           {q && <div className="text-[11px] text-neutral-500">{t('settings.searchingAll')}</div>}
         </div>
 
-        <Section cat="general" terms={t('settings.language')} title={t('settings.language')}>
+        <Section q={q} activeCat={activeCat} cat="general" terms={t('settings.language')} title={t('settings.language')}>
           <div className="flex items-center gap-2">
             {(['tr', 'en'] as const).map((l) => (
               <button
@@ -153,7 +163,7 @@ export default function SettingsPanel(): React.JSX.Element {
           </div>
         </Section>
 
-        <Section cat="appearance" terms={`${t('settings.theme')} ${t('settings.accent')} ${t('settings.background')}`} title={t('settings.theme')}>
+        <Section q={q} activeCat={activeCat} cat="appearance" terms={`${t('settings.theme')} ${t('settings.accent')} ${t('settings.background')}`} title={t('settings.theme')}>
           <div className="grid grid-cols-3 gap-2">
             {THEMES.map((theme) => (
               <button
@@ -216,7 +226,7 @@ export default function SettingsPanel(): React.JSX.Element {
           </div>
         </Section>
 
-        <Section cat="appearance" terms={`${t('settings.background')} ${t('settings.background.translucent')}`} title={t('settings.background')}>
+        <Section q={q} activeCat={activeCat} cat="appearance" terms={`${t('settings.background')} ${t('settings.background.translucent')}`} title={t('settings.background')}>
           <div className="flex flex-wrap items-center gap-2">
             <button
               onClick={() => void pickBackground()}
@@ -271,6 +281,14 @@ export default function SettingsPanel(): React.JSX.Element {
               />
               {t('settings.background.translucent')}
             </label>
+            <label className="flex items-center gap-2 text-xs text-neutral-300">
+              <input
+                type="checkbox"
+                checked={config.chromeBlur ?? false}
+                onChange={(e) => void setConfig({ chromeBlur: e.target.checked })}
+              />
+              {t('settings.chromeBlur')}
+            </label>
             <div>
               <label className="flex items-center gap-2 text-xs text-neutral-300">
                 <input
@@ -298,7 +316,7 @@ export default function SettingsPanel(): React.JSX.Element {
           </div>
         </Section>
 
-        <Section cat="appearance" terms={t('settings.appIcon.hint')} title={t('settings.appIcon')}>
+        <Section q={q} activeCat={activeCat} cat="appearance" terms={t('settings.appIcon.hint')} title={t('settings.appIcon')}>
           <div className="mb-2 text-[11px] text-neutral-500">{t('settings.appIcon.hint')}</div>
           <div className="flex items-center gap-2">
             <button
@@ -326,7 +344,7 @@ export default function SettingsPanel(): React.JSX.Element {
           </div>
         </Section>
 
-        <Section cat="appearance" terms={t('settings.compact.hint')} title={t('settings.compact')}>
+        <Section q={q} activeCat={activeCat} cat="appearance" terms={t('settings.compact.hint')} title={t('settings.compact')}>
           <div className="space-y-2">
             <label className="flex items-center gap-2 text-xs text-neutral-300">
               <input
@@ -336,17 +354,9 @@ export default function SettingsPanel(): React.JSX.Element {
               />
               {t('settings.compact.sidebar')}
             </label>
-            <label className="flex items-center gap-2 text-xs text-neutral-300">
-              <input
-                type="checkbox"
-                checked={config.compactToolbar ?? false}
-                onChange={(e) => void setConfig({ compactToolbar: e.target.checked })}
-              />
-              {t('settings.compact.toolbar')}
-            </label>
           </div>
           <div className="mt-1 ml-6 text-[11px] text-neutral-600">{t('settings.compact.hint')}</div>
-          {(config.compactSidebar || config.compactToolbar) && (
+          {config.compactSidebar && (
             <div className="mt-3 ml-6 space-y-3">
               <div>
                 <div className="mb-1 flex justify-between text-[11px] text-neutral-500">
@@ -382,7 +392,7 @@ export default function SettingsPanel(): React.JSX.Element {
           )}
         </Section>
 
-        <Section cat="memory" terms={t('settings.memory.hint')} title={t('settings.memory')}>
+        <Section q={q} activeCat={activeCat} cat="memory" terms={t('settings.memory.hint')} title={t('settings.memory')}>
           <div className="mb-2 text-[11px] text-neutral-500">{t('settings.memory.hint')}</div>
           <div className="flex flex-wrap items-center gap-2">
             {SLEEP_CHOICES.map((min) => (
@@ -413,7 +423,7 @@ export default function SettingsPanel(): React.JSX.Element {
           </button>
         </Section>
 
-        <Section cat="updates" terms={t('settings.updates.auto')} title={t('settings.updates')}>
+        <Section q={q} activeCat={activeCat} cat="updates" terms={t('settings.updates.auto')} title={t('settings.updates')}>
           <div className="mb-2 text-[11px] text-neutral-500">
             {t('settings.updates.current', { version: version || '…' })}
           </div>
@@ -451,7 +461,7 @@ export default function SettingsPanel(): React.JSX.Element {
         </Section>
 
         {/* Its own section: every version and what changed in it. */}
-        <Section cat="updates" terms={t('settings.changelog.hint')} title={t('settings.changelog')}>
+        <Section q={q} activeCat={activeCat} cat="updates" terms={t('settings.changelog.hint')} title={t('settings.changelog')}>
           <div className="mb-3 text-[11px] text-neutral-500">{t('settings.changelog.hint')}</div>
           <div className="space-y-3">
             {(showLog ? CHANGELOG : CHANGELOG.slice(0, 2)).map((entry) => (
@@ -481,7 +491,7 @@ export default function SettingsPanel(): React.JSX.Element {
           )}
         </Section>
 
-        <Section cat="search" terms={t('settings.searchEngine.hint')} title={t('settings.searchEngine')}>
+        <Section q={q} activeCat={activeCat} cat="search" terms={t('settings.searchEngine.hint')} title={t('settings.searchEngine')}>
           <div className="mb-2 text-[11px] text-neutral-500">{t('settings.searchEngine.hint')}</div>
           <div className="flex items-center gap-2">
             {SEARCH_ENGINES.map((engine) => (
@@ -500,7 +510,7 @@ export default function SettingsPanel(): React.JSX.Element {
           </div>
         </Section>
 
-        <Section cat="privacy" terms={t('settings.adblock.toggle')} title={t('settings.adblock')}>
+        <Section q={q} activeCat={activeCat} cat="privacy" terms={t('settings.adblock.toggle')} title={t('settings.adblock')}>
           <label className="flex items-center gap-2 text-xs text-neutral-300">
             <input
               type="checkbox"
@@ -515,6 +525,7 @@ export default function SettingsPanel(): React.JSX.Element {
             </div>
             <textarea
               value={allowlistText}
+              aria-label={t('settings.adblock.allowlistLabel')}
               onChange={(e) => setAllowlistText(e.target.value)}
               onBlur={() =>
                 void setConfig({
@@ -532,7 +543,7 @@ export default function SettingsPanel(): React.JSX.Element {
         </Section>
 
         {Object.keys(config.zappedSelectors ?? {}).length > 0 && (
-          <Section cat="privacy" terms={t('settings.zap.hint')} title={t('settings.zap')}>
+          <Section q={q} activeCat={activeCat} cat="privacy" terms={t('settings.zap.hint')} title={t('settings.zap')}>
             <div className="mb-2 text-[11px] text-neutral-500">{t('settings.zap.hint')}</div>
             <div className="space-y-1">
               {Object.entries(config.zappedSelectors ?? {}).map(([host, sels]) => (
@@ -560,7 +571,7 @@ export default function SettingsPanel(): React.JSX.Element {
           </Section>
         )}
 
-        <Section cat="general" terms={t('settings.devMode.toggle')} title={t('settings.devMode')}>
+        <Section q={q} activeCat={activeCat} cat="general" terms={t('settings.devMode.toggle')} title={t('settings.devMode')}>
           <label className="flex items-center gap-2 text-xs text-neutral-300">
             <input
               type="checkbox"
@@ -574,7 +585,7 @@ export default function SettingsPanel(): React.JSX.Element {
         {/* the test bench. only shows itself in dev mode, so normal people
             never wonder why settings has a "pretend an update arrived" button */}
         {config.devMode && (
-          <Section cat="general" terms={t('settings.devTools.hint')} title={t('settings.devTools')}>
+          <Section q={q} activeCat={activeCat} cat="general" terms={t('settings.devTools.hint')} title={t('settings.devTools')}>
             <div className="mb-2 text-[11px] text-neutral-500">{t('settings.devTools.hint')}</div>
             <div className="flex flex-wrap gap-2">
               <button
@@ -603,7 +614,36 @@ export default function SettingsPanel(): React.JSX.Element {
           </Section>
         )}
 
-        <Section cat="general" terms={t('settings.profile.hint')} title={t('settings.profile')}>
+        <Section
+          q={q}
+          activeCat={activeCat}
+          cat="general"
+          terms={`${t('settings.video.hwaccel')} youtube video gpu`}
+          title={t('settings.video')}
+        >
+          <label className="flex items-center gap-2 text-xs text-neutral-300">
+            <input
+              type="checkbox"
+              checked={config.disableHwAccel ?? false}
+              onChange={(e) => {
+                void setConfig({ disableHwAccel: e.target.checked })
+                setNeedsRestart(true)
+              }}
+            />
+            {t('settings.video.hwaccel')}
+          </label>
+          <div className="mt-1 ml-6 text-[11px] text-neutral-600">{t('settings.video.hint')}</div>
+          {needsRestart && (
+            <button
+              className="mt-2 ml-6 rounded-md bg-accent/15 px-3 py-1.5 text-xs text-accent hover:bg-accent/25"
+              onClick={() => void invoke('app:relaunch')}
+            >
+              {t('settings.background.restart')}
+            </button>
+          )}
+        </Section>
+
+        <Section q={q} activeCat={activeCat} cat="general" terms={t('settings.profile.hint')} title={t('settings.profile')}>
           <div className="flex items-center gap-2">
             <input
               value={config.profile}
@@ -615,6 +655,8 @@ export default function SettingsPanel(): React.JSX.Element {
         </Section>
 
         <Section
+          q={q}
+          activeCat={activeCat}
           cat="general"
           terms={`${t('settings.help')} split view drag wikilink kısayol shortcut nasıl how`}
           title={t('settings.help')}

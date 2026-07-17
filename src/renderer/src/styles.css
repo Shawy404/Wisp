@@ -1,5 +1,10 @@
 /* Wisp. © Shawy404, MIT. */
 @import 'tailwindcss';
+/* Bundled fonts, no network involved: Inter carries the ui, Space Grotesk is
+   the wordmark/display voice. The system-ui era served with honor. */
+@import '@fontsource-variable/inter';
+@import '@fontsource/space-grotesk/500.css';
+@import '@fontsource/space-grotesk/600.css';
 
 @theme {
   --color-accent: var(--wisp-accent, #7dd3a8);
@@ -118,6 +123,21 @@ body,
   height: 100%;
   overflow: hidden;
   user-select: none;
+}
+
+body {
+  font-family: 'Inter Variable', system-ui, sans-serif;
+  font-feature-settings: 'cv05', 'cv11';
+}
+/* The display voice: wordmark, splash, panel titles. Used sparingly so it
+   stays special. */
+.wisp-display {
+  font-family: 'Space Grotesk', 'Inter Variable', system-ui, sans-serif;
+  letter-spacing: -0.01em;
+}
+
+::selection {
+  background: color-mix(in srgb, var(--wisp-accent) 30%, transparent);
 }
 
 .drag-region {
@@ -328,7 +348,8 @@ html.wisp-wallglass .wisp-panel {
   height: 9px;
 }
 .wisp-splash-name {
-  font-size: 24px;
+  font-family: 'Space Grotesk', 'Inter Variable', system-ui, sans-serif;
+  font-size: 26px;
   font-weight: 600;
   letter-spacing: -0.02em;
   color: var(--wisp-accent);
@@ -362,12 +383,23 @@ html.wisp-wallglass .wisp-panel {
   width: 5px;
   height: 8px;
 }
+/* download paused → the wisp freezes mid-bob and dims, like someone hit the
+   world's pause button on him specifically */
+.wisp-orb--paused {
+  animation-play-state: paused;
+  filter: saturate(0.55) brightness(0.85);
+}
+.wisp-orb--paused .wisp-eye {
+  animation-play-state: paused;
+}
 
 /*
  * The mascot: the same wisp orb from the splash/loader, shrunk to sit next to
- * the wordmark in the title bar. It rests quietly and lights up on hover.
+ * the wordmark in the title bar. It rests quietly, blinks now and then, and
+ * lights up on hover. In private mode it swaps the eyes for sunglasses.
  */
 .wisp-mascot {
+  position: relative;
   display: inline-block;
   width: 15px;
   height: 15px;
@@ -378,9 +410,53 @@ html.wisp-wallglass .wisp-panel {
     box-shadow 0.25s ease,
     transform 0.25s ease;
 }
+.wisp-mascot::before,
+.wisp-mascot::after {
+  content: '';
+  position: absolute;
+  top: 5px;
+  width: 2px;
+  height: 3.5px;
+  border-radius: 999px;
+  background: rgb(10 10 14 / 0.85);
+  animation: wisp-blink 4.2s infinite;
+  transition:
+    width 0.2s ease,
+    height 0.2s ease,
+    top 0.2s ease,
+    border-radius 0.2s ease,
+    box-shadow 0.2s ease;
+}
+.wisp-mascot::before {
+  left: 4px;
+}
+.wisp-mascot::after {
+  right: 4px;
+}
 .wisp-mascot:hover {
   transform: translateY(-1px) scale(1.12);
   box-shadow: 0 0 14px color-mix(in srgb, var(--wisp-accent) 85%, transparent);
+}
+/*
+ * Private mode: the eyes become lenses. Slightly bigger, square-ish, gloss in
+ * the corner, joined by a bridge (the box-shadow line). No configuration, no
+ * setting, he just owns sunglasses.
+ */
+.wisp-mascot--private::before,
+.wisp-mascot--private::after {
+  top: 4.5px;
+  width: 4.5px;
+  height: 4px;
+  border-radius: 1.5px 1.5px 2.5px 2.5px;
+  background: linear-gradient(135deg, rgb(40 40 48) 0%, rgb(8 8 12) 55%);
+  box-shadow: inset 0.8px 0.8px 0 rgb(255 255 255 / 0.35);
+  animation: none;
+}
+.wisp-mascot--private::before {
+  left: 2.4px;
+}
+.wisp-mascot--private::after {
+  right: 2.4px;
 }
 
 /*
@@ -463,4 +539,210 @@ html.wisp-wallglass .wisp-panel {
   border-radius: 0.5rem;
   overflow-x: auto;
   margin: 0 0 1rem;
+}
+
+/*
+ * Micro-animation kit. Rules of the house: transform + opacity only (the
+ * compositor does these for free), one shared easing so everything feels like
+ * the same creature, and every entrance is fast enough to interrupt without
+ * anyone noticing they interrupted it.
+ */
+:root {
+  --wisp-ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+/* Overlay panels (settings, search, map…) rise in instead of popping in. */
+.wisp-panel {
+  animation: wisp-panel-in 0.22s var(--wisp-ease-out) both;
+}
+@keyframes wisp-panel-in {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+/* Dialogs and context menus: a quick pop from where they belong, sitting on
+   real layered elevation (ambient + key shadow + a lit top edge). */
+.wisp-pop {
+  transform-origin: center;
+  animation: wisp-pop-in 0.18s var(--wisp-ease-out) both;
+  box-shadow:
+    inset 0 1px 0 rgb(255 255 255 / 0.05),
+    0 4px 12px rgb(0 0 0 / 0.3),
+    0 24px 64px rgb(0 0 0 / 0.5);
+}
+.wisp-pop--menu {
+  transform-origin: top left;
+  animation: wisp-pop-in 0.14s var(--wisp-ease-out) both;
+  box-shadow:
+    inset 0 1px 0 rgb(255 255 255 / 0.05),
+    0 4px 12px rgb(0 0 0 / 0.35),
+    0 16px 40px rgb(0 0 0 / 0.45);
+}
+
+/*
+ * Context menus: one class, fully opaque in every theme and glass mode.
+ * The old menus borrowed theme surface colors, which turn translucent under
+ * glass — reading a menu through a live web page was an eye exam.
+ */
+.wisp-menu {
+  background: #17171c;
+  border: 1px solid rgb(255 255 255 / 0.08);
+  transform-origin: top left;
+  animation: wisp-pop-in 0.14s var(--wisp-ease-out) both;
+  box-shadow:
+    inset 0 1px 0 rgb(255 255 255 / 0.05),
+    0 4px 12px rgb(0 0 0 / 0.4),
+    0 16px 40px rgb(0 0 0 / 0.5);
+}
+html.wisp-light .wisp-menu,
+html.wisp-sepia .wisp-menu {
+  background: #ffffff;
+  border-color: rgb(0 0 0 / 0.12);
+  box-shadow:
+    0 4px 12px rgb(0 0 0 / 0.14),
+    0 16px 40px rgb(0 0 0 / 0.18);
+}
+
+/* The chrome (title bar + sidebar) carries a whisper of the accent up top —
+   the shell reads as "lit" instead of flat, and it follows your accent. */
+.wisp-chrome {
+  background-image: linear-gradient(
+    to bottom,
+    color-mix(in srgb, var(--wisp-accent) 4.5%, transparent),
+    transparent 140px
+  );
+}
+
+/*
+ * The workspace floor. Sidebar and page float as cards over this — a deep
+ * accent-lit backdrop that peeks through the gutters and titlebar glass, so
+ * the whole shell reads as one lit desk instead of taped-together rectangles.
+ * The accent drives it, change your color and the room changes with you.
+ */
+.wisp-workspace {
+  background:
+    radial-gradient(
+      1000px 560px at 88% -12%,
+      color-mix(in srgb, var(--wisp-accent) 13%, transparent),
+      transparent 62%
+    ),
+    radial-gradient(
+      760px 520px at -12% 112%,
+      color-mix(in srgb, var(--wisp-accent) 7%, transparent),
+      transparent 58%
+    ),
+    var(--color-neutral-950, #0e0e12);
+}
+html.wisp-translucent .wisp-workspace {
+  background:
+    radial-gradient(
+      1000px 560px at 88% -12%,
+      color-mix(in srgb, var(--wisp-accent) 10%, transparent),
+      transparent 62%
+    ),
+    transparent;
+}
+@keyframes wisp-pop-in {
+  from {
+    opacity: 0;
+    transform: scale(0.96);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+/* Toasts slide up from the bottom edge they live on. */
+.wisp-toast-in {
+  animation: wisp-toast-in 0.24s var(--wisp-ease-out) both;
+}
+@keyframes wisp-toast-in {
+  from {
+    opacity: 0;
+    transform: translateY(10px) scale(0.97);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+/* Settings sections cascade in with a tiny stagger — just enough rhythm to
+   feel deliberate, not enough to make anyone wait for a checkbox. */
+.wisp-section {
+  animation: wisp-panel-in 0.25s var(--wisp-ease-out) both;
+}
+.wisp-section:nth-child(2) {
+  animation-delay: 0.03s;
+}
+.wisp-section:nth-child(3) {
+  animation-delay: 0.06s;
+}
+.wisp-section:nth-child(n + 4) {
+  animation-delay: 0.09s;
+}
+
+/* Keyboard focus gets a real ring. Mouse clicks don't (focus-visible). */
+:focus-visible {
+  outline: 2px solid color-mix(in srgb, var(--wisp-accent) 75%, transparent);
+  outline-offset: 1px;
+  border-radius: 4px;
+}
+
+/*
+ * Tactile layer: every button in the shell presses down a hair when clicked
+ * and eases its colors instead of snapping. One rule, whole app suddenly
+ * feels like it has hinges.
+ */
+button {
+  transition:
+    background-color 0.15s ease,
+    color 0.15s ease,
+    border-color 0.15s ease,
+    opacity 0.15s ease,
+    transform 0.1s ease;
+}
+button:active {
+  transform: scale(0.96);
+}
+
+/* Text fields glow softly in the accent when focused — the border color
+   change alone was easy to miss. Checkboxes/sliders stop being chromium
+   blue and wear the accent like everything else. */
+input:focus,
+textarea:focus {
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--wisp-accent) 14%, transparent);
+}
+input[type='checkbox'],
+input[type='radio'],
+input[type='range'] {
+  accent-color: var(--wisp-accent);
+}
+
+/* Motion is a garnish. If the OS says less motion, everything still works,
+   it just appears instead of arriving. */
+@media (prefers-reduced-motion: reduce) {
+  .wisp-panel,
+  .wisp-pop,
+  .wisp-pop--menu,
+  .wisp-toast-in,
+  .wisp-section,
+  .wisp-splash .wisp-orb,
+  .wisp-orb,
+  .wisp-trail,
+  .wisp-eye,
+  .wisp-mascot::before,
+  .wisp-mascot::after {
+    animation: none !important;
+  }
+  .wisp-splash {
+    transition: none;
+  }
 }

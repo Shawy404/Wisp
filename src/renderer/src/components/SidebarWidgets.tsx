@@ -2,6 +2,7 @@
 import { useEffect, useState } from 'react'
 import type { MediaState, MemoryStats } from '@shared/types'
 import { invoke, useApp, useT } from '@/store'
+import { Icon } from './icons'
 
 function formatGB(bytes: number): string {
   return (bytes / 1024 ** 3).toFixed(1)
@@ -60,7 +61,9 @@ export default function SidebarWidgets(): React.JSX.Element | null {
       {show.music && media && (
         <div className="group rounded-lg border border-neutral-800 bg-neutral-900/50 px-2 py-1.5">
           <div className="flex items-center gap-1.5">
-            <span className="text-[11px] text-neutral-500">♪</span>
+            <span className="text-neutral-500">
+              <Icon name="music" size={11} />
+            </span>
             <button
               className="min-w-0 flex-1 truncate text-left text-[10px] text-neutral-400 hover:text-neutral-200"
               onClick={() => void invoke('media:focus')}
@@ -69,10 +72,11 @@ export default function SidebarWidgets(): React.JSX.Element | null {
               {media.title}
             </button>
             <button
-              className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-accent/15 text-[10px] text-accent hover:bg-accent/25"
+              className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-accent/15 text-accent hover:bg-accent/25"
               onClick={() => void invoke('media:toggle')}
+              aria-label={t(media.playing ? 'focus.pause' : 'focus.start')}
             >
-              {media.playing ? '❚❚' : '▶'}
+              <Icon name={media.playing ? 'pause' : 'play'} size={9} />
             </button>
           </div>
         </div>
@@ -81,7 +85,9 @@ export default function SidebarWidgets(): React.JSX.Element | null {
       {show.ram && (
         <div className="group rounded-lg border border-neutral-800 bg-neutral-900/50 px-2 py-1.5">
           <div className="flex items-center gap-1.5 text-[10px] text-neutral-400">
-            <span className="text-neutral-500">▦</span>
+            <span className="text-neutral-500">
+              <Icon name="ram" size={11} />
+            </span>
             <span className="min-w-0 flex-1 truncate tabular-nums">
               {mem
                 ? `Wisp ${Math.round(mem.app / 1024 ** 2)} MB · ${formatGB(mem.sysUsed)}/${formatGB(mem.sysTotal)} GB`
@@ -91,14 +97,16 @@ export default function SidebarWidgets(): React.JSX.Element | null {
               className="shrink-0 text-neutral-500 hover:text-accent"
               onClick={() => void freeMemory()}
               data-tip={t('widgets.freeMemory')}
+              aria-label={t('widgets.freeMemory')}
             >
-              ⌁
+              <Icon name="sleep" size={11} />
             </button>
             <button
               className="hidden shrink-0 text-neutral-600 group-hover:inline hover:text-neutral-300"
               onClick={() => setShown('ram', false)}
+              aria-label={t('find.close')}
             >
-              ×
+              <Icon name="close" size={10} />
             </button>
           </div>
           {mem && (

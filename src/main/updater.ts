@@ -3,7 +3,7 @@ import { ipcMain, type BrowserWindow } from 'electron'
 import electronUpdater from 'electron-updater'
 import type { WispContext } from './ipc'
 
-const { autoUpdater } = electronUpdater
+const { autoUpdater, CancellationToken } = electronUpdater
 
 /** GitHub release bodies arrive as a string or as per-version note objects. */
 function notesToText(notes: unknown): string {
@@ -45,7 +45,17 @@ export function registerUpdater(ctx: WispContext): void {
   autoUpdater.on('update-downloaded', (info) =>
     send('update:ready', { version: info.version, notes: notesToText(info.releaseNotes) })
   )
+  // Pausing: electron-updater has no real pause, so "pause" cancels the
+  // transfer and "resume" starts a fresh downloadUpdate(). GitHub serves the
+  // file with range support, so in practice the differential downloader picks
+  // most of it back up instead of starting from byte zero.
+  let downloadToken: InstanceType<typeof CancellationToken> | null = null
+  let pausedByUser = false
+
   autoUpdater.on('error', (err) => {
+    // A user-initiated pause surfaces as a cancellation error — that one is
+    // expected and already announced via update:paused, don't paint it red.
+    if (pausedByUser) return
     // Offline / no releases yet / dev build — surface it to the banner so a
     // user-initiated download can show "failed" instead of hanging forever.
     send('update:error', { message: err instanceof Error ? err.message : String(err) })
@@ -54,9 +64,19 @@ export function registerUpdater(ctx: WispContext): void {
   // Start the on-demand download (the banner's "Download" button). Progress
   // streams over update:progress; completion fires update:ready.
   ipcMain.handle('update:download', () => {
-    autoUpdater.downloadUpdate().catch((err) =>
+    pausedByUser = false
+    downloadToken = new CancellationToken()
+    autoUpdater.downloadUpdate(downloadToken).catch((err) => {
+      if (pausedByUser) return
       send('update:error', { message: err instanceof Error ? err.message : String(err) })
-    )
+    })
+  })
+
+  ipcMain.handle('update:pause', () => {
+    pausedByUser = true
+    downloadToken?.cancel()
+    downloadToken = null
+    send('update:paused')
   })
 
   // Install the downloaded update and relaunch. isSilent + isForceRunAfter so

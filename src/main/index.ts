@@ -19,7 +19,7 @@ import { registerUpdater } from './updater'
 import { customIconPath, registerBackground } from './background'
 import { registerHistory } from './history'
 import { initAdblock } from './adblock'
-import { hardenApp, openExternalSafe, webSession } from './security'
+import { hardenApp, openExternalSafe, privateSession, webSession } from './security'
 
 // Wayland/Hyprland friendliness: let Chromium pick the native platform.
 app.commandLine.appendSwitch('ozone-platform-hint', 'auto')
@@ -29,11 +29,23 @@ app.commandLine.appendSwitch('ozone-platform-hint', 'auto')
 // while you scroll and then leave. one line. incredible.
 app.commandLine.appendSwitch('enable-features', 'OverlayScrollbar')
 
+// A browser should just play the video you clicked, no "interact with the
+// page first" ceremony. Real browsers ship heuristics for this; Chromium's
+// default embedder policy is stricter, so opt out.
+app.commandLine.appendSwitch('autoplay-policy', 'no-user-gesture-required')
+
 // Real window transparency on Linux/X11 silently fails without this switch
 // (the window just stays black/opaque). Harmless on Wayland, so gate it only
 // on the setting — it must be set before the app is ready.
 if (loadConfig().windowTransparent) {
   app.commandLine.appendSwitch('enable-transparent-visuals')
+}
+
+// Escape hatch for machines where gpu video decode is broken (black player,
+// audio without picture — seen on some windows setups). Costs smoothness,
+// wins "the video actually plays". Must run before app ready.
+if (loadConfig().disableHwAccel) {
+  app.disableHardwareAcceleration()
 }
 
 let ctx: WispContext | null = null
@@ -81,27 +93,31 @@ function createWindow(): void {
 
   // Sites should see a browser called Wisp, not "Electron/43": swap the
   // Electron token for Wisp and drop the lowercase package-name token.
-  const ses = webSession()
-  ses.setUserAgent(
-    ses
-      .getUserAgent()
-      .replace(/ wisp\/[\d.a-z-]+/i, '')
-      .replace(/Electron\/[\d.]+/, `Wisp/${app.getVersion()}`)
-  )
-  // Client hints are what most "which browser is this" checks read nowadays,
-  // and Chromium only advertises its own brands there. Rewrite the header so
-  // Wisp leads the brand list (Chromium stays for compatibility checks).
-  const chromeMajor = process.versions.chrome.split('.')[0]
-  const brandHeader =
-    `"Wisp";v="${app.getVersion().split('-')[0]}", ` +
-    `"Chromium";v="${chromeMajor}", "Not?A_Brand";v="99"`
-  ses.webRequest.onBeforeSendHeaders((details, callback) => {
-    const headers = details.requestHeaders
-    for (const key of Object.keys(headers)) {
-      if (key.toLowerCase() === 'sec-ch-ua') headers[key] = brandHeader
-    }
-    callback({ requestHeaders: headers })
-  })
+  // Applied to both page sessions — private tabs are still Wisp.
+  const applyBrowserIdentity = (ses: Electron.Session): void => {
+    ses.setUserAgent(
+      ses
+        .getUserAgent()
+        .replace(/ wisp\/[\d.a-z-]+/i, '')
+        .replace(/Electron\/[\d.]+/, `Wisp/${app.getVersion()}`)
+    )
+    // Client hints are what most "which browser is this" checks read nowadays,
+    // and Chromium only advertises its own brands there. Rewrite the header so
+    // Wisp leads the brand list (Chromium stays for compatibility checks).
+    const chromeMajor = process.versions.chrome.split('.')[0]
+    const brandHeader =
+      `"Wisp";v="${app.getVersion().split('-')[0]}", ` +
+      `"Chromium";v="${chromeMajor}", "Not?A_Brand";v="99"`
+    ses.webRequest.onBeforeSendHeaders((details, callback) => {
+      const headers = details.requestHeaders
+      for (const key of Object.keys(headers)) {
+        if (key.toLowerCase() === 'sec-ch-ua') headers[key] = brandHeader
+      }
+      callback({ requestHeaders: headers })
+    })
+  }
+  applyBrowserIdentity(webSession())
+  applyBrowserIdentity(privateSession())
 
   ctx = { win, tabs: new TabManager(win), config }
   ctx.tabs.setSleepMinutes(config.tabSleepMinutes ?? 20)

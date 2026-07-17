@@ -1,11 +1,11 @@
 // Wisp. © Shawy404, MIT.
 import { ElectronBlocker } from '@ghostery/adblocker-electron'
-import { net } from 'electron'
+import { ipcMain, net } from 'electron'
 import * as fs from 'fs'
 import { join } from 'path'
 import type { WispConfig } from '@shared/types'
 import { wispRoot } from './storage'
-import { webSession } from './security'
+import { privateSession, webSession } from './security'
 
 let blocker: ElectronBlocker | null = null
 let enabled = true
@@ -68,13 +68,23 @@ function applyAllowlist(hosts: string[]): void {
 
 function applyState(): void {
   if (!blocker) return
-  const sess = webSession()
+  // Private tabs get the same shield — going incognito shouldn't mean
+  // suddenly swimming in ads.
+  const sessions = [webSession(), privateSession()]
   if (active) {
-    blocker.disableBlockingInSession(sess)
+    for (const sess of sessions) blocker.disableBlockingInSession(sess)
     active = false
   }
   if (enabled) {
-    blocker.enableBlockingInSession(sess)
+    for (const sess of sessions) {
+      // ghostery registers two app-global ipc handlers on every enable and
+      // throws "second handler" when a second session comes along. the
+      // handlers are identical (same blocker underneath), so drop the previous
+      // pair and let the newest registration answer for both sessions.
+      ipcMain.removeHandler('@ghostery/adblocker/inject-cosmetic-filters')
+      ipcMain.removeHandler('@ghostery/adblocker/is-mutation-observer-enabled')
+      blocker.enableBlockingInSession(sess)
+    }
     active = true
   }
 }

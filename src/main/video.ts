@@ -9,6 +9,7 @@ import { translate } from '@shared/i18n'
 import * as store from './storage'
 import { addSources } from './search-ipc'
 import { trackExternal, externalCancel, cancelExternalMark } from './downloads'
+import { showToast } from './toast'
 import type { WispContext } from './ipc'
 
 /**
@@ -57,9 +58,10 @@ const TIME_RE = /^(\d{1,2}:)?\d{1,2}:\d{2}$|^\d+$/
 export function registerVideo(ctx: WispContext): void {
   const t = (key: Parameters<typeof translate>[1]): string =>
     translate(ctx.config.language ?? 'tr', key)
-  const toast = (text: string): void => {
-    if (!ctx.win.isDestroyed()) ctx.win.webContents.send('toast', text)
-  }
+  // main-drawn pill: a DOM toast hides under the open page, and video clips
+  // are started from a page pretty much by definition
+  const toast = (text: string, icon: 'download' | 'check' | 'error' = 'download'): void =>
+    showToast(ctx, text, { icon })
   const notify = (roomId: string): void => {
     if (!ctx.win.isDestroyed()) ctx.win.webContents.send('room:updated', roomId)
   }
@@ -117,9 +119,13 @@ export function registerVideo(ctx: WispContext): void {
           tracker.update(Math.round((parseFloat(m[1]) / 100) * total), total)
         }
         // The --print after_move:filepath line is the final file location.
+        // "starts with /" only exists on unix — windows paths come in as
+        // C:\... so clips over there always "failed" even after downloading
+        // the whole video. accept both kinds of absolute path.
         for (const line of text.split('\n')) {
           const trimmed = line.trim()
-          if (trimmed.startsWith('/') && trimmed.includes(stem)) filePath = trimmed
+          const absolute = trimmed.startsWith('/') || /^[A-Za-z]:[\\/]/.test(trimmed)
+          if (absolute && trimmed.includes(stem)) filePath = trimmed
         }
       })
       proc.stderr.on('data', () => {})
@@ -143,7 +149,7 @@ export function registerVideo(ctx: WispContext): void {
         }
         addSources(roomId, [source])
         notify(roomId)
-        toast(t('main.video.done'))
+        toast(t('main.video.done'), 'check')
       })
 
       return {}

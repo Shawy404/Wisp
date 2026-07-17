@@ -2,13 +2,15 @@
 import type { Overlay } from '@/store'
 import type { TKey } from '@shared/i18n'
 import type { WispConfig } from '@shared/types'
+import type { IconName } from './icons'
 
 export type RailLocation = 'sidebar' | 'titlebar'
 
 export interface RailItem {
   id: Overlay
   titleKey: TKey
-  icon: string
+  /** Name in the app icon set (icons.tsx); the rails render <Icon name=…/>. */
+  icon: IconName
   /** Rail buttons split into two logical groups for the in-sidebar divider. */
   group: 'content' | 'system'
 }
@@ -23,13 +25,13 @@ export interface RailItem {
 // Note: settings is deliberately NOT here — it has its own fixed button in the
 // bottom bar's right corner, always reachable over any page.
 export const ALL_RAIL: RailItem[] = [
-  { id: 'search', titleKey: 'sidebar.search', icon: '⌕', group: 'content' },
-  { id: 'sources', titleKey: 'sidebar.sources', icon: '▤', group: 'content' },
-  { id: 'notes', titleKey: 'sidebar.notes', icon: '✎', group: 'content' },
-  { id: 'map', titleKey: 'sidebar.map', icon: '❋', group: 'content' },
-  { id: 'split', titleKey: 'sidebar.split', icon: '◫', group: 'system' },
-  { id: 'downloads', titleKey: 'sidebar.downloads', icon: '⇣', group: 'system' },
-  { id: 'vault', titleKey: 'sidebar.vault', icon: '⚿', group: 'system' }
+  { id: 'search', titleKey: 'sidebar.search', icon: 'search', group: 'content' },
+  { id: 'sources', titleKey: 'sidebar.sources', icon: 'sources', group: 'content' },
+  { id: 'notes', titleKey: 'sidebar.notes', icon: 'notes', group: 'content' },
+  { id: 'map', titleKey: 'sidebar.map', icon: 'map', group: 'content' },
+  { id: 'split', titleKey: 'sidebar.split', icon: 'split', group: 'system' },
+  { id: 'downloads', titleKey: 'sidebar.downloads', icon: 'downloads', group: 'system' },
+  { id: 'vault', titleKey: 'sidebar.vault', icon: 'vault', group: 'system' }
 ]
 
 /** Where a given rail button lives, honouring the config (default: sidebar). */

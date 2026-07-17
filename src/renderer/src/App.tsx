@@ -1,5 +1,6 @@
 // Wisp. © Shawy404, MIT.
 import { lazy, Suspense, useEffect, useRef, useState } from 'react'
+import { MotionConfig } from 'motion/react'
 import { invoke, useApp } from '@/store'
 import TitleBar from './components/TitleBar'
 import RoomSidebar from './components/RoomSidebar'
@@ -124,7 +125,10 @@ export default function App(): React.JSX.Element {
   if (!ready) return <div className="h-full bg-neutral-950">{splash}</div>
 
   return (
-    <div className="relative flex h-full flex-col">
+    // MotionConfig: every motion animation in the app honors the OS
+    // reduced-motion preference without each component asking separately.
+    <MotionConfig reducedMotion="user">
+    <div className="wisp-workspace relative flex h-full flex-col">
       {splash}
       {/* the wisp wallpaper and real window transparency don't mix: a picture
           on top of see-through glass just looks like a dirty window. so when
@@ -175,5 +179,6 @@ export default function App(): React.JSX.Element {
         </Suspense>
       )}
     </div>
+    </MotionConfig>
   )
 }

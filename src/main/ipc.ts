@@ -1,7 +1,7 @@
 // Wisp. © Shawy404, MIT.
 import * as fs from 'fs'
 import { app, BrowserWindow, ipcMain } from 'electron'
-import type { PinnedTab, RoomMeta, WispConfig } from '@shared/types'
+import { PRIVATE_ROOM_ID, type PinnedTab, type RoomMeta, type WispConfig } from '@shared/types'
 import * as store from './storage'
 import { TabManager } from './tabs'
 import { getBlockedCount, setAdblock } from './adblock'
@@ -24,7 +24,24 @@ export function registerCoreIpc(ctx: WispContext): void {
     store.saveRoomMeta(meta)
   }
 
+  // The private room has no folder, no meta and no place in lastRoomId — it
+  // exists only while open. Everything else loads from disk as usual.
+  const privateRoomMeta = (): RoomMeta => ({
+    id: PRIVATE_ROOM_ID,
+    name: 'gizli',
+    color: '#3f3f4a',
+    createdAt: new Date().toISOString(),
+    tabs: [],
+    activeTabIndex: 0,
+    pinned: [],
+    settings: { devMode: false }
+  })
+
   const switchRoom = (roomId: string): RoomMeta | null => {
+    if (roomId === PRIVATE_ROOM_ID) {
+      tabs.setRoom(PRIVATE_ROOM_ID, [], 0)
+      return privateRoomMeta()
+    }
     const meta = store.loadRoomMeta(roomId)
     if (!meta) return null
     tabs.setRoom(roomId, meta.tabs, meta.activeTabIndex)
@@ -34,6 +51,9 @@ export function registerCoreIpc(ctx: WispContext): void {
   }
 
   ipcMain.handle('app:init', () => {
+    // A crash while the private room was open may have left a folder behind
+    // (saving a source in there writes to disk) — sweep it on every boot.
+    store.deleteRoom(PRIVATE_ROOM_ID)
     const rooms = store.ensureDefaultRoom()
     const roomId =
       ctx.config.lastRoomId && rooms.some((r) => r.id === ctx.config.lastRoomId)
@@ -68,6 +88,13 @@ export function registerCoreIpc(ctx: WispContext): void {
     return { rooms, activeRoomId: next }
   })
   ipcMain.handle('rooms:rename', (_e, id: string, name: string) => store.renameRoom(id, name))
+  ipcMain.handle('rooms:color', (_e, id: string, color: string) => {
+    const meta = store.loadRoomMeta(id)
+    if (!meta || !/^#[0-9a-fA-F]{6}$/.test(color)) return null
+    meta.color = color
+    store.saveRoomMeta(meta)
+    return meta
+  })
   // archive: the room folder stays exactly where it is, it just leaves the
   // sidebar. deleting felt too final, i kept losing rooms i wanted back.
   ipcMain.handle('rooms:archive', (_e, id: string) => {
@@ -103,7 +130,11 @@ export function registerCoreIpc(ctx: WispContext): void {
     return meta
   })
   ipcMain.handle('rooms:switch', (_e, id: string) => switchRoom(id))
-  ipcMain.handle('rooms:data', (_e, id: string) => store.loadRoomData(id))
+  ipcMain.handle('rooms:data', (_e, id: string) =>
+    id === PRIVATE_ROOM_ID
+      ? { meta: privateRoomMeta(), sources: [], notes: [], map: { concepts: [], edges: [] } }
+      : store.loadRoomData(id)
+  )
 
   ipcMain.handle('tabs:new', (_e, url: string, background?: boolean) => {
     const roomId = tabs.currentRoomId()
@@ -121,6 +152,34 @@ export function registerCoreIpc(ctx: WispContext): void {
   ipcMain.handle('tabs:state', () => tabs.state())
 
   ipcMain.handle('adblock:stats', () => ({ blocked: getBlockedCount() }))
+
+  // ---- The private room: a whole room with an in-memory session. Entering
+  // switches you into it (creating it on first visit), leaving closes it and
+  // everything inside evaporates — tabs, cookies, the lot. ----
+  let roomBeforePrivate: string | null = null
+  ipcMain.handle('private:set', (_e, on: boolean) => {
+    const inPrivate = tabs.currentRoomId() === PRIVATE_ROOM_ID
+    if (on && !inPrivate) {
+      roomBeforePrivate = tabs.currentRoomId()
+      switchRoom(PRIVATE_ROOM_ID)
+      // An empty private room is just a dark screen — greet with a fresh tab.
+      if (tabs.state().tabs.length === 0) tabs.openTab(PRIVATE_ROOM_ID, 'about:blank', true)
+    } else if (!on) {
+      tabs.closeRoom(PRIVATE_ROOM_ID)
+      // If saving a source in there created a folder, it goes with the room.
+      store.deleteRoom(PRIVATE_ROOM_ID)
+      if (inPrivate) {
+        const rooms = store.ensureDefaultRoom()
+        const fallback =
+          [roomBeforePrivate, ctx.config.lastRoomId].find(
+            (id) => id && rooms.some((r) => r.id === id)
+          ) ?? rooms[0].id
+        switchRoom(fallback)
+      }
+      roomBeforePrivate = null
+    }
+    return { on: tabs.currentRoomId() === PRIVATE_ROOM_ID, activeRoomId: tabs.currentRoomId() }
+  })
 
   // ---- Sidebar widgets: what's playing, and how heavy the app is. ----
   tabs.onMediaChange = () => {
@@ -227,7 +286,11 @@ export function registerCoreIpc(ctx: WispContext): void {
   // address bar suggestions: what you searched before, what you search a lot,
   // and pages from this room's history so the list is useful from day one
   // (an empty searches.json used to mean an empty dropdown, which looked broken)
-  ipcMain.handle('searches:record', (_e, q: string) => store.recordSearch(String(q ?? '')))
+  ipcMain.handle('searches:record', (_e, q: string) => {
+    // Queries typed inside the private room stay out of the suggestion pool.
+    if (tabs.currentRoomId() === PRIVATE_ROOM_ID) return
+    store.recordSearch(String(q ?? ''))
+  })
   ipcMain.handle('searches:suggest', (_e, prefix: string) => {
     const p = String(prefix ?? '').trim().toLowerCase()
     if (!p) return []

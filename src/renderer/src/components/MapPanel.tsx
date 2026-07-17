@@ -105,6 +105,9 @@ function cyStyle(c: MapColors): cytoscape.StylesheetJson {
     },
     // nodes that belong to the same connected cluster share a soft tinted halo
     { selector: 'node[clusterColor]', style: { 'underlay-color': 'data(clusterColor)', 'underlay-opacity': 0.09, 'underlay-padding': 10 } },
+    // any node with an explicit size wears it — concepts, notes and sources
+    // are resizable from the context-menu slider, not just photos anymore
+    { selector: 'node[size]', style: { width: 'data(size)', height: 'data(size)' } },
     // group frames: a labeled box around its members. label rides on top like
     // a section header, the box itself stays quiet so the content leads.
     {
@@ -314,7 +317,7 @@ function toElements(
         // from wrapped text, so we guess from length and call it design
         ...(card ? { cardH: Math.min(240, 30 + Math.ceil(card.length / 32) * 13) } : {}),
         ...(n.color ? { color: n.color } : {}),
-        ...(img ? { img, size: sizes[n.id] ?? 52 } : {})
+        ...(img ? { img, size: sizes[n.id] ?? 52 } : sizes[n.id] ? { size: sizes[n.id] } : {})
       },
       position: positions[n.id] ? { ...positions[n.id] } : undefined,
       classes: [n.type, img ? 'image' : '', card ? 'card' : ''].filter(Boolean).join(' ')
@@ -848,11 +851,11 @@ export default function MapPanel(): React.JSX.Element {
     await applyRoomData()
   }
 
-  // Photo nodes grow/shrink in steps from the context menu.
-  const resizeImage = async (nodeId: string, factor: number): Promise<void> => {
+  // The context-menu size slider previews live on the canvas (cheap data
+  // write, no rebuild) and persists on release.
+  const commitSize = async (nodeId: string, size: number): Promise<void> => {
     if (!activeRoomId) return
-    const current = sizesRef.current[nodeId] ?? 52
-    await invoke('map:setNodeSize', activeRoomId, nodeId, current * factor)
+    await invoke('map:setNodeSize', activeRoomId, nodeId, size)
     await applyRoomData()
   }
   const setEdgeStyle = async (edgeId: string, style: 'solid' | 'dashed' | 'dotted'): Promise<void> => {
@@ -1124,16 +1127,19 @@ export default function MapPanel(): React.JSX.Element {
           {hint && <span className="text-accent">{hint}</span>}
         </div>
 
+        {/* pointer-events-none is load bearing: this layer used to sit on top of
+            the filter chips, so hiding every node (easy when the map is all
+            concepts) locked you out of the very buttons that bring them back */}
         {graph.nodes.length === 0 && (
-          <div className="absolute inset-0 flex items-center justify-center text-sm text-neutral-600">
-            {t('map.empty')}
+          <div className="pointer-events-none absolute inset-0 flex items-center justify-center text-sm text-neutral-600">
+            {fullGraph.nodes.length > 0 ? t('map.emptyFiltered') : t('map.empty')}
           </div>
         )}
 
         {/* Right-click context menu */}
         {ctx && (
           <div
-            className="absolute z-50 min-w-[140px] overflow-hidden rounded-lg border border-neutral-700 bg-neutral-900 py-1 text-xs shadow-2xl shadow-black/50"
+            className="wisp-menu absolute z-50 min-w-[160px] overflow-hidden rounded-lg py-1 text-xs"
             style={{ left: ctx.x, top: ctx.y }}
             onClick={(e) => e.stopPropagation()}
           >
@@ -1173,20 +1179,28 @@ export default function MapPanel(): React.JSX.Element {
                 {t('map.ctx.rename')}
               </button>
             )}
-            {ctx.nodeId && ctx.isImage && (
-              <div className="flex items-center gap-1 px-3 py-1.5">
-                <button
-                  className="flex-1 rounded border border-neutral-700 px-2 py-0.5 text-neutral-300 hover:bg-neutral-800"
-                  onClick={() => void resizeImage(ctx.nodeId!, 1 / 1.3)}
-                >
-                  − {t('map.ctx.smaller')}
-                </button>
-                <button
-                  className="flex-1 rounded border border-neutral-700 px-2 py-0.5 text-neutral-300 hover:bg-neutral-800"
-                  onClick={() => void resizeImage(ctx.nodeId!, 1.3)}
-                >
-                  + {t('map.ctx.bigger')}
-                </button>
+            {ctx.nodeId && ctx.nodeType !== 'group' && (
+              <div className="px-3 py-2">
+                <div className="mb-1 text-[10px] tracking-wide text-neutral-500 uppercase">
+                  {t('map.ctx.size')}
+                </div>
+                <input
+                  type="range"
+                  min={28}
+                  max={320}
+                  step={2}
+                  defaultValue={sizesRef.current[ctx.nodeId] ?? 52}
+                  className="w-full accent-accent"
+                  aria-label={t('map.ctx.size')}
+                  onInput={(e) =>
+                    cy.current
+                      ?.getElementById(ctx.nodeId!)
+                      .data('size', Number((e.target as HTMLInputElement).value))
+                  }
+                  onPointerUp={(e) =>
+                    void commitSize(ctx.nodeId!, Number((e.target as HTMLInputElement).value))
+                  }
+                />
               </div>
             )}
             {ctx.nodeId && ctx.nodeType === 'concept' && (

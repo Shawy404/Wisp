@@ -1,9 +1,10 @@
 // Wisp. © Shawy404, MIT.
-import * as fs from 'fs'
 import { basename, join } from 'path'
 import { app, ipcMain, shell, type DownloadItem } from 'electron'
 import type { DownloadInfo } from '@shared/types'
-import { webSession } from './security'
+import { translate } from '@shared/i18n'
+import { privateSession, webSession } from './security'
+import { showToast } from './toast'
 import type { WispContext } from './ipc'
 
 /**
@@ -107,54 +108,83 @@ export function cancelExternalMark(id: string): void {
 /** Cancel hooks for external transfers, keyed by download id. */
 export const externalCancel = new Map<string, () => void>()
 
-function uniquePath(dir: string, name: string): string {
-  const dot = name.lastIndexOf('.')
-  const stem = dot > 0 ? name.slice(0, dot) : name
-  const ext = dot > 0 ? name.slice(dot) : ''
-  let candidate = join(dir, name)
-  let n = 1
-  while (fs.existsSync(candidate)) candidate = join(dir, `${stem} (${n++})${ext}`)
-  return candidate
-}
-
 export function registerDownloads(ctx: WispContext): void {
   broadcast = () => {
     if (!ctx.win.isDestroyed()) ctx.win.webContents.send('downloads:state', listDownloads())
   }
+  // A page download used to start and finish in total silence unless the
+  // downloads panel happened to be open — "did that even download?" energy.
+  // Now a pill says it started and another says how it ended. Drawn in main
+  // (showToast) because a DOM toast hides under the open page, which is
+  // exactly where you are when you download something.
+  const toast = (
+    key: 'main.download.started' | 'main.download.done' | 'main.download.failed',
+    name: string
+  ): void => {
+    const icon = key === 'main.download.done' ? 'check' : key === 'main.download.failed' ? 'error' : 'download'
+    showToast(ctx, translate(ctx.config.language ?? 'tr', key, { name }), { icon })
+  }
 
-  webSession().on('will-download', (_e, item) => {
-    const id = `dl-${nextId++}`
-    const path = uniquePath(app.getPath('downloads'), item.getFilename() || 'download')
-    item.setSavePath(path)
-    push({
-      id,
-      filename: basename(path),
-      path,
-      url: item.getURL(),
-      state: 'progress',
-      received: 0,
-      total: item.getTotalBytes(),
-      startedAt: new Date().toISOString()
-    })
-    native.set(id, item)
-    broadcast()
-
-    item.on('updated', () => {
-      const it = items.get(id)
-      if (!it) return
-      it.received = item.getReceivedBytes()
-      it.total = item.getTotalBytes()
-      throttledBroadcast()
-    })
-    item.once('done', (_ev, state) => {
-      const it = items.get(id)
-      native.delete(id)
-      if (!it) return
-      it.received = item.getReceivedBytes()
-      it.state = state === 'completed' ? 'done' : state === 'cancelled' ? 'canceled' : 'failed'
+  const wireDownloads = (ses: Electron.Session): void =>
+    void ses.on('will-download', (_e, item) => {
+      const id = `dl-${nextId++}`
+      // Ask where to save, every time — silently dropping files into
+      // ~/Downloads meant nobody knew where (or that) anything landed.
+      // Chromium shows its save dialog when no save path is set; we just
+      // point the dialog at ~/Downloads with the suggested name.
+      item.setSaveDialogOptions({
+        defaultPath: join(app.getPath('downloads'), item.getFilename() || 'download')
+      })
+      push({
+        id,
+        filename: item.getFilename() || 'download',
+        path: '',
+        url: item.getURL(),
+        state: 'progress',
+        received: 0,
+        total: item.getTotalBytes(),
+        startedAt: new Date().toISOString()
+      })
+      native.set(id, item)
       broadcast()
+
+      let announced = false
+      item.on('updated', () => {
+        const it = items.get(id)
+        if (!it) return
+        // The real path exists only after the user picks it in the dialog.
+        const chosen = item.getSavePath()
+        if (chosen && !it.path) {
+          it.path = chosen
+          it.filename = basename(chosen)
+        }
+        if (chosen && !announced) {
+          announced = true
+          toast('main.download.started', it.filename)
+        }
+        it.received = item.getReceivedBytes()
+        it.total = item.getTotalBytes()
+        throttledBroadcast()
+      })
+      item.once('done', (_ev, state) => {
+        const it = items.get(id)
+        native.delete(id)
+        if (!it) return
+        it.received = item.getReceivedBytes()
+        const chosen = item.getSavePath()
+        if (chosen) {
+          it.path = chosen
+          it.filename = basename(chosen)
+        }
+        it.state = state === 'completed' ? 'done' : state === 'cancelled' ? 'canceled' : 'failed'
+        broadcast()
+        if (it.state === 'done') toast('main.download.done', it.filename)
+        else if (it.state === 'failed') toast('main.download.failed', it.filename)
+      })
     })
-  })
+
+  wireDownloads(webSession())
+  wireDownloads(privateSession())
 
   ipcMain.handle('downloads:list', () => listDownloads())
   ipcMain.handle('downloads:cancel', (_e, id: string) => {

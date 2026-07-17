@@ -80,10 +80,11 @@ export default function Viewport({ children }: { children?: React.ReactNode }): 
   }, [])
 
   return (
-    <div className="relative flex-1 overflow-hidden bg-neutral-925 p-2 pl-0">
+    // transparent gutter: the workspace floor shines around the page card
+    <div className="relative flex-1 overflow-hidden bg-transparent p-2 pl-1">
       <div
         ref={inner}
-        className="wisp-glass relative h-full w-full overflow-hidden rounded-xl border border-neutral-800/60 bg-neutral-950 shadow-[0_2px_16px_rgba(0,0,0,0.35)]"
+        className="wisp-glass relative h-full w-full overflow-hidden rounded-xl border border-white/[0.06] bg-neutral-950 shadow-[0_4px_16px_rgba(0,0,0,0.35),0_16px_48px_rgba(0,0,0,0.35)]"
       >
         {/* the start page ducks out whenever a panel floats over it. with glass
             themes it used to grin at you straight through the settings panel,

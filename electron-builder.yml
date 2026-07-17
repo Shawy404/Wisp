@@ -30,6 +30,9 @@ linux:
     - from: build/bin/linux
       to: bin
 win:
+  # spelled out instead of relying on auto-detection, after the exe once
+  # shipped with the stock electron icon and i aged a decade
+  icon: build/icon.ico
   target:
     - nsis
     - portable

@@ -1,8 +1,8 @@
 // Wisp. © Shawy404, MIT.
 import { join } from 'path'
 import { BrowserWindow, WebContentsView, type Input } from 'electron'
-import type { MediaState, TabInfo } from '@shared/types'
-import { WEB_PARTITION, isSafeTabUrl, openExternalSafe } from './security'
+import { PRIVATE_ROOM_ID, type MediaState, type TabInfo } from '@shared/types'
+import { PRIVATE_PARTITION, WEB_PARTITION, isSafeTabUrl, openExternalSafe } from './security'
 
 interface TabEntry {
   id: string
@@ -13,6 +13,8 @@ interface TabEntry {
   /** null while the tab sleeps — recreated (and reloaded) on activation. */
   view: WebContentsView | null
   lastActiveAt: number
+  /** Lives in the in-memory private partition; skipped by history + persistence. */
+  isPrivate?: boolean
 }
 
 interface Bounds {
@@ -123,7 +125,17 @@ export class TabManager {
 
   openTab(roomId: string, url: string, activate = true, silent = false): string {
     const id = `tab-${nextTabId++}`
-    const entry: TabEntry = { id, roomId, url, title: url, view: null, lastActiveAt: Date.now() }
+    const entry: TabEntry = {
+      id,
+      roomId,
+      url,
+      title: url,
+      view: null,
+      lastActiveAt: Date.now(),
+      // privacy is a property of the room, not a global switch: tabs born in
+      // the private room are private, tabs anywhere else are normal
+      isPrivate: roomId === PRIVATE_ROOM_ID || undefined
+    }
     this.tabs.set(id, entry)
     this.createView(entry)
     if (!this.order.has(roomId)) {
@@ -355,7 +367,8 @@ export class TabManager {
         canGoBack: e.view?.webContents.navigationHistory.canGoBack() ?? false,
         canGoForward: e.view?.webContents.navigationHistory.canGoForward() ?? false,
         isLoading: e.view?.webContents.isLoading() ?? false,
-        asleep: e.view === null
+        asleep: e.view === null,
+        isPrivate: e.isPrivate
       }))
     return { roomId, tabs, activeTabId: roomId ? (this.active.get(roomId) ?? null) : null }
   }
@@ -366,7 +379,8 @@ export class TabManager {
   }
 
   private persist(roomId: string): void {
-    const ids = this.order.get(roomId) ?? []
+    // Private tabs never make it to room.json — a restart forgets them.
+    const ids = (this.order.get(roomId) ?? []).filter((id) => !this.tabs.get(id)?.isPrivate)
     const urls = ids
       .map((id) => this.tabs.get(id)?.url ?? '')
       .filter((u) => u && u !== 'about:blank')
@@ -378,13 +392,14 @@ export class TabManager {
   /** Build (or rebuild, after sleep) the native view for a tab entry. */
   private createView(entry: TabEntry): void {
     // Pages live in their own persisted partition, isolated from the UI session.
-    // The web preload only watches for password-form submits (vault offers).
+    // Private tabs get the in-memory partition instead — same isolation, zero
+    // persistence. The web preload only watches for password-form submits.
     const view = new WebContentsView({
       webPreferences: {
         contextIsolation: true,
         nodeIntegration: false,
         sandbox: true,
-        partition: WEB_PARTITION,
+        partition: entry.isPrivate ? PRIVATE_PARTITION : WEB_PARTITION,
         preload: join(__dirname, '../preload/web.js')
       }
     })
@@ -482,6 +497,8 @@ export class TabManager {
       this.broadcast()
     }
     const visit = (): void => {
+      // Private tabs leave no trail in the room's history. That's the point.
+      if (entry.isPrivate) return
       const url = wc.getURL()
       if (/^https?:/i.test(url)) {
         this.onVisit(entry.roomId, { url, title: wc.getTitle() || url, favicon: entry.favicon })

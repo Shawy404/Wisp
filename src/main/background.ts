@@ -65,6 +65,9 @@ function currentBackground(ctx: WispContext): string | null {
 /** The custom app icon's absolute path, or null when using the built-in one. */
 export function customIconPath(config: { appIcon?: string }): string | null {
   if (!config.appIcon || config.appIcon.includes('/') || config.appIcon.includes('..')) return null
+  // configs from before the png/jpeg-only rule may still point at a webp,
+  // which nativeImage can't decode — fall back to the built-in icon.
+  if (config.appIcon.endsWith('.webp')) return null
   const file = join(iconDir(), config.appIcon)
   return fs.existsSync(file) ? file : null
 }
@@ -92,18 +95,24 @@ export function registerBackground(ctx: WispContext): void {
   })
 
   // ---- the window icon. picking an image swaps it live and remembers it. ----
+  // png/jpeg only: nativeImage can't decode webp, so a webp pick used to save
+  // fine and then change absolutely nothing (the windows report). now the
+  // dialog won't offer it, and an undecodable file is rejected instead of
+  // silently pretending it worked.
   ipcMain.handle('appicon:pick', async () => {
     const res = await dialog.showOpenDialog(ctx.win, {
       properties: ['openFile'],
-      filters: [{ name: 'Images', extensions: ['png', 'jpg', 'jpeg', 'webp'] }]
+      filters: [{ name: 'Images', extensions: ['png', 'jpg', 'jpeg'] }]
     })
     if (res.canceled || !res.filePaths[0]) return null
+    const img = nativeImage.createFromPath(res.filePaths[0])
+    if (img.isEmpty()) return null
     const name = importImage(iconDir(), res.filePaths[0], 'icon')
     if (!name) return null
     ctx.config.appIcon = name
     saveConfig(ctx.config)
     try {
-      ctx.win.setIcon(nativeImage.createFromPath(join(iconDir(), name)))
+      ctx.win.setIcon(img)
     } catch {
       /* a broken image should not take the settings panel down with it */
     }

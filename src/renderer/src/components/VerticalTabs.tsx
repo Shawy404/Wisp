@@ -1,7 +1,27 @@
 // Wisp. © Shawy404, MIT.
 import { useEffect, useRef, useState } from 'react'
+import { AnimatePresence, motion } from 'motion/react'
 import type { EssentialTab, PinnedTab } from '@shared/types'
 import { invoke, useApp, useT } from '@/store'
+import { Icon } from './icons'
+import { RAIL_DND_TYPE } from './railItems'
+
+/** Does this drag carry a link from outside (a page, another app)? */
+function isUrlDrag(types: readonly string[]): boolean {
+  if (types.includes('wisp/tab-id') || types.includes(RAIL_DND_TYPE)) return false
+  return types.includes('text/uri-list') || types.includes('text/plain')
+}
+
+/** First http(s) url in the drag payload, or null. */
+function draggedUrl(dt: DataTransfer): string | null {
+  const raw = dt.getData('text/uri-list') || dt.getData('text/plain')
+  return (
+    raw
+      .split('\n')
+      .map((l) => l.trim())
+      .find((l) => /^https?:\/\//i.test(l)) ?? null
+  )
+}
 
 interface MenuState {
   x: number
@@ -43,6 +63,17 @@ export default function VerticalTabs({ collapsed }: { collapsed: boolean }): Rea
   const t = useT()
   const dragId = useRef<string | null>(null)
   const [menu, setMenu] = useState<MenuState | null>(null)
+  // Lit while a link from a page (google results, anywhere) hovers the list —
+  // dropping it opens the link as a new tab right here.
+  const [urlDropHot, setUrlDropHot] = useState(false)
+
+  const dropUrl = (e: React.DragEvent): void => {
+    const url = draggedUrl(e.dataTransfer)
+    if (!url) return
+    e.preventDefault()
+    setUrlDropHot(false)
+    newTab(url)
+  }
 
   useEffect(() => {
     if (!menu) return
@@ -179,14 +210,42 @@ export default function VerticalTabs({ collapsed }: { collapsed: boolean }): Rea
             window.dispatchEvent(new CustomEvent('wisp:focus-address'))
           }}
           data-tip={t('tabs.newTab')}
+          aria-label={t('tabs.newTab')}
         >
-          +
+          <Icon name="plus" size={12} />
         </button>
       </div>
-      <div className={`flex-1 space-y-0.5 overflow-y-auto py-1 ${collapsed ? 'px-1.5' : 'px-2'}`}>
+      <div
+        className={`flex-1 space-y-0.5 overflow-y-auto rounded-lg py-1 transition-colors ${collapsed ? 'px-1.5' : 'px-2'} ${
+          urlDropHot ? 'bg-accent/5 ring-1 ring-accent/40 ring-inset' : ''
+        }`}
+        onDragOver={(e) => {
+          if (isUrlDrag(e.dataTransfer.types)) {
+            e.preventDefault()
+            setUrlDropHot(true)
+          }
+        }}
+        onDragLeave={(e) => {
+          if (e.currentTarget === e.target) setUrlDropHot(false)
+        }}
+        onDrop={(e) => {
+          setUrlDropHot(false)
+          if (!dragId.current) dropUrl(e)
+        }}
+      >
+        {/* the motion wrapper animates birth/death/reorder; the inner div keeps
+            the html5 drag handlers, which motion would otherwise swallow */}
+        <AnimatePresence initial={false}>
         {tabs.map((tab) => (
-          <div
+          <motion.div
             key={tab.id}
+            layout
+            initial={{ opacity: 0, x: -12, scale: 0.97 }}
+            animate={{ opacity: 1, x: 0, scale: 1 }}
+            exit={{ opacity: 0, x: -12, scale: 0.97 }}
+            transition={{ type: 'spring', stiffness: 550, damping: 38 }}
+          >
+          <div
             draggable
             onDragStart={(e) => {
               dragId.current = tab.id
@@ -202,7 +261,11 @@ export default function VerticalTabs({ collapsed }: { collapsed: boolean }): Rea
               void invoke('viewport:visible', useApp.getState().overlay === 'none')
             }}
             onDragOver={(e) => e.preventDefault()}
-            onDrop={() => handleDrop(tab.id)}
+            onDrop={(e) => {
+              // internal drags reorder; a link from outside just opens
+              if (dragId.current) handleDrop(tab.id)
+              else dropUrl(e)
+            }}
             onClick={() => showTab(tab.id)}
             onAuxClick={(e) => e.button === 1 && closeTab(tab.id)}
             onContextMenu={(e) =>
@@ -216,7 +279,7 @@ export default function VerticalTabs({ collapsed }: { collapsed: boolean }): Rea
               ])
             }
             title={tab.title || tab.url}
-            className={`group flex cursor-default items-center gap-2 rounded-lg text-xs ${
+            className={`group relative flex cursor-default items-center gap-2 rounded-lg text-xs transition-colors duration-150 ${
               collapsed ? 'justify-center p-2' : 'px-2.5 py-2'
             } ${
               tab.id === activeTabId
@@ -224,8 +287,19 @@ export default function VerticalTabs({ collapsed }: { collapsed: boolean }): Rea
                 : 'text-neutral-400 hover:bg-neutral-850 hover:text-neutral-200'
             }`}
           >
+            {/* the little accent spine that marks the tab you're actually on */}
+            {tab.id === activeTabId && !collapsed && (
+              <span
+                className="absolute top-1/2 left-0 h-4 w-[3px] -translate-y-1/2 rounded-full bg-accent"
+                aria-hidden="true"
+              />
+            )}
             {tab.isLoading ? (
               <span className="h-3.5 w-3.5 shrink-0 animate-spin rounded-full border border-neutral-500 border-t-accent" />
+            ) : tab.isPrivate ? (
+              // private tabs wear the shades instead of a favicon, favicons
+              // are a paper trail and this row officially has no past
+              <Icon name="glasses" size={14} className="shrink-0 text-accent/80" />
             ) : tab.favicon ? (
               <img src={tab.favicon} className="h-3.5 w-3.5 shrink-0 rounded-sm" alt="" />
             ) : (
@@ -237,12 +311,13 @@ export default function VerticalTabs({ collapsed }: { collapsed: boolean }): Rea
                 <button
                   className="hidden h-4 w-4 shrink-0 items-center justify-center rounded text-neutral-500 group-hover:flex hover:bg-neutral-700 hover:text-accent"
                   title={t('tabs.pin')}
+                  aria-label={t('tabs.pin')}
                   onClick={(e) => {
                     e.stopPropagation()
                     void pinTab(tab.url, tab.title || tab.url, tab.favicon)
                   }}
                 >
-                  <svg width="9" height="9" viewBox="0 0 12 12">
+                  <svg width="9" height="9" viewBox="0 0 12 12" aria-hidden="true">
                     <path
                       d="M6 1 v6 M3.5 3.5 h5 M6 7 v4"
                       stroke="currentColor"
@@ -253,19 +328,22 @@ export default function VerticalTabs({ collapsed }: { collapsed: boolean }): Rea
                 </button>
                 <button
                   className="hidden h-4 w-4 shrink-0 items-center justify-center rounded text-neutral-500 group-hover:flex hover:bg-neutral-700 hover:text-neutral-200"
+                  aria-label={t('tabs.menu.close')}
                   onClick={(e) => {
                     e.stopPropagation()
                     closeTab(tab.id)
                   }}
                 >
-                  <svg width="8" height="8" viewBox="0 0 10 10">
+                  <svg width="8" height="8" viewBox="0 0 10 10" aria-hidden="true">
                     <path d="M0 0 L10 10 M10 0 L0 10" stroke="currentColor" strokeWidth="1.4" />
                   </svg>
                 </button>
               </>
             )}
           </div>
+          </motion.div>
         ))}
+        </AnimatePresence>
         {tabs.length === 0 && !collapsed && (
           <div className="px-2 py-4 text-center text-[10px] text-neutral-600">{t('tabs.empty')}</div>
         )}
@@ -273,7 +351,7 @@ export default function VerticalTabs({ collapsed }: { collapsed: boolean }): Rea
 
       {menu && (
         <div
-          className="fixed z-50 w-44 rounded-md border border-neutral-700 bg-neutral-900 py-1 text-xs shadow-xl"
+          className="wisp-menu fixed z-50 w-44 rounded-md py-1 text-xs"
           style={{ left: Math.min(menu.x, window.innerWidth - 184), top: Math.min(menu.y, window.innerHeight - menu.items.length * 30 - 12) }}
           onClick={(e) => e.stopPropagation()}
         >

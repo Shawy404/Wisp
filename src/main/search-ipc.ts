@@ -1,7 +1,7 @@
 // Wisp. © Shawy404, MIT.
 import * as fs from 'fs'
 import { join } from 'path'
-import { ipcMain, net } from 'electron'
+import { app, ipcMain, net } from 'electron'
 import type { RoomSearchHit, SearchResults, SourceItem } from '@shared/types'
 import * as store from './storage'
 import { runSearch } from './search'
@@ -84,7 +84,9 @@ export function registerSearchIpc(ctx: WispContext): void {
   // a dump of every query ever run.
   ipcMain.handle('search:run', async (_e, query: string) => {
     const roomId = ctx.tabs.currentRoomId()
-    const results = await runSearch(query, (url, init) => net.fetch(url, init))
+    // System locale, not the ui language: reading wisp in english from ankara
+    // should still get you the turkish internet, and vice versa.
+    const results = await runSearch(query, (url, init) => net.fetch(url, init), app.getSystemLocale())
     if (roomId) lastResults.set(roomId, results)
     return results
   })

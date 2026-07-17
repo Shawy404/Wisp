@@ -13,6 +13,60 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: '0.2.1-alpha',
+    date: '2026-07-11',
+    notes: {
+      tr: [
+        'gizli oda geldi. üstteki gözlüğe tıkla, ayrı bir odaya geçersin. oradaki sekmeler iz bırakmaz, geçmiş yazılmaz, çerez kalmaz, odayı kapatınca her şey buhar olur. maskot bu duruma hazırlıklıymış, gör bak.',
+        'ayarlarda site istisnası yazarken her harften sonra kutuya tekrar tıklama devri kapandı. kutu her tuşta kendini baştan kuruyormuş. benim suçum, kusura bakma.',
+        'haritada her şeyi gizleyince filtre çipleri tıklanamıyordu, "harita boş" yazısı üstlerine oturuyormuş. kalktı, çipler çalışıyor.',
+        'video klipleme windows\'ta hiç çalışmamış. kod sadece / ile başlayan dosya yollarını tanıyormuş, C:\\ diye bir dünyanın varlığından habersizmiş. tanıştırdım.',
+        'video siyah kalıyorsa ayarlar, genel, video kısmından donanım hızlandırmayı kapat. bazı makineler gpu ile video çözemiyor (windows, sana bakıyorum).',
+        'güncelleme indirmesine duraklat geldi. duraklatınca wisp de nefesini tutuyor.',
+        'indirmeler artık nereye kaydedileceğini soruyor ve her adımda haber veriyor. başladı, bitti, patladı. bildirim de sayfanın üstünde çiziliyor, önceden sayfanın arkasında kalıp kimseye görünmüyormuş (bunu kendi özelliğimi test ederken öğrendim).',
+        'wisp aramasına pdf sekmesi geldi. makale pdf\'leri direkt orada.',
+        'arama sonuçları türkçeye çivili olmaktan çıktı, sistemin diline bakıyor artık. türk olmayan tek kullanıcıma selamlar.',
+        'timer\'a kendi süreni yazmak artık gerçekten çalışıyor. enter\'a basmak gerektiğini kimse bilmiyordu, artık tıklayıp çıkmak da yetiyor. bitince minik bir ses de çalıyor, istemeyen kapatır.',
+        'herhangi bir linki sekme listesine sürükle, yeni sekmede açılır.',
+        'ikon değiştirme windows\'ta hiçbir şey yapmıyordu çünkü webp seçince electron sessizce pes ediyormuş. artık png/jpeg istiyor ve dürüst.',
+        'paneller, menüler ve bildirimler aynı yumuşaklıkta açılıyor artık. maskotun gözleri de var, arada kırpıyor.',
+        'arayüz elden geçti: her yerdeki karakter salatası semboller yerine tek stilde çizilmiş gerçek ikonlar, uygulamayla gelen düzgün fontlar (Inter + Space Grotesk), butonlarda basınç hissi, vurgu rengini giyen kutucuklar ve kaydırıcılar, aktif sekmede renk çizgisi.',
+        'kabuk da baştan çizildi: kenar çubuğu ve sayfa, vurgu renginle aydınlanan bir zeminin üstünde yüzen iki kart artık. sekmeler açılırken, kapanırken ve sıralanırken gerçekten hareket ediyor (yay fiziği, evet).',
+        'sistem "daha az animasyon" diyorsa wisp de sakinleşiyor.',
+        'sağ tık menüleri artık her temada tamamen opak ve hiçbir şeyin altında kalmıyor (kenar çubuğu kartı menünün kafasını kesiyormuş, özür).',
+        'sayfadaki bir görsele sağ tıklayıp bilgisayara indirebilirsin, yer sorarak.',
+        'odaların rengini değiştirebilirsin: oda menüsünde palet var, kendi rengini de seçebilirsin.',
+        'haritada artık her düğümün boyutu değişiyor (kavram, not, kaynak, görsel): sağ tık, kaydırıcıyı sürükle, canlı büyüyüp küçülüyor. eski − / + butonları emekli.',
+        'üst barın compact modu silindi. adres çubuğunu yazarken yutan, öneri listesini kırpan bir moddu, kimse özlemeyecek. kenar çubuğununki duruyor, o uslu.',
+        'barlardaki buzlu cam artık bir ayar (görünüm kısmında, varsayılan kapalı). ben sevmedim ama belki seven çıkar.'
+      ],
+      en: [
+        'a private room. click the sunglasses up top and you step into a separate room whose tabs leave no traces. no history, no cookies kept, and closing the room makes everything inside evaporate. the mascot came prepared for this, go see.',
+        'typing site exceptions in settings no longer needs a click after every single letter. the box was rebuilding itself on every keystroke. my fault, sorry about that.',
+        'hiding everything on the map used to make the filter chips unclickable, the "map is empty" text was sitting right on top of them. it got off, the chips work.',
+        'video clipping never worked on windows. the code only recognized paths starting with /, blissfully unaware that C:\\ exists. they have been introduced.',
+        'if videos stay black, settings, general, video has a switch to turn off hardware acceleration. some machines just cannot decode video on the gpu (windows, looking at you).',
+        'the update download got a pause button. the wisp holds its breath while it waits.',
+        'downloads ask where to save now, and announce every step. started, done, failed. the notice is also drawn above the page, it used to hide behind it where nobody could see it (i learned this while testing my own feature).',
+        'wisp search grew a pdf tab. paper pdfs, right there.',
+        'search results are no longer nailed to turkish, they follow your system locale now. greetings to my one non turkish user.',
+        'typing your own timer length actually works now. nobody knew you had to press enter, so clicking away works too. it also chimes when the session ends, switch it off if you must.',
+        'drag any link onto the tab list and it opens in a new tab.',
+        'changing the app icon did nothing on windows because picking a webp made electron silently give up. it asks for png or jpeg now and tells the truth.',
+        'panels, menus and toasts open with the same easing now. the mascot has eyes, and yes, it blinks.',
+        'the ui got a real pass: proper icons drawn in one style instead of the unicode character salad, actual bundled fonts (Inter + Space Grotesk), buttons that press down, checkboxes and sliders wearing your accent, and a color spine on the active tab.',
+        'the shell got redrawn too: the sidebar and the page are two cards floating on a floor lit by your accent color now. tabs genuinely move when they open, close and reorder (spring physics, yes).',
+        'if your system asks for reduced motion, wisp calms down.',
+        'right-click menus are fully opaque in every theme now and nothing sits on top of them (the sidebar card was decapitating the room menu, sorry).',
+        'right-click any image on a page and save it to your computer. it asks where.',
+        'rooms have changeable colors: the room menu grew a palette, plus a picker for your own.',
+        "every map node is resizable now (concepts, notes, sources, photos): right-click, drag the slider, it grows live. the old − / + buttons retired.",
+        "the toolbar's compact mode is deleted. it ate the address bar mid-typing and clipped the suggestions, nobody will miss it. the sidebar's compact mode stays, that one behaves.",
+        'the frosted bars are a setting now (appearance, off by default). not my thing but maybe yours.'
+      ]
+    }
+  },
+  {
     version: '0.2.0-alpha',
     date: '2026-07-09',
     notes: {

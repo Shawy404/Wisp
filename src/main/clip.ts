@@ -8,6 +8,7 @@ import { translate } from '@shared/i18n'
 import { noteSlug } from '@shared/wikilink'
 import * as store from './storage'
 import { addSources } from './search-ipc'
+import { showToast } from './toast'
 import type { WispContext } from './ipc'
 import { extractReadable } from './reader'
 
@@ -38,9 +39,9 @@ export function registerClip(ctx: WispContext): void {
   const notify = (roomId: string): void => {
     if (!ctx.win.isDestroyed()) ctx.win.webContents.send('room:updated', roomId)
   }
-  const toast = (text: string): void => {
-    if (!ctx.win.isDestroyed()) ctx.win.webContents.send('toast', text)
-  }
+  // main-drawn pill: clips are taken from a live page, where a DOM toast
+  // would be invisible under the native view
+  const toast = (text: string): void => showToast(ctx, text, { icon: 'check' })
 
   ctx.tabs.viewHooks.push((view, tabId) => {
     view.webContents.on('context-menu', (_e, params) => {
@@ -77,6 +78,9 @@ export function registerClip(ctx: WispContext): void {
       if (params.mediaType === 'image' && params.srcURL) {
         editItems.push({ label: t('main.ctx.copyImage'), click: () => wc.copyImageAt(params.x, params.y) })
         editItems.push({ label: t('main.ctx.copyImageUrl'), click: () => clipboard.writeText(params.srcURL) })
+        // a real "save image" like every other browser — goes through the
+        // download manager, so it asks where and shows up in the panel
+        editItems.push({ label: t('main.ctx.saveImage'), click: () => wc.downloadURL(params.srcURL) })
       }
       if (editItems.length > 0) {
         template.push(...editItems, { type: 'separator' })

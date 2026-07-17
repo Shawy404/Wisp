@@ -12,6 +12,8 @@ export interface TabInfo {
   isLoading: boolean
   /** True while the tab's web contents are unloaded to save memory. */
   asleep?: boolean
+  /** Private-mode tab: in-memory session, never persisted, never in history. */
+  isPrivate?: boolean
 }
 
 /** A pinned tab: a saved place that survives closing the tab itself. */
@@ -45,8 +47,15 @@ export interface RoomMeta {
   }
 }
 
+/**
+ * The private room's fixed id. It never touches disk: main special-cases it
+ * everywhere a real room would be loaded or saved, its tabs live in the
+ * in-memory private session, and closing it evaporates the lot.
+ */
+export const PRIVATE_ROOM_ID = 'room-private'
+
 export type NodeType = 'source' | 'note' | 'concept'
-export type SourceKind = 'academic' | 'wiki' | 'image' | 'web' | 'clip' | 'video'
+export type SourceKind = 'academic' | 'wiki' | 'image' | 'web' | 'clip' | 'video' | 'pdf'
 
 /** A collected source (rooms/<slug>/sources.json). Also a node in the graph. */
 export interface SourceItem {
@@ -194,8 +203,11 @@ export interface WispConfig {
   sidebarWidgets?: { music?: boolean; ram?: boolean }
   /** Compact mode: the sidebar hides itself and reveals on hover. */
   compactSidebar?: boolean
-  /** Compact mode for the top toolbar: hides itself, reveals at the top edge. */
+  /** Dead setting: the auto-hiding toolbar was too buggy to live. Old configs
+   *  may still carry it; nothing reads it anymore. */
   compactToolbar?: boolean
+  /** Frosted bars: title bar + sidebar go slightly translucent with blur. */
+  chromeBlur?: boolean
   /** Width in px of the hover strip that reveals the compact sidebar (default 10). */
   compactRevealPx?: number
   /** Delay in ms before the revealed sidebar tucks away again (default 400). */
@@ -216,6 +228,10 @@ export interface WispConfig {
   followSystemTheme?: boolean
   /** Custom window icon: a stored filename under ~/Wisp/icons, or unset. */
   appIcon?: string
+  /** Turn off gpu compositing/decode for machines where video renders black. Needs restart. */
+  disableHwAccel?: boolean
+  /** Play a small chime when a focus session ends (default on). */
+  timerSound?: boolean
 }
 
 /** One remembered address-bar/search query (~/Wisp/searches.json). */
@@ -255,6 +271,7 @@ export interface SearchResults {
   wiki: SourceItem[]
   images: SourceItem[]
   web: SourceItem[]
+  pdfs: SourceItem[]
   errors: string[]
   /** Raw API responses, for the dev-mode JSON viewer. */
   raw?: Record<string, unknown>
